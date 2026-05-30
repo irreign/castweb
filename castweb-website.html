@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CastWeb — Websites for Singapore SMEs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;0,9..144,900;1,9..144,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #f8f9fc;
+    --ink:      #0d1117;
+    --white:    #ffffff;
+    --teal:     #00c4a0;
+    --teal-d:   #009e82;
+    --violet:   #6c47ff;
+    --orange:   #ff6b35;
+    --yellow:   #ffd460;
+    --muted:    #6b7280;
+    --border:   rgba(13,17,23,0.08);
+    --card-bg:  #ffffff;
+    --radius:   14px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    overflow-x: hidden;
+  }
+
+  /* ─── NAV ─── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 3rem; height: 68px;
+    background: rgba(248,249,252,0.88);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-logo {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 800; font-size: 1.35rem;
+    color: var(--ink); text-decoration: none; letter-spacing: -0.04em;
+    display: flex; align-items: center; gap: 0.4rem;
+  }
+  .logo-mark {
+    width: 30px; height: 30px; border-radius: 8px;
+    background: linear-gradient(135deg, var(--teal), var(--violet));
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 0.85rem; font-weight: 800;
+  }
+  .nav-links { display: flex; align-items: center; gap: 2rem; list-style: none; }
+  .nav-links a {
+    font-size: 0.875rem; font-weight: 500; color: var(--muted);
+    text-decoration: none; transition: color 0.2s;
+  }
+  .nav-links a:hover { color: var(--ink); }
+  .nav-cta {
+    background: var(--ink); color: white !important;
+    padding: 0.55rem 1.3rem; border-radius: 8px;
+    font-weight: 600 !important; font-size: 0.85rem !important;
+    transition: background 0.2s !important;
+  }
+  .nav-cta:hover { background: var(--teal) !important; color: var(--ink) !important; }
+
+  /* ─── HERO ─── */
+  .hero {
+    min-height: 100vh;
+    display: grid; grid-template-columns: 1fr 1fr;
+    align-items: center; gap: 4rem;
+    padding: 8rem 3rem 5rem;
+    max-width: 1280px; margin: 0 auto;
+    position: relative;
+  }
+
+  .hero-eyebrow {
+    display: inline-flex; align-items: center; gap: 0.6rem;
+    background: linear-gradient(90deg, rgba(0,196,160,0.12), rgba(108,71,255,0.08));
+    border: 1px solid rgba(0,196,160,0.25);
+    border-radius: 100px; padding: 0.35rem 1rem;
+    font-size: 0.78rem; font-weight: 700;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--teal-d); margin-bottom: 1.6rem;
+  }
+  .eyebrow-ping {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--teal);
+    animation: ping 1.8s ease-in-out infinite;
+  }
+  @keyframes ping {
+    0%,100% { opacity:1; transform:scale(1); }
+    50%      { opacity:0.4; transform:scale(0.7); }
+  }
+
+  .hero h1 {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(3rem, 5.5vw, 5rem);
+    font-weight: 900; line-height: 1.02;
+    letter-spacing: -0.03em; margin-bottom: 1.5rem;
+  }
+  .hero h1 em {
+    font-style: italic; font-weight: 300;
+    background: linear-gradient(90deg, var(--teal), var(--violet));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .hero-sub {
+    font-size: 1.05rem; line-height: 1.75;
+    color: var(--muted); max-width: 460px; margin-bottom: 2.5rem;
+  }
+
+  .hero-actions { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--teal), var(--violet));
+    color: white; text-decoration: none;
+    padding: 0.85rem 2rem; border-radius: 10px;
+    font-weight: 700; font-size: 0.95rem;
+    box-shadow: 0 6px 24px rgba(0,196,160,0.35);
+    transition: transform 0.2s, box-shadow 0.2s;
+    display: inline-block;
+  }
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 32px rgba(0,196,160,0.45);
+  }
+  .btn-ghost {
+    color: var(--ink); text-decoration: none;
+    font-size: 0.9rem; font-weight: 600;
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    opacity: 0.6; transition: opacity 0.2s;
+  }
+  .btn-ghost:hover { opacity: 1; }
+
+  .hero-trust {
+    margin-top: 3rem; padding-top: 2rem;
+    border-top: 1px solid var(--border);
+    display: flex; gap: 2.5rem;
+  }
+  .trust-stat {}
+  .trust-num {
+    font-family: 'Fraunces', serif;
+    font-size: 2.2rem; font-weight: 900;
+    letter-spacing: -0.04em; line-height: 1;
+    background: linear-gradient(135deg, var(--teal), var(--violet));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .trust-label { font-size: 0.8rem; color: var(--muted); margin-top: 0.2rem; }
+
+  /* ─── HERO VISUAL ─── */
+  .hero-visual { position: relative; }
+
+  .hero-card-stack { position: relative; height: 480px; }
+
+  .hcard {
+    position: absolute;
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+    overflow: hidden;
+  }
+
+  .hcard-main {
+    width: 100%; top: 0; left: 0; right: 0;
+    padding: 0;
+  }
+
+  .hcard-header {
+    background: linear-gradient(135deg, var(--teal), var(--violet));
+    padding: 1.4rem 1.6rem;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .hcard-header-title { color: white; font-weight: 700; font-size: 0.95rem; }
+  .hcard-dots { display: flex; gap: 6px; }
+  .hcard-dot { width: 9px; height: 9px; border-radius: 50%; background: rgba(255,255,255,0.4); }
+
+  .hcard-body { padding: 1.4rem 1.6rem; }
+  .hcard-metric-row { display: flex; gap: 1rem; margin-bottom: 1rem; }
+  .hcard-metric {
+    flex: 1; background: var(--bg);
+    border-radius: 10px; padding: 0.9rem;
+    text-align: center;
+  }
+  .hm-val { font-family: 'Fraunces', serif; font-size: 1.5rem; font-weight: 900; color: var(--teal); }
+  .hm-lab { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
+
+  .hcard-bar-label { font-size: 0.75rem; font-weight: 600; color: var(--muted); margin-bottom: 0.5rem; }
+  .hcard-bar { background: var(--bg); border-radius: 100px; height: 8px; overflow: hidden; margin-bottom: 0.6rem; }
+  .hcard-bar-fill { height: 100%; border-radius: 100px; background: linear-gradient(90deg, var(--teal), var(--violet)); }
+
+  /* floating chips */
+  .chip {
+    position: absolute;
+    background: white;
+    border-radius: 12px;
+    padding: 0.6rem 0.9rem;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    font-size: 0.75rem; font-weight: 700;
+    display: flex; align-items: center; gap: 0.5rem;
+    white-space: nowrap;
+    animation: chipFloat 3s ease-in-out infinite;
+    z-index: 10;
+  }
+  .chip-1 { bottom: 50px; left: -30px; animation-delay: 0s; }
+  .chip-2 { top: 30px;  right: -20px; animation-delay: 1.5s; }
+  @keyframes chipFloat {
+    0%,100% { transform: translateY(0); }
+    50%      { transform: translateY(-7px); }
+  }
+  .chip-icon { font-size: 1rem; }
+
+  /* ─── MARQUEE ─── */
+  .marquee-wrap {
+    background: var(--ink);
+    padding: 1rem 0; overflow: hidden;
+  }
+  .marquee-track {
+    display: flex; gap: 3.5rem;
+    animation: mq 30s linear infinite;
+    width: max-content;
+  }
+  @keyframes mq { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  .mq-item {
+    font-size: 0.75rem; font-weight: 700;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    color: rgba(255,255,255,0.3);
+    white-space: nowrap;
+    display: flex; align-items: center; gap: 0.8rem;
+  }
+  .mq-dot { color: var(--teal); }
+
+  /* ─── SHARED SECTION ─── */
+  .section { padding: 6rem 3rem; }
+  .section-inner { max-width: 1280px; margin: 0 auto; }
+  .section-header { margin-bottom: 3.5rem; }
+  .section-tag {
+    font-size: 0.72rem; font-weight: 800;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--teal); margin-bottom: 0.75rem;
+  }
+  .section-title {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(2rem, 3.5vw, 2.9rem);
+    font-weight: 900; letter-spacing: -0.03em; line-height: 1.1;
+    margin-bottom: 0.9rem;
+  }
+  .section-desc { color: var(--muted); font-size: 1rem; line-height: 1.75; max-width: 520px; }
+
+  /* ─── SERVICES ─── */
+  #services { background: white; }
+
+  .services-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .svc-card {
+    background: white; padding: 2.2rem;
+    transition: background 0.25s; cursor: default;
+    position: relative; overflow: hidden;
+  }
+  .svc-card::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(0,196,160,0.04), rgba(108,71,255,0.04));
+    opacity: 0; transition: opacity 0.25s;
+  }
+  .svc-card:hover::before { opacity: 1; }
+
+  .svc-icon {
+    width: 48px; height: 48px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem; margin-bottom: 1.3rem;
+  }
+  .svc-card h3 {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 800; font-size: 1.05rem;
+    letter-spacing: -0.02em; margin-bottom: 0.65rem;
+  }
+  .svc-card p { font-size: 0.875rem; line-height: 1.7; color: var(--muted); }
+  .svc-price {
+    margin-top: 1.3rem; padding-top: 1rem;
+    border-top: 1px solid var(--border);
+    font-weight: 800; font-size: 0.9rem; color: var(--teal);
+  }
+  .svc-price small { font-weight: 400; font-size: 0.75rem; color: var(--muted); }
+
+  /* ─── PROCESS ─── */
+  #process { background: var(--bg); }
+
+  .process-timeline {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem; margin-top: 1rem; position: relative;
+  }
+  .process-timeline::before {
+    content: '';
+    position: absolute; top: 27px;
+    left: calc(12.5% + 27px); right: calc(12.5% + 27px);
+    height: 2px;
+    background: linear-gradient(90deg, var(--teal), var(--violet));
+  }
+
+  .proc-step { text-align: center; position: relative; z-index: 1; }
+  .proc-num {
+    width: 54px; height: 54px; border-radius: 50%;
+    background: var(--ink); color: white;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Fraunces', serif;
+    font-size: 1.2rem; font-weight: 900;
+    margin: 0 auto 1.3rem;
+  }
+  .proc-step:nth-child(2) .proc-num { background: var(--orange); }
+  .proc-step:nth-child(3) .proc-num { background: var(--teal); }
+  .proc-step:nth-child(4) .proc-num { background: var(--violet); }
+
+  .proc-step h4 { font-weight: 800; font-size: 0.95rem; margin-bottom: 0.5rem; }
+  .proc-step p  { font-size: 0.82rem; color: var(--muted); line-height: 1.65; }
+
+  /* ─── PRICING ─── */
+  #pricing {
+    background: var(--ink);
+    position: relative; overflow: hidden;
+  }
+  #pricing::before {
+    content: '';
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse 60% 50% at 20% 50%, rgba(0,196,160,0.12) 0%, transparent 70%),
+      radial-gradient(ellipse 50% 60% at 80% 50%, rgba(108,71,255,0.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  #pricing .section-tag { color: rgba(255,255,255,0.4); }
+  #pricing .section-title { color: white; }
+  #pricing .section-desc { color: rgba(255,255,255,0.45); }
+
+  .pricing-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem; position: relative; z-index: 1;
+  }
+
+  .p-card {
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px; padding: 2.2rem;
+    background: rgba(255,255,255,0.04);
+    transition: border-color 0.3s, transform 0.3s;
+    position: relative;
+  }
+  .p-card:hover { border-color: rgba(0,196,160,0.35); transform: translateY(-4px); }
+  .p-card.featured {
+    background: linear-gradient(135deg, var(--teal), var(--violet));
+    border: none;
+  }
+  .p-card.featured:hover { transform: translateY(-4px); }
+  .pop-badge {
+    position: absolute; top: -13px; left: 50%; transform: translateX(-50%);
+    background: var(--yellow); color: var(--ink);
+    font-size: 0.68rem; font-weight: 800;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 0.28rem 0.9rem; border-radius: 100px;
+    white-space: nowrap;
+  }
+
+  .p-name { font-weight: 800; font-size: 1rem; color: white; margin-bottom: 0.3rem; }
+  .p-tag  { font-size: 0.78rem; color: rgba(255,255,255,0.45); margin-bottom: 1.6rem; }
+  .p-amt  {
+    font-family: 'Fraunces', serif; font-size: 3rem;
+    font-weight: 900; color: white; letter-spacing: -0.05em; line-height: 1;
+  }
+  .p-amt sup { font-size: 1.1rem; vertical-align: super; letter-spacing: 0; }
+  .p-freq { font-size: 0.78rem; color: rgba(255,255,255,0.4); margin-bottom: 1.8rem; }
+  .p-feats { list-style: none; margin-bottom: 1.8rem; }
+  .p-feats li {
+    font-size: 0.85rem; color: rgba(255,255,255,0.8);
+    padding: 0.45rem 0; border-bottom: 1px solid rgba(255,255,255,0.08);
+    display: flex; align-items: center; gap: 0.6rem;
+  }
+  .p-card.featured .p-feats li { border-color: rgba(255,255,255,0.2); color: white; }
+  .ck { color: var(--teal); font-weight: 800; }
+  .p-card.featured .ck { color: white; }
+
+  .btn-plan {
+    display: block; text-align: center;
+    border: 1.5px solid rgba(255,255,255,0.25);
+    color: white; padding: 0.8rem;
+    border-radius: 8px; font-weight: 700; font-size: 0.88rem;
+    text-decoration: none; transition: all 0.2s;
+  }
+  .btn-plan:hover { background: white; color: var(--ink); border-color: white; }
+  .p-card.featured .btn-plan { background: white; color: var(--teal); border-color: white; }
+  .p-card.featured .btn-plan:hover { background: var(--ink); color: white; border-color: var(--ink); }
+
+  /* ─── TESTIMONIALS ─── */
+  #testimonials { background: white; }
+
+  .testi-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+  }
+
+  .t-card {
+    background: var(--bg); border-radius: 16px; padding: 2rem;
+    border: 1px solid var(--border);
+    transition: box-shadow 0.3s, transform 0.3s;
+  }
+  .t-card:hover { box-shadow: 0 12px 40px rgba(0,0,0,0.06); transform: translateY(-3px); }
+
+  .t-stars { font-size: 0.85rem; letter-spacing: 2px; color: var(--yellow); margin-bottom: 1rem; }
+  .t-quote {
+    font-size: 0.9rem; line-height: 1.8; color: #374151;
+    font-style: italic; margin-bottom: 1.4rem;
+  }
+  .t-author { display: flex; align-items: center; gap: 0.7rem; }
+  .t-av {
+    width: 38px; height: 38px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 0.85rem; color: white;
+  }
+  .t-name { font-weight: 800; font-size: 0.88rem; }
+  .t-biz  { font-size: 0.75rem; color: var(--muted); }
+
+  /* ─── FAQ ─── */
+  #faq { background: var(--bg); }
+
+  .faq-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 1px; background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: var(--radius); overflow: hidden;
+  }
+
+  .faq-item {
+    background: white; padding: 1.8rem 2rem;
+    cursor: pointer; transition: background 0.2s;
+  }
+  .faq-item:hover { background: #fafbfc; }
+  .faq-q {
+    font-weight: 800; font-size: 0.95rem;
+    display: flex; justify-content: space-between;
+    align-items: flex-start; gap: 1rem; margin-bottom: 0.75rem;
+  }
+  .faq-plus { color: var(--teal); font-size: 1.3rem; flex-shrink: 0; line-height: 1; }
+  .faq-a { font-size: 0.875rem; line-height: 1.75; color: var(--muted); }
+
+  /* ─── CONTACT ─── */
+  #contact {
+    background: linear-gradient(135deg, #00c4a0 0%, #6c47ff 100%);
+    padding: 7rem 3rem;
+    position: relative; overflow: hidden;
+  }
+  #contact::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  }
+
+  .contact-inner {
+    max-width: 1280px; margin: 0 auto;
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 5rem; align-items: center; position: relative; z-index: 1;
+  }
+
+  .contact-left h2 {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(2.2rem, 4vw, 3.5rem);
+    font-weight: 900; color: white; line-height: 1.1;
+    letter-spacing: -0.03em; margin-bottom: 1.2rem;
+  }
+  .contact-left p { color: rgba(255,255,255,0.75); font-size: 1rem; line-height: 1.75; margin-bottom: 2rem; }
+
+  .contact-perks { list-style: none; display: flex; flex-direction: column; gap: 0.75rem; }
+  .contact-perks li {
+    display: flex; align-items: center; gap: 0.75rem;
+    color: white; font-size: 0.9rem; font-weight: 600;
+  }
+  .perk-icon {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: rgba(255,255,255,0.2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.85rem; flex-shrink: 0;
+  }
+
+  .contact-form-box {
+    background: white; border-radius: 20px; padding: 2.5rem;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.2);
+  }
+  .cf-title { font-weight: 800; font-size: 1.2rem; margin-bottom: 1.5rem; letter-spacing: -0.02em; }
+
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .fg { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 0.9rem; }
+  .fg label { font-size: 0.72rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+  .fg input, .fg select, .fg textarea {
+    border: 1.5px solid var(--border); border-radius: 8px;
+    padding: 0.75rem 0.9rem; font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.9rem; color: var(--ink); outline: none;
+    transition: border-color 0.2s; background: var(--bg);
+  }
+  .fg input:focus, .fg select:focus, .fg textarea:focus { border-color: var(--teal); background: white; }
+  .fg textarea { resize: vertical; min-height: 100px; }
+  .fg select option { background: white; }
+
+  .btn-submit {
+    width: 100%; background: linear-gradient(135deg, var(--teal), var(--violet));
+    color: white; border: none;
+    padding: 1rem; border-radius: 10px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.95rem; font-weight: 800;
+    cursor: pointer; margin-top: 0.5rem;
+    transition: opacity 0.2s, transform 0.2s;
+    letter-spacing: 0.01em;
+  }
+  .btn-submit:hover { opacity: 0.92; transform: translateY(-1px); }
+
+  /* ─── FOOTER ─── */
+  footer {
+    background: #07080d; color: rgba(255,255,255,0.35);
+    padding: 2rem 3rem;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 1rem;
+  }
+  .f-logo {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 800; font-size: 1.1rem; color: white;
+    display: flex; align-items: center; gap: 0.4rem; text-decoration: none;
+  }
+  .f-logo-mark {
+    width: 24px; height: 24px; border-radius: 6px;
+    background: linear-gradient(135deg, var(--teal), var(--violet));
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 0.7rem; font-weight: 800;
+  }
+  footer p { font-size: 0.78rem; }
+  .f-links { display: flex; gap: 1.5rem; list-style: none; }
+  .f-links a { color: rgba(255,255,255,0.35); text-decoration: none; font-size: 0.8rem; transition: color 0.2s; }
+  .f-links a:hover { color: white; }
+
+  /* ─── WHATSAPP FLOAT ─── */
+  .wa-btn {
+    position: fixed; bottom: 1.8rem; right: 1.8rem; z-index: 300;
+    width: 54px; height: 54px; border-radius: 50%;
+    background: #25d366;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 18px rgba(37,211,102,0.4);
+    text-decoration: none;
+    transition: transform 0.2s;
+  }
+  .wa-btn:hover { transform: scale(1.08); }
+  .wa-btn svg { width: 26px; height: 26px; fill: white; }
+
+  /* ─── REVEAL ─── */
+  .reveal { opacity: 0; transform: translateY(28px); transition: opacity 0.65s ease, transform 0.65s ease; }
+  .reveal.in { opacity: 1; transform: translateY(0); }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 900px) {
+    nav { padding: 0 1.5rem; }
+    .nav-links { display: none; }
+    .section { padding: 4rem 1.5rem; }
+    .hero { grid-template-columns: 1fr; padding: 7rem 1.5rem 4rem; gap: 0; }
+    .hero-visual { display: none; }
+    .services-grid, .pricing-grid, .testi-grid { grid-template-columns: 1fr; }
+    .process-timeline { grid-template-columns: 1fr 1fr; }
+    .process-timeline::before { display: none; }
+    .faq-grid { grid-template-columns: 1fr; }
+    .contact-inner { grid-template-columns: 1fr; gap: 2.5rem; }
+    .form-row { grid-template-columns: 1fr; }
+    footer { flex-direction: column; text-align: center; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a class="nav-logo" href="#">
+    <div class="logo-mark">C</div>
+    CastWeb
+  </a>
+  <ul class="nav-links">
+    <li><a href="#services">Services</a></li>
+    <li><a href="#process">Process</a></li>
+    <li><a href="#pricing">Pricing</a></li>
+    <li><a href="#testimonials">Reviews</a></li>
+    <li><a href="#faq">FAQ</a></li>
+    <li><a href="#contact" class="nav-cta">Free Audit</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<div style="max-width:1280px;margin:0 auto;">
+<section class="hero">
+  <div class="hero-left">
+    <div class="hero-eyebrow">
+      <div class="eyebrow-ping"></div>
+      🇸🇬 Built for Singapore SMEs
+    </div>
+    <h1>Cast your<br>business <em>wide</em><br>online.</h1>
+    <p class="hero-sub">
+      CastWeb builds fast, professional websites for Singapore small businesses — from hawker stalls to accounting firms. Fixed price. Fast delivery. Real results.
+    </p>
+    <div class="hero-actions">
+      <a href="#contact" class="btn-primary">Get a Free Website Audit →</a>
+      <a href="#pricing" class="btn-ghost">View Packages ↓</a>
+    </div>
+    <div class="hero-trust">
+      <div class="trust-stat">
+        <div class="trust-num">3–7</div>
+        <div class="trust-label">Days to launch</div>
+      </div>
+      <div class="trust-stat">
+        <div class="trust-num">S$880</div>
+        <div class="trust-label">Starting price</div>
+      </div>
+      <div class="trust-stat">
+        <div class="trust-num">100%</div>
+        <div class="trust-label">SG-based team</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="hero-visual">
+    <div class="hero-card-stack">
+      <div class="hcard hcard-main">
+        <div class="hcard-header">
+          <div class="hcard-header-title">Your New Website Dashboard</div>
+          <div class="hcard-dots"><div class="hcard-dot"></div><div class="hcard-dot"></div><div class="hcard-dot"></div></div>
+        </div>
+        <div class="hcard-body">
+          <div class="hcard-metric-row">
+            <div class="hcard-metric"><div class="hm-val">847</div><div class="hm-lab">Monthly Visitors</div></div>
+            <div class="hcard-metric"><div class="hm-val">38</div><div class="hm-lab">Leads This Month</div></div>
+            <div class="hcard-metric"><div class="hm-val">4.9★</div><div class="hm-lab">Google Rating</div></div>
+          </div>
+          <div class="hcard-bar-label">Google Search Ranking</div>
+          <div class="hcard-bar"><div class="hcard-bar-fill" style="width:85%"></div></div>
+          <div class="hcard-bar-label">Mobile Speed Score</div>
+          <div class="hcard-bar"><div class="hcard-bar-fill" style="width:92%"></div></div>
+          <div class="hcard-bar-label">SEO Health</div>
+          <div class="hcard-bar"><div class="hcard-bar-fill" style="width:78%"></div></div>
+        </div>
+      </div>
+      <div class="chip chip-1">
+        <span class="chip-icon">🚀</span> Site Live &amp; Indexed
+      </div>
+      <div class="chip chip-2">
+        <span class="chip-icon">💬</span> 3 New Enquiries Today
+      </div>
+    </div>
+  </div>
+</section>
+</div>
+
+<!-- MARQUEE -->
+<div class="marquee-wrap">
+  <div class="marquee-track">
+    <div class="mq-item">F&amp;B <span class="mq-dot">◆</span></div>
+    <div class="mq-item">Retail <span class="mq-dot">◆</span></div>
+    <div class="mq-item">Legal <span class="mq-dot">◆</span></div>
+    <div class="mq-item">Clinics <span class="mq-dot">◆</span></div>
+    <div class="mq-item">Tuition Centres <span class="mq-dot">◆</span></div>
+    <div class="mq-item">Interior Design <span class="mq-dot">◆</span></div>
+    <div class="mq-item">Contractors <span class="mq-dot">◆</span></div>
+    <div class="mq-item">E-Commerce <span class="mq-dot">◆</span></div>
+    <div class="mq-item">Finance <span class="mq-dot">◆</span></div>
+    <div class="mq-item">Logistics <span class="mq-dot">◆</span></div>
+    <!-- duplicate -->
+    <div class="mq-item">F&amp;B <span class="mq-dot">◆</span></div>
+    <div class="mq-item">Retail <span class="mq-dot">◆</span></div>
+    <div class="mq-item">Legal <span class="mq-dot">◆</span></div>
+    <div class="mq-item">Clinics <span class="mq-dot">◆</span></div>
+    <div class="mq-item">Tuition Centres <span class="mq-dot">◆</span></div>
+    <div class="mq-item">Interior Design <span class="mq-dot">◆</span></div>
+    <div class="mq-item">Contractors <span class="mq-dot">◆</span></div>
+    <div class="mq-item">E-Commerce <span class="mq-dot">◆</span></div>
+    <div class="mq-item">Finance <span class="mq-dot">◆</span></div>
+    <div class="mq-item">Logistics <span class="mq-dot">◆</span></div>
+  </div>
+</div>
+
+<!-- SERVICES -->
+<section id="services" class="section">
+  <div class="section-inner">
+    <div class="section-header reveal">
+      <div class="section-tag">What We Do</div>
+      <h2 class="section-title">Everything your business<br>needs to win online.</h2>
+      <p class="section-desc">We handle design, build, hosting, and SEO. You handle running your business.</p>
+    </div>
+    <div class="services-grid">
+      <div class="svc-card reveal">
+        <div class="svc-icon" style="background:rgba(0,196,160,0.1);">🎨</div>
+        <h3>Website Design &amp; Build</h3>
+        <p>Custom-designed, mobile-first websites that reflect your brand and convert visitors into paying customers.</p>
+        <div class="svc-price">From S$880 <small>/ one-time</small></div>
+      </div>
+      <div class="svc-card reveal">
+        <div class="svc-icon" style="background:rgba(108,71,255,0.1);">🛒</div>
+        <h3>E-Commerce Stores</h3>
+        <p>Full-featured online shops with PayNow, PayLah!, and Stripe. Inventory, orders, GST invoicing — all set up.</p>
+        <div class="svc-price">From S$2,200 <small>/ one-time</small></div>
+      </div>
+      <div class="svc-card reveal">
+        <div class="svc-icon" style="background:rgba(255,107,53,0.1);">📈</div>
+        <h3>SEO &amp; Google Presence</h3>
+        <p>Get found before your competitors. We optimise your site for local Singapore searches that bring real customers.</p>
+        <div class="svc-price">From S$380 <small>/ month</small></div>
+      </div>
+      <div class="svc-card reveal">
+        <div class="svc-icon" style="background:rgba(255,212,96,0.15);">🔧</div>
+        <h3>Website Maintenance</h3>
+        <p>Monthly plans covering updates, backups, security patches, and content changes. We keep it healthy.</p>
+        <div class="svc-price">From S$150 <small>/ month</small></div>
+      </div>
+      <div class="svc-card reveal">
+        <div class="svc-icon" style="background:rgba(0,196,160,0.1);">📱</div>
+        <h3>Landing Pages</h3>
+        <p>High-converting single pages for promotions, ad campaigns, or product launches. Built to turn clicks into leads.</p>
+        <div class="svc-price">From S$480 <small>/ one-time</small></div>
+      </div>
+      <div class="svc-card reveal">
+        <div class="svc-icon" style="background:rgba(108,71,255,0.1);">🤖</div>
+        <h3>AI Chat Widget</h3>
+        <p>A smart chatbot that answers queries 24/7, qualifies leads, and books appointments — while you sleep.</p>
+        <div class="svc-price">From S$280 <small>/ month</small></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PROCESS -->
+<section id="process" class="section">
+  <div class="section-inner">
+    <div class="section-header reveal">
+      <div class="section-tag">How It Works</div>
+      <h2 class="section-title">From first chat to<br>live in 3–7 days.</h2>
+      <p class="section-desc">Clear steps. Fixed prices. No project that drags on for months.</p>
+    </div>
+    <div class="process-timeline">
+      <div class="proc-step reveal">
+        <div class="proc-num">01</div>
+        <h4>Free Discovery Call</h4>
+        <p>We learn your business, goals, and customers in a 30-min call or WhatsApp chat.</p>
+      </div>
+      <div class="proc-step reveal">
+        <div class="proc-num">02</div>
+        <h4>Proposal &amp; Quote</h4>
+        <p>Receive a clear scope and fixed SGD price within 24 hours. No hidden fees, ever.</p>
+      </div>
+      <div class="proc-step reveal">
+        <div class="proc-num">03</div>
+        <h4>We Build It</h4>
+        <p>You review a live preview and give feedback. Unlimited revisions until you love it.</p>
+      </div>
+      <div class="proc-step reveal">
+        <div class="proc-num">04</div>
+        <h4>Launch &amp; Handover</h4>
+        <p>We go live, submit to Google, and stay available for 30 days post-launch.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section id="pricing" class="section">
+  <div class="section-inner">
+    <div class="section-header reveal">
+      <div class="section-tag">Transparent Pricing</div>
+      <h2 class="section-title">Simple packages.<br>Zero surprises.</h2>
+      <p class="section-desc">All prices in Singapore Dollars. One-time build fee, optional monthly support.</p>
+    </div>
+    <div class="pricing-grid">
+      <div class="p-card reveal">
+        <div class="p-name">Starter</div>
+        <div class="p-tag">For businesses just getting online</div>
+        <div class="p-amt"><sup>S$</sup>880</div>
+        <div class="p-freq">one-time payment</div>
+        <ul class="p-feats">
+          <li><span class="ck">✓</span> Up to 5 pages</li>
+          <li><span class="ck">✓</span> Mobile-responsive design</li>
+          <li><span class="ck">✓</span> Contact form &amp; Google Maps</li>
+          <li><span class="ck">✓</span> Basic on-page SEO</li>
+          <li><span class="ck">✓</span> 30-day post-launch support</li>
+        </ul>
+        <a href="#contact" class="btn-plan">Get Started</a>
+      </div>
+      <div class="p-card featured reveal">
+        <div class="pop-badge">★ Most Popular</div>
+        <div class="p-name">Growth</div>
+        <div class="p-tag">For businesses ready to dominate locally</div>
+        <div class="p-amt"><sup>S$</sup>2,200</div>
+        <div class="p-freq">one-time payment</div>
+        <ul class="p-feats">
+          <li><span class="ck">✓</span> Up to 12 pages</li>
+          <li><span class="ck">✓</span> Premium custom design</li>
+          <li><span class="ck">✓</span> Blog / News section</li>
+          <li><span class="ck">✓</span> Lead capture &amp; CRM setup</li>
+          <li><span class="ck">✓</span> Full on-page SEO</li>
+          <li><span class="ck">✓</span> Google Analytics &amp; Search Console</li>
+          <li><span class="ck">✓</span> WhatsApp chat integration</li>
+          <li><span class="ck">✓</span> 60-day post-launch support</li>
+        </ul>
+        <a href="#contact" class="btn-plan">Get Started</a>
+      </div>
+      <div class="p-card reveal">
+        <div class="p-name">Commerce</div>
+        <div class="p-tag">For businesses ready to sell online</div>
+        <div class="p-amt"><sup>S$</sup>3,800</div>
+        <div class="p-freq">one-time payment</div>
+        <ul class="p-feats">
+          <li><span class="ck">✓</span> Full e-commerce store</li>
+          <li><span class="ck">✓</span> Up to 50 products</li>
+          <li><span class="ck">✓</span> PayNow / Stripe / PayLah!</li>
+          <li><span class="ck">✓</span> Inventory &amp; order management</li>
+          <li><span class="ck">✓</span> GST-compliant invoicing</li>
+          <li><span class="ck">✓</span> 90-day post-launch support</li>
+        </ul>
+        <a href="#contact" class="btn-plan">Get Started</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section id="testimonials" class="section">
+  <div class="section-inner">
+    <div class="section-header reveal">
+      <div class="section-tag">Client Stories</div>
+      <h2 class="section-title">Real Singapore businesses.<br>Real results.</h2>
+    </div>
+    <div class="testi-grid">
+      <div class="t-card reveal">
+        <div class="t-stars">★★★★★</div>
+        <p class="t-quote">"Our old website was embarrassing us. Now we send every prospect there first. We've signed three new corporate contracts since CastWeb launched our site."</p>
+        <div class="t-author">
+          <div class="t-av" style="background:linear-gradient(135deg,var(--teal),var(--violet))">RS</div>
+          <div><div class="t-name">Rajan Subramaniam</div><div class="t-biz">RS Electrical Services, Jurong</div></div>
+        </div>
+      </div>
+      <div class="t-card reveal">
+        <div class="t-stars">★★★★★</div>
+        <p class="t-quote">"WhatsApp to live website in 5 days. Very fast, very professional. My online orders went up 40% in the first month. Cannot ask for more lah!"</p>
+        <div class="t-author">
+          <div class="t-av" style="background:linear-gradient(135deg,var(--orange),var(--yellow))">ML</div>
+          <div><div class="t-name">Mei Ling Tan</div><div class="t-biz">Mei's Kitchen, Tiong Bahru</div></div>
+        </div>
+      </div>
+      <div class="t-card reveal">
+        <div class="t-stars">★★★★★</div>
+        <p class="t-quote">"I was worried about cost and all the tech stuff. CastWeb made it simple — fixed price, no surprises, and the site looks sharper than firms 10x our size."</p>
+        <div class="t-author">
+          <div class="t-av" style="background:linear-gradient(135deg,var(--violet),#a855f7)">AK</div>
+          <div><div class="t-name">Ahmad Khalil</div><div class="t-biz">Khalil Legal Advisory, CBD</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section id="faq" class="section">
+  <div class="section-inner">
+    <div class="section-header reveal">
+      <div class="section-tag">Common Questions</div>
+      <h2 class="section-title">You've got questions.<br>We've got answers.</h2>
+    </div>
+    <div class="faq-grid">
+      <div class="faq-item reveal">
+        <div class="faq-q">Do I need to provide content? <span class="faq-plus">+</span></div>
+        <div class="faq-a">Not necessarily. We work with whatever you have — phone photos, old brochures, or nothing at all. Basic copywriting and stock imagery are included in every package.</div>
+      </div>
+      <div class="faq-item reveal">
+        <div class="faq-q">Can I update the site myself? <span class="faq-plus">+</span></div>
+        <div class="faq-a">Yes. We hand you full access and a simple guide. Or subscribe to our maintenance plan and we'll handle all updates for you.</div>
+      </div>
+      <div class="faq-item reveal">
+        <div class="faq-q">Is hosting included in the price? <span class="faq-plus">+</span></div>
+        <div class="faq-a">The one-time fee covers the build. Hosting runs S$15–30/month, which we help you set up — we don't mark it up.</div>
+      </div>
+      <div class="faq-item reveal">
+        <div class="faq-q">What if I don't like the design? <span class="faq-plus">+</span></div>
+        <div class="faq-a">Unlimited revision rounds. We don't go live until you've signed off and you're 100% happy.</div>
+      </div>
+      <div class="faq-item reveal">
+        <div class="faq-q">Do you accept PayNow? <span class="faq-plus">+</span></div>
+        <div class="faq-a">Yes — PayNow, bank transfer, and credit card all accepted. For e-commerce clients we integrate PayNow, PayLah!, GrabPay, and Stripe into your store.</div>
+      </div>
+      <div class="faq-item reveal">
+        <div class="faq-q">Will it work on mobile? <span class="faq-plus">+</span></div>
+        <div class="faq-a">Every site is mobile-first, tested on iPhone and Android. Over 78% of SG web traffic is mobile — non-negotiable for us.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CONTACT -->
+<section id="contact">
+  <div class="contact-inner">
+    <div class="contact-left reveal">
+      <h2>Ready to cast<br>your net wide?</h2>
+      <p>Get a free 30-minute consultation and website audit. We'll tell you exactly what you need — and what you don't.</p>
+      <ul class="contact-perks">
+        <li><div class="perk-icon">✓</div> No obligation, no hard sell</li>
+        <li><div class="perk-icon">⚡</div> Quote within 24 hours</li>
+        <li><div class="perk-icon">🇸🇬</div> Singapore team, SG prices</li>
+        <li><div class="perk-icon">💬</div> WhatsApp-friendly process</li>
+      </ul>
+    </div>
+    <div class="contact-form-box reveal">
+      <div class="cf-title">Book Your Free Audit</div>
+      <div class="form-row">
+        <div class="fg">
+          <label>Your Name</label>
+          <input type="text" placeholder="Lim Wei Ming">
+        </div>
+        <div class="fg">
+          <label>WhatsApp / Phone</label>
+          <input type="tel" placeholder="+65 9XXX XXXX">
+        </div>
+      </div>
+      <div class="fg">
+        <label>Business Name</label>
+        <input type="text" placeholder="My Business Pte Ltd">
+      </div>
+      <div class="fg">
+        <label>What Do You Need?</label>
+        <select>
+          <option value="">Select a service...</option>
+          <option>Starter Website (S$880)</option>
+          <option>Growth Website (S$2,200)</option>
+          <option>Commerce Store (S$3,800)</option>
+          <option>Just the free audit first</option>
+          <option>Monthly SEO / Maintenance</option>
+          <option>Something else</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Tell Us About Your Business</label>
+        <textarea placeholder="What do you sell? Who are your customers? Any sites you like the look of?"></textarea>
+      </div>
+      <button class="btn-submit">Send Message &amp; Book Free Audit →</button>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <a class="f-logo" href="#">
+    <div class="f-logo-mark">C</div>
+    CastWeb
+  </a>
+  <p>© 2026 CastWeb. Singapore-based. All prices in SGD. UEN: 202600000X</p>
+  <ul class="f-links">
+    <li><a href="#services">Services</a></li>
+    <li><a href="#pricing">Pricing</a></li>
+    <li><a href="#contact">Contact</a></li>
+    <li><a href="#">Privacy Policy</a></li>
+  </ul>
+</footer>
+
+<!-- WHATSAPP FLOAT -->
+<a class="wa-btn" href="https://wa.me/6591234567" target="_blank">
+  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+    <path d="M12 0C5.373 0 0 5.373 0 12c0 2.107.547 4.086 1.508 5.808L.057 23.428a.5.5 0 00.515.572l5.763-1.51A11.942 11.942 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22a9.955 9.955 0 01-5.091-1.395l-.365-.218-3.785.993 1.01-3.677-.239-.379A9.96 9.96 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/>
+  </svg>
+</a>
+
+<script>
+  // Scroll reveal
+  const els = document.querySelectorAll('.reveal');
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach((e, i) => {
+      if (e.isIntersecting) {
+        setTimeout(() => e.target.classList.add('in'), i * 70);
+        obs.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.08 });
+  els.forEach(el => obs.observe(el));
+
+  // Nav highlight
+  const secs = document.querySelectorAll('section[id]');
+  window.addEventListener('scroll', () => {
+    let cur = '';
+    secs.forEach(s => { if (window.scrollY >= s.offsetTop - 120) cur = s.id; });
+    document.querySelectorAll('.nav-links a').forEach(a => {
+      a.style.color = a.getAttribute('href') === '#' + cur ? 'var(--ink)' : '';
+    });
+  });
+</script>
+</body>
+</html>
