@@ -1,0 +1,878 @@
+<title>MentorMe — Life-Stage Mentor App Concept</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root{
+    --ink: #16213A;
+    --ink-soft: #4B5568;
+    --ink-faint: #7C8894;
+    --paper: #EEF1EF;
+    --surface: #FFFFFF;
+    --surface-sunk: #E4E9E6;
+    --line: #DBE1DD;
+    --gold: #B87F1F;
+    --gold-strong: #96660F;
+    --teal: #1B6763;
+    --plum: #6B4C6B;
+    --success: #2F7A4E;
+    --critical: #A83F33;
+    --shadow: 220 30% 15%;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --ink: #E9ECE8;
+      --ink-soft: #AAB4AD;
+      --ink-faint: #7C8880;
+      --paper: #10161A;
+      --surface: #1A2124;
+      --surface-sunk: #141A1D;
+      --line: #2A3336;
+      --gold: #E2A83F;
+      --gold-strong: #F0BE63;
+      --teal: #45A39C;
+      --plum: #A882A8;
+      --success: #5FB981;
+      --critical: #E0806F;
+    }
+  }
+  :root[data-theme="dark"]{
+    --ink: #E9ECE8; --ink-soft: #AAB4AD; --ink-faint: #7C8880;
+    --paper: #10161A; --surface: #1A2124; --surface-sunk: #141A1D;
+    --line: #2A3336; --gold: #E2A83F; --gold-strong: #F0BE63;
+    --teal: #45A39C; --plum: #A882A8; --success: #5FB981; --critical: #E0806F;
+  }
+  :root[data-theme="light"]{
+    --ink: #16213A; --ink-soft: #4B5568; --ink-faint: #7C8894;
+    --paper: #EEF1EF; --surface: #FFFFFF; --surface-sunk: #E4E9E6;
+    --line: #DBE1DD; --gold: #B87F1F; --gold-strong: #96660F;
+    --teal: #1B6763; --plum: #6B4C6B; --success: #2F7A4E; --critical: #A83F33;
+  }
+
+  *{ box-sizing: border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background: var(--paper);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  }
+  a{ color: inherit; }
+  .wrap{ max-width: 1180px; margin: 0 auto; padding: 0 28px 96px; }
+
+  /* ---------- top bar ---------- */
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 26px 28px 0; max-width: 1180px; margin: 0 auto;
+  }
+  .wordmark{
+    display:flex; align-items:center; gap:10px;
+    font-weight: 800; font-size: 15px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--ink);
+  }
+  .wordmark .dot{ width:9px; height:9px; border-radius:50%; background: var(--gold); box-shadow: 0 0 0 3px color-mix(in srgb, var(--gold) 20%, transparent); }
+  .eyebrow-tag{
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint);
+    border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px;
+  }
+
+  /* ---------- hero ---------- */
+  .hero{ padding: 56px 0 40px; }
+  .hero h1{
+    font-size: clamp(30px, 4.6vw, 52px);
+    line-height: 1.08; letter-spacing: -0.01em; margin: 0 0 18px; max-width: 16ch;
+    text-wrap: balance; font-weight: 800;
+  }
+  .hero h1 em{ font-style: normal; color: var(--gold-strong); }
+  .hero p.lede{
+    max-width: 62ch; font-size: 17px; color: var(--ink-soft); margin: 0 0 44px;
+  }
+
+  /* mini horizontal money line in hero */
+  .mini-line{ position: relative; padding: 34px 0 46px; overflow-x: auto; }
+  .mini-line .track{
+    position: absolute; left: 4%; right: 4%; top: 52px; height: 2px;
+    background: linear-gradient(90deg, var(--gold), var(--teal) 55%, var(--plum));
+    opacity: 0.55;
+  }
+  .mini-stations{ display:flex; justify-content: space-between; min-width: 640px; position: relative; }
+  .mini-station{ display:flex; flex-direction:column; align-items:center; gap:10px; width: 120px; }
+  .mini-station .node{ width:16px; height:16px; border-radius:50%; background: var(--surface); border: 3px solid var(--teal); z-index:1; }
+  .mini-station.is-current .node{ background: var(--gold); border-color: var(--gold); box-shadow: 0 0 0 6px color-mix(in srgb, var(--gold) 18%, transparent); }
+  .mini-station .label{ font-size: 12.5px; color: var(--ink-soft); text-align:center; }
+  .mini-station.is-current .label{ color: var(--ink); font-weight: 700; }
+
+  /* ---------- section headings ---------- */
+  .section{ padding: 64px 0 0; }
+  .section-head{ display:flex; align-items:baseline; justify-content: space-between; gap: 20px; margin-bottom: 30px; flex-wrap: wrap; }
+  .section-head h2{ font-size: 26px; margin:0; letter-spacing:-0.01em; }
+  .section-eyebrow{ font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-faint); font-weight:700; }
+  .section-sub{ color: var(--ink-soft); font-size: 15px; max-width: 60ch; margin: 8px 0 0; }
+
+  /* ---------- phone mockups row ---------- */
+  .screens-row{
+    display:flex; gap: 26px; overflow-x: auto; padding: 6px 6px 20px;
+    scroll-snap-type: x proximity;
+  }
+  .screen-col{ flex: 0 0 auto; scroll-snap-align: start; width: 286px; }
+  .screen-caption{ margin-top: 14px; }
+  .screen-caption .num{ font-size: 11px; color: var(--gold-strong); font-weight: 800; letter-spacing: 0.08em; }
+  .screen-caption h3{ font-size: 15px; margin: 4px 0 4px; }
+  .screen-caption p{ font-size: 13px; color: var(--ink-soft); margin:0; }
+
+  .phone{
+    width: 286px; height: 588px; border-radius: 42px; background: var(--ink);
+    padding: 10px; box-shadow: 0 30px 60px -24px hsl(var(--shadow) / 0.45), 0 2px 0 hsl(var(--shadow) / 0.06);
+  }
+  .phone .screen{
+    width:100%; height:100%; border-radius: 32px; background: var(--paper); overflow:hidden;
+    display:flex; flex-direction:column; position:relative;
+  }
+  .statusbar{
+    display:flex; justify-content:space-between; align-items:center; padding: 14px 20px 4px;
+    font-size: 12px; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums;
+  }
+  .statusbar .icons{ display:flex; gap:5px; align-items:center; color: var(--ink-soft); }
+  .screen-body{ flex:1; overflow-y:auto; padding: 6px 18px 20px; }
+
+  /* --- shared UI bits inside phones --- */
+  .app-title{ font-size: 20px; font-weight: 800; letter-spacing: -0.01em; margin: 10px 0 2px; }
+  .app-sub{ font-size: 12.5px; color: var(--ink-soft); margin: 0 0 18px; }
+  .chip-row{ display:flex; flex-wrap:wrap; gap: 8px; margin-bottom: 18px; }
+  .chip{
+    font-size: 12.5px; padding: 8px 13px; border-radius: 999px; border: 1.5px solid var(--line);
+    color: var(--ink-soft); background: var(--surface);
+  }
+  .chip.active{ border-color: var(--gold); color: var(--gold-strong); background: color-mix(in srgb, var(--gold) 12%, var(--surface)); font-weight: 700; }
+  .field-label{ font-size: 11px; text-transform: uppercase; letter-spacing: 0.09em; color: var(--ink-faint); font-weight: 700; margin: 16px 0 8px; }
+  .btn-primary{
+    width:100%; padding: 13px 16px; border-radius: 14px; border:none; margin-top: 22px;
+    background: var(--gold); color: #201404; font-weight: 800; font-size: 14px; letter-spacing: 0.01em;
+    cursor:pointer;
+  }
+  .btn-primary:focus-visible, .btn-outline:focus-visible, .chip:focus-visible{ outline: 2px solid var(--teal); outline-offset: 2px; }
+  .btn-outline{
+    width:100%; padding: 12px 16px; border-radius: 14px; margin-top: 12px; font-weight: 700; font-size: 13.5px;
+    background: transparent; border: 1.5px solid var(--line); color: var(--ink); cursor: pointer;
+  }
+
+  /* home screen money-line (vertical) */
+  .greet{ font-size: 13px; color: var(--ink-soft); margin: 8px 0 2px;}
+  .greet b{ color: var(--ink); }
+  .money-line{ position: relative; margin: 22px 0 10px; padding-left: 6px; }
+  .money-line .rail{ position:absolute; left: 15px; top: 8px; bottom: 8px; width: 2px; background: var(--line); }
+  .station{ position: relative; display:flex; align-items:flex-start; gap: 14px; padding: 13px 0; }
+  .station .node{ width: 32px; height:32px; border-radius:50%; background: var(--surface); border: 2.5px solid var(--teal); flex: 0 0 auto; display:flex; align-items:center; justify-content:center; z-index:1; }
+  .station .node.gold{ border-color: var(--gold); }
+  .station .node.interchange{ background: linear-gradient(135deg, color-mix(in srgb, var(--gold) 30%, var(--surface)), color-mix(in srgb, var(--plum) 30%, var(--surface))); border-color: var(--gold); }
+  .station .name{ font-size: 13.5px; font-weight: 600; color: var(--ink-soft); padding-top: 6px; }
+  .station.current .node{ background: var(--gold); border-color: var(--gold); box-shadow: 0 0 0 5px color-mix(in srgb, var(--gold) 20%, transparent); }
+  .station.current .name{ color: var(--ink); font-weight: 800; }
+  .station .here-tag{ font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gold-strong); font-weight: 800; display:block; }
+
+  .card{ background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 15px 16px; margin-top: 14px; }
+  .card .kicker{ font-size: 10.5px; letter-spacing:0.1em; text-transform: uppercase; font-weight: 800; color: var(--gold-strong); margin-bottom:6px; }
+  .card.alert .kicker{ color: var(--critical); }
+  .card p{ font-size: 13px; color: var(--ink-soft); margin: 0 0 10px; line-height:1.45; }
+  .card .cta{ font-size: 12.5px; font-weight: 800; color: var(--teal); }
+
+  /* recommendation detail */
+  .backrow{ display:flex; align-items:center; gap:10px; padding-top: 10px; font-size: 13px; color: var(--ink-soft); }
+  .pill{ display:inline-block; font-size: 10.5px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gold-strong); background: color-mix(in srgb, var(--gold) 14%, var(--surface)); padding: 5px 10px; border-radius: 999px; margin: 10px 0; }
+  .detail-body{ font-size: 13.5px; color: var(--ink-soft); line-height: 1.55; margin-bottom: 16px; }
+  table.cmp{ width:100%; border-collapse: collapse; font-size: 12px; margin-bottom: 14px; }
+  table.cmp th{ text-align:left; font-size: 10.5px; text-transform:uppercase; letter-spacing:0.06em; color: var(--ink-faint); padding: 6px 6px; border-bottom: 1px solid var(--line); }
+  table.cmp td{ padding: 8px 6px; border-bottom: 1px solid var(--line); color: var(--ink); font-variant-numeric: tabular-nums; }
+  .foot-note{ font-size: 11px; color: var(--ink-faint); font-style: normal; }
+  .pill.commitment{ color: var(--plum); background: color-mix(in srgb, var(--plum) 14%, var(--surface)); }
+  .card.commitment .kicker{ color: var(--plum); }
+  .tip-list{ list-style:none; margin:0 0 14px; padding:0; }
+  .tip-list li{ display:flex; gap:10px; align-items:flex-start; font-size:12.5px; color:var(--ink-soft); padding:7px 0; border-bottom:1px dashed var(--line); line-height:1.4; }
+  .tip-list li:last-child{ border-bottom:none; }
+  .tip-list .dot{ width:7px; height:7px; border-radius:50%; margin-top:5px; flex:0 0 auto; background: var(--teal); }
+  .tip-list .dot.gold{ background: var(--gold); }
+
+  /* cards screen */
+  .enroll{ background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 13px 15px; margin-top: 12px; }
+  .enroll .e-top{ display:flex; justify-content: space-between; align-items:center; margin-bottom: 8px; gap: 8px; }
+  .enroll .e-name{ font-size: 13px; font-weight: 700; }
+  .badge{ font-size: 9.5px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; flex: 0 0 auto; }
+  .badge.active{ color: var(--success); background: color-mix(in srgb, var(--success) 16%, var(--surface)); }
+  .badge.cancelled{ color: var(--ink-faint); background: var(--surface-sunk); }
+  .enroll .e-meta{ display:flex; justify-content: space-between; font-size: 11.5px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+  .enroll .e-note{ font-size: 11.5px; color: var(--gold-strong); margin-top: 7px; font-weight: 700; }
+
+  .offer{ background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--gold); border-radius: 0 14px 14px 0; padding: 12px 14px; margin-top: 10px; }
+  .offer .o-top{ display:flex; justify-content: space-between; gap: 8px; font-size: 12.5px; font-weight: 700; margin-bottom: 5px; }
+  .offer .o-top span:last-child{ color: var(--ink-faint); font-weight: 600; flex: 0 0 auto; }
+  .offer .o-gift{ font-size: 12px; color: var(--gold-strong); font-weight: 700; margin-bottom: 4px; line-height: 1.4; }
+  .offer .o-meta{ font-size: 10.5px; color: var(--ink-faint); }
+
+  /* profile screen */
+  .row{ display:flex; align-items:center; justify-content: space-between; padding: 13px 0; border-bottom: 1px solid var(--line); }
+  .row .rl{ font-size: 11px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-faint); display:block; margin-bottom: 3px; }
+  .row .rv{ font-size: 14px; color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .toggle-row{ display:flex; align-items:center; justify-content: space-between; padding: 14px 0; gap: 14px; }
+  .toggle{ width: 42px; height: 24px; border-radius: 999px; background: var(--gold); position: relative; flex: 0 0 auto; }
+  .toggle::after{ content:""; position:absolute; width:18px; height:18px; border-radius:50%; background:#fff; top:3px; right:3px; }
+  .privacy-note{ font-size: 12px; color: var(--ink-soft); margin: 4px 0 0; }
+  .link-row{ font-size: 13px; font-weight: 700; padding: 12px 0; color: var(--ink); }
+  .link-row.danger{ color: var(--critical); }
+
+  /* ---------- build plan (utilitarian) ---------- */
+  .stack-grid{ display:grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  @media (max-width: 900px){ .stack-grid{ grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 560px){ .stack-grid{ grid-template-columns: 1fr; } }
+  .stack-card{ background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 20px; }
+  .stack-card .role{ font-size: 10.5px; letter-spacing:0.1em; text-transform:uppercase; color: var(--ink-faint); font-weight: 800; }
+  .stack-card h4{ font-size: 16px; margin: 8px 0 8px; }
+  .stack-card p{ font-size: 13px; color: var(--ink-soft); margin:0; line-height:1.5; }
+
+  /* schema cards */
+  .schema-grid{ display:grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 26px; }
+  @media (max-width: 900px){ .schema-grid{ grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 620px){ .schema-grid{ grid-template-columns: 1fr; } }
+  .table-card{ background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow:hidden; }
+  .table-card .t-head{ padding: 12px 16px; border-bottom: 1px solid var(--line); display:flex; align-items:center; gap:8px; }
+  .table-card .t-head .sq{ width:9px; height:9px; border-radius:2px; }
+  .table-card .t-head span{ font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; font-size: 13px; font-weight: 700; }
+  .table-card ul{ list-style:none; margin:0; padding: 10px 16px 14px; }
+  .table-card li{ display:flex; justify-content: space-between; gap: 10px; font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; font-size: 12px; padding: 5px 0; border-bottom: 1px dashed var(--line); }
+  .table-card li:last-child{ border-bottom: none; }
+  .table-card li .fname{ color: var(--ink); }
+  .table-card li .ftype{ color: var(--ink-faint); text-align:right; }
+
+  .callout{
+    border-left: 3px solid var(--gold); background: color-mix(in srgb, var(--gold) 7%, var(--surface));
+    border-radius: 0 12px 12px 0; padding: 16px 20px; margin: 6px 0 8px;
+  }
+  .callout h5{ margin: 0 0 6px; font-size: 13.5px; }
+  .callout p{ margin:0; font-size: 13px; color: var(--ink-soft); line-height:1.5; }
+
+  .rule-grid{ display:grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 8px; }
+  @media (max-width: 900px){ .rule-grid{ grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 620px){ .rule-grid{ grid-template-columns: 1fr; } }
+  .rule-card{ background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
+  .rule-card .r-head{ display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+  .rule-card .r-head .sq{ width:9px; height:9px; border-radius:2px; flex:0 0 auto; }
+  .rule-card .r-head span{ font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; font-size: 11.5px; font-weight: 700; color: var(--ink-faint); }
+  .rule-card h4{ font-size: 14.5px; margin: 0 0 9px; }
+  .rule-card .cond{ font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; font-size: 11.5px; color: var(--ink-soft); background: var(--surface-sunk); border-radius: 8px; padding: 8px 10px; margin-bottom: 9px; line-height: 1.5; }
+  .rule-card .why{ font-size: 12px; color: var(--ink-faint); margin: 0; line-height: 1.45; }
+
+  .next-steps{ margin: 8px 0 0; padding-left: 20px; color: var(--ink-soft); font-size: 14px; line-height: 1.9; }
+  .next-steps li::marker{ color: var(--gold-strong); }
+
+  footer{ margin-top: 70px; padding-top: 24px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--ink-faint); }
+</style>
+
+<div class="topbar">
+  <div class="wordmark"><span class="dot"></span>MentorMe</div>
+  <div class="eyebrow-tag">Concept &amp; build plan</div>
+</div>
+
+<div class="wrap">
+
+  <section class="hero">
+    <h1>Every stage of your life, mapped like a <em>transit line</em>.</h1>
+    <p class="lede">MentorMe asks a few quick questions — your annual income, and the liabilities that come with it, like kids or a home — and plots where you are on one line. Every station is real guidance: a routine for surviving newborn twins, a reward worth enrolling for, a habit worth starting.</p>
+
+    <div class="mini-line">
+      <div class="track"></div>
+      <div class="mini-stations">
+        <div class="mini-station"><div class="node"></div><div class="label">Starting<br>Out</div></div>
+        <div class="mini-station"><div class="node"></div><div class="label">First<br>Card</div></div>
+        <div class="mini-station"><div class="node"></div><div class="label">New<br>Parents</div></div>
+        <div class="mini-station is-current"><div class="node"></div><div class="label">Twins<br>Arrived</div></div>
+        <div class="mini-station"><div class="node"></div><div class="label">Priority<br>Banking</div></div>
+        <div class="mini-station"><div class="node"></div><div class="label">School<br>Years</div></div>
+        <div class="mini-station"><div class="node"></div><div class="label">Career<br>Peak</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <div>
+        <div class="section-eyebrow">The interface</div>
+        <h2>Six screens, one journey</h2>
+        <p class="section-sub">Onboarding sets the stage, the home screen is the line itself spanning income, commitments and reward-enrolment, one station opens into plain guidance, profile holds the data you asked to collect, and two new screens track your cards and compare where your money could sit.</p>
+      </div>
+    </div>
+
+    <div class="screens-row">
+
+      <!-- SCREEN 1: Onboarding -->
+      <div class="screen-col">
+        <div class="phone"><div class="screen">
+          <div class="statusbar"><span>9:41</span><span class="icons">●●●</span></div>
+          <div class="screen-body">
+            <div class="app-title">Let's map your stage</div>
+            <div class="app-sub">Four quick questions. Nothing is saved until you say so.</div>
+
+            <div class="field-label">Housing</div>
+            <div class="chip-row">
+              <div class="chip active">HDB</div><div class="chip">Condo</div><div class="chip">Landed</div><div class="chip">Renting</div>
+            </div>
+
+            <div class="field-label">Household</div>
+            <div class="chip-row">
+              <div class="chip">Single</div><div class="chip active">Married</div><div class="chip">Married + kids</div>
+            </div>
+
+            <div class="field-label">Children</div>
+            <div class="chip-row">
+              <div class="chip">None</div><div class="chip">Expecting</div><div class="chip">One child</div><div class="chip active">Twins / multiples</div>
+            </div>
+
+            <div class="field-label">Oldest child's age</div>
+            <div class="chip-row">
+              <div class="chip active">Newborn</div><div class="chip">Toddler</div><div class="chip">School-age</div><div class="chip">Teen</div>
+            </div>
+
+            <div class="field-label">Career stage</div>
+            <div class="chip-row">
+              <div class="chip">Just started</div><div class="chip active">Building up</div><div class="chip">Established</div><div class="chip">Own business</div>
+            </div>
+
+            <div class="field-label">Annual income</div>
+            <div class="chip-row">
+              <div class="chip">Under $50k</div><div class="chip">$50k–100k</div><div class="chip active">$100k–200k</div><div class="chip">$200k+</div>
+            </div>
+
+            <button class="btn-primary">Show my line →</button>
+          </div>
+        </div></div>
+        <div class="screen-caption">
+          <span class="num">01</span>
+          <h3>Onboarding</h3>
+          <p>Chips, not forms — four taps and you're placed on the line.</p>
+        </div>
+      </div>
+
+      <!-- SCREEN 2: Home / Money Line -->
+      <div class="screen-col">
+        <div class="phone"><div class="screen">
+          <div class="statusbar"><span>9:41</span><span class="icons">●●●</span></div>
+          <div class="screen-body">
+            <div class="greet">Hi, <b>Mei</b> — updated today</div>
+            <div class="field-label" style="margin-top:14px;">Your line</div>
+
+            <div class="money-line">
+              <div class="rail"></div>
+              <div class="station"><div class="node" style="border-color:var(--teal)"></div><div class="name">Starting Out</div></div>
+              <div class="station"><div class="node" style="border-color:var(--gold)"></div><div class="name">First Card</div></div>
+              <div class="station"><div class="node" style="border-color:var(--plum)"></div><div class="name">New Parents</div></div>
+              <div class="station current"><div class="node interchange"></div><div><span class="here-tag">You are here</span><span class="name">Twins Arrived</span></div></div>
+              <div class="station"><div class="node" style="border-color:var(--gold)"></div><div class="name">Priority Banking</div></div>
+              <div class="station"><div class="node" style="border-color:var(--plum)"></div><div class="name">School Years</div></div>
+              <div class="station"><div class="node" style="border-color:var(--teal)"></div><div class="name">Career Peak</div></div>
+            </div>
+
+            <div class="field-label" style="margin-top:18px;">Active for you now (3)</div>
+            <div class="card commitment">
+              <div class="kicker">Commitment — Twins arrived</div>
+              <p>Two dependents at once means real ongoing costs — diapers, childcare and insurance premiums typically double. Worth budgeting a buffer now, before the squeeze later.</p>
+              <div class="cta">See a twins budget guide →</div>
+            </div>
+            <div class="card">
+              <div class="kicker">Reward — Priority Banking</div>
+              <p>Your income band suggests you may already be close to the ~$200k in deposits/investments most banks ask for. We can't see your actual balance — worth a quick check with your bank.</p>
+              <div class="cta">See what that unlocks →</div>
+            </div>
+            <div class="card alert">
+              <div class="kicker">Renewal reminder</div>
+              <p>Your OCBC 365 fee waiver ends in 19 days — spend $888 in the next 3 weeks to keep it free.</p>
+              <div class="cta" style="color:var(--critical)">Got it</div>
+            </div>
+          </div>
+        </div></div>
+        <div class="screen-caption">
+          <span class="num">02</span>
+          <h3>Home — the line</h3>
+          <p>The line shows where you are; the cards below are the live queue. They're decoupled on purpose — you can have three things active at once regardless of where you sit on the line.</p>
+        </div>
+      </div>
+
+      <!-- SCREEN 3: Recommendation detail -->
+      <div class="screen-col">
+        <div class="phone"><div class="screen">
+          <div class="statusbar"><span>9:41</span><span class="icons">●●●</span></div>
+          <div class="screen-body">
+            <div class="backrow">← Back</div>
+            <div class="pill commitment">Commitment</div>
+            <div class="app-title" style="margin-top:0;">Caring for Twins</div>
+            <p class="detail-body">The first three months are the hardest — feeds roughly every 2–3 hours, for two. Parents who make it through say a staggered schedule and one extra pair of hands a week made the biggest difference.</p>
+
+            <ul class="tip-list">
+              <li><span class="dot"></span>Stagger feeds by 30–45 min so you're never doing both at once</li>
+              <li><span class="dot"></span>Batch-prep bottles once night feeds hit 3am</li>
+              <li><span class="dot gold"></span>Baby Bonus &amp; Child Development Account apply per child — claim both</li>
+              <li><span class="dot"></span>A twins parent group beats generic advice — shared experience matters</li>
+            </ul>
+            <p class="foot-note">General guidance from community experience, not medical advice — check with your paediatrician for anything health-related.</p>
+            <button class="btn-outline">Open the full twins guide</button>
+          </div>
+        </div></div>
+        <div class="screen-caption">
+          <span class="num">03</span>
+          <h3>Station detail — the commitment side</h3>
+          <p>Twins is tagged as a Commitment station — ongoing costs and routines, not a one-off reward to claim.</p>
+        </div>
+      </div>
+
+      <!-- SCREEN 4: Profile / privacy -->
+      <div class="screen-col">
+        <div class="phone"><div class="screen">
+          <div class="statusbar"><span>9:41</span><span class="icons">●●●</span></div>
+          <div class="screen-body">
+            <div class="app-title">Your profile</div>
+            <div class="app-sub">This is the only screen that stores contact details.</div>
+
+            <div class="row"><div><span class="rl">Name</span><span class="rv">Mei Lin Tan</span></div></div>
+            <div class="row"><div><span class="rl">Mobile number</span><span class="rv">+65 9123 4567</span></div></div>
+            <div class="row"><div><span class="rl">Email</span><span class="rv">meilin.tan@mail.com</span></div></div>
+
+            <div class="toggle-row">
+              <div><span class="rv" style="font-weight:700;">Notify me about new milestones</span>
+                <div class="privacy-note">Only sent when your stage changes. Off anytime.</div>
+              </div>
+              <div class="toggle"></div>
+            </div>
+
+            <div class="link-row">Download my data</div>
+            <div class="link-row danger">Delete my account</div>
+          </div>
+        </div></div>
+        <div class="screen-caption">
+          <span class="num">04</span>
+          <h3>Profile &amp; consent</h3>
+          <p>Contact info and the marketing toggle live together — consent is explicit, not assumed.</p>
+        </div>
+      </div>
+
+      <!-- SCREEN 5: My Cards -->
+      <div class="screen-col">
+        <div class="phone"><div class="screen">
+          <div class="statusbar"><span>9:41</span><span class="icons">●●●</span></div>
+          <div class="screen-body">
+            <div class="app-title">Your cards</div>
+            <div class="app-sub">Every card you've signed up for, and when you can again.</div>
+
+            <div class="enroll">
+              <div class="e-top"><span class="e-name">DBS Woman's World Card</span><span class="badge active">Active</span></div>
+              <div class="e-meta"><span>Signed up 12 Mar 2025</span><span>Gift: 20,000 miles</span></div>
+            </div>
+            <div class="enroll">
+              <div class="e-top"><span class="e-name">Citi Rewards Card</span><span class="badge cancelled">Cancelled</span></div>
+              <div class="e-meta"><span>Cancelled 10 Feb 2025</span><span>Gift: 16,000 miles</span></div>
+              <div class="e-note">Eligible again from 10 Feb 2026</div>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; align-items:baseline; margin-top:18px;">
+              <div class="field-label" style="margin:0;">Offers worth signing up for</div>
+              <span style="font-size:10.5px; color:var(--ink-faint);">Updated 3d ago</span>
+            </div>
+            <div class="offer">
+              <div class="o-top"><span>HSBC Revolution</span><span>Ends 31 Jul</span></div>
+              <div class="o-gift">S$400 cash or 6,140 points, plus a shot at a 10g gold bar</div>
+              <div class="o-meta">Min spend $500 by end of following month · no annual fee</div>
+            </div>
+            <div class="offer">
+              <div class="o-top"><span>OCBC 90°N Visa</span><span>Ends 2 Aug</span></div>
+              <div class="o-gift">$400 cash, 25,000 Max Miles, or a Dyson Airstrait</div>
+              <div class="o-meta">Min spend $400 within 30 days</div>
+            </div>
+            <div class="offer">
+              <div class="o-top"><span>UOB One</span><span>Ends 30 Sep</span></div>
+              <div class="o-gift">Up to 20% quarterly cashback (McDonald's, Grab, Shopee, SimplyGo, groceries) + $100 Samsung e-voucher</div>
+              <div class="o-meta">Min spend $1,000 in first month</div>
+            </div>
+            <div class="offer">
+              <div class="o-top"><span>Amex KrisFlyer</span><span>Ends 31 Jan '27</span></div>
+              <div class="o-gift">16,000 miles + 2,200 base miles on local spend</div>
+              <div class="o-meta">Min spend $2,000 within 90 days</div>
+            </div>
+            <div class="offer">
+              <div class="o-top"><span>Citi Rewards Card</span><span>Ongoing</span></div>
+              <div class="o-gift">S$420 cash or 16,000 miles</div>
+              <div class="o-meta">Min spend $500 within 30 days</div>
+            </div>
+            <div class="offer">
+              <div class="o-top"><span>DBS Altitude (code ALTS38)</span><span>Ongoing</span></div>
+              <div class="o-gift">38,000 bonus miles</div>
+              <div class="o-meta">$196.20 annual fee · spend $800 within 60 days</div>
+            </div>
+            <div class="offer">
+              <div class="o-top"><span>StanChart Visa Infinite</span><span>Ongoing</span></div>
+              <div class="o-gift">50,000 bonus miles</div>
+              <div class="o-meta">$599.50 annual fee · spend $2,000 within 60 days</div>
+            </div>
+            <p class="foot-note">Sourced from public bank, MoneySmart &amp; SingSaver promotions as of Jul 2026 — "Ongoing" means no published end date, not that it won't change. Confirm current terms before applying.</p>
+
+            <div class="field-label" style="margin-top:18px;">Miles vs cashback, this month</div>
+            <table class="cmp">
+              <tr><th>Card</th><th>On $2,000 spend</th><th>Value</th></tr>
+              <tr><td>Woman's World</td><td>8,000 miles</td><td>≈$144</td></tr>
+              <tr><td>365 Cashback</td><td>1.5% cashback</td><td>$30</td></tr>
+            </table>
+            <p class="foot-note">Miles valued at ≈2¢ each for a Krisflyer transfer — actual redemption value depends on the flight.</p>
+            <button class="btn-outline">Compare all your cards</button>
+          </div>
+        </div></div>
+        <div class="screen-caption">
+          <span class="num">05</span>
+          <h3>My Cards</h3>
+          <p>Your own enrolments, plus current sign-up offers pulled from public promotions — real gifts, real deadlines, so there's a reason to act now.</p>
+        </div>
+      </div>
+
+      <!-- SCREEN 6: Grow Your Money -->
+      <div class="screen-col">
+        <div class="phone"><div class="screen">
+          <div class="statusbar"><span>9:41</span><span class="icons">●●●</span></div>
+          <div class="screen-body">
+            <div class="app-title">Grow your money</div>
+            <div class="app-sub">Same $20,000, three ways — for comparison only.</div>
+
+            <div class="field-label">Your inputs</div>
+            <table class="cmp">
+              <tr><td>Cash balance</td><td>$20,000</td></tr>
+              <tr><td>Current FD rate</td><td>1.60% p.a. (12-mth)</td></tr>
+            </table>
+
+            <div style="display:flex; justify-content:space-between; align-items:baseline; margin-top:14px;">
+              <div class="field-label" style="margin:0;">If it sat in…</div>
+              <span style="font-size:10.5px; color:var(--ink-faint);">Rates checked 12d ago</span>
+            </div>
+            <table class="cmp">
+              <tr><th>Where</th><th>Rate</th><th>Per month</th></tr>
+              <tr><td>Best FD</td><td>1.60% p.a.</td><td>$26.67</td></tr>
+              <tr><td>SGX ES3 (STI ETF)</td><td>~7.0% p.a.*</td><td>$116.67</td></tr>
+              <tr><td>Diversified portfolio</td><td>~5.5% p.a.*</td><td>$91.67</td></tr>
+            </table>
+            <p class="foot-note">*5-year historical average, not a promise. FD is a contract; ES3 and the portfolio can lose value — past performance isn't a projection of future returns.</p>
+            <button class="btn-outline">See the full comparison</button>
+          </div>
+        </div></div>
+        <div class="screen-caption">
+          <span class="num">06</span>
+          <h3>Grow Your Money</h3>
+          <p>Every rate here is looked up or historical, not promised — the point is comparison, not a recommendation to buy.</p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <div>
+        <div class="section-eyebrow">The build</div>
+        <h2>How it's put together</h2>
+        <p class="section-sub">Scoped for one or two people to actually ship — a managed backend so effort goes into the recommendation content, not infrastructure.</p>
+      </div>
+    </div>
+    <div class="stack-grid">
+      <div class="stack-card">
+        <div class="role">Frontend</div>
+        <h4>React Native (Expo)</h4>
+        <p>One codebase for iOS and Android — enough to ship the six screens above without separate native teams.</p>
+      </div>
+      <div class="stack-card">
+        <div class="role">Backend</div>
+        <h4>Supabase</h4>
+        <p>Managed auth and row-level security so each user only ever reads their own profile and consent rows.</p>
+      </div>
+      <div class="stack-card">
+        <div class="role">Database</div>
+        <h4>PostgreSQL</h4>
+        <p>Relational tables for profile, consent and the recommendation catalog — see the schema below.</p>
+      </div>
+      <div class="stack-card">
+        <div class="role">Hosting</div>
+        <h4>Supabase Cloud + EAS</h4>
+        <p>Managed database hosting plus one-command builds for the App Store and Play Store.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <div>
+        <div class="section-eyebrow">Data model</div>
+        <h2>Eleven tables, one consent trail</h2>
+        <p class="section-sub">Customer info and marketing contact details sit in <code>users</code>; every consent change gets its own row so it can be proven later, not just assumed. Cards, investment accounts, savings and benchmark rates each get their own table below.</p>
+      </div>
+    </div>
+
+    <div class="schema-grid">
+
+      <div class="table-card">
+        <div class="t-head"><span class="sq" style="background:var(--gold)"></span><span>users</span></div>
+        <ul>
+          <li><span class="fname">id</span><span class="ftype">uuid · pk</span></li>
+          <li><span class="fname">full_name</span><span class="ftype">text</span></li>
+          <li><span class="fname">mobile_number</span><span class="ftype">text · unique</span></li>
+          <li><span class="fname">email</span><span class="ftype">text · unique</span></li>
+          <li><span class="fname">marketing_opt_in</span><span class="ftype">boolean</span></li>
+          <li><span class="fname">consent_version</span><span class="ftype">text</span></li>
+          <li><span class="fname">created_at</span><span class="ftype">timestamptz</span></li>
+        </ul>
+      </div>
+
+      <div class="table-card">
+        <div class="t-head"><span class="sq" style="background:var(--teal)"></span><span>profiles</span></div>
+        <ul>
+          <li><span class="fname">user_id</span><span class="ftype">fk → users</span></li>
+          <li><span class="fname">housing_type</span><span class="ftype">enum</span></li>
+          <li><span class="fname">relationship_status</span><span class="ftype">enum</span></li>
+          <li><span class="fname">children_status</span><span class="ftype">enum</span></li>
+          <li><span class="fname">eldest_child_age_band</span><span class="ftype">enum · nullable</span></li>
+          <li><span class="fname">career_stage</span><span class="ftype">enum</span></li>
+          <li><span class="fname">income_band</span><span class="ftype">enum</span></li>
+          <li><span class="fname">updated_at</span><span class="ftype">timestamptz</span></li>
+        </ul>
+      </div>
+
+      <div class="table-card">
+        <div class="t-head"><span class="sq" style="background:var(--plum)"></span><span>life_stage_events</span></div>
+        <ul>
+          <li><span class="fname">id</span><span class="ftype">uuid · pk</span></li>
+          <li><span class="fname">user_id</span><span class="ftype">fk → users</span></li>
+          <li><span class="fname">stage_key</span><span class="ftype">text</span></li>
+          <li><span class="fname">entered_at</span><span class="ftype">timestamptz</span></li>
+        </ul>
+      </div>
+
+      <div class="table-card">
+        <div class="t-head"><span class="sq" style="background:var(--gold)"></span><span>recommendation_rules</span></div>
+        <ul>
+          <li><span class="fname">id</span><span class="ftype">uuid · pk</span></li>
+          <li><span class="fname">stage_key</span><span class="ftype">text</span></li>
+          <li><span class="fname">title</span><span class="ftype">text</span></li>
+          <li><span class="fname">condition_json</span><span class="ftype">jsonb</span></li>
+          <li><span class="fname">category</span><span class="ftype">income/commitment/reward</span></li>
+        </ul>
+      </div>
+
+      <div class="table-card">
+        <div class="t-head"><span class="sq" style="background:var(--teal)"></span><span>user_recommendations</span></div>
+        <ul>
+          <li><span class="fname">id</span><span class="ftype">uuid · pk</span></li>
+          <li><span class="fname">user_id</span><span class="ftype">fk → users</span></li>
+          <li><span class="fname">rule_id</span><span class="ftype">fk → rules</span></li>
+          <li><span class="fname">status</span><span class="ftype">enum</span></li>
+          <li><span class="fname">surfaced_at</span><span class="ftype">timestamptz</span></li>
+        </ul>
+      </div>
+
+      <div class="table-card">
+        <div class="t-head"><span class="sq" style="background:var(--plum)"></span><span>consent_log</span></div>
+        <ul>
+          <li><span class="fname">id</span><span class="ftype">uuid · pk</span></li>
+          <li><span class="fname">user_id</span><span class="ftype">fk → users</span></li>
+          <li><span class="fname">consent_type</span><span class="ftype">enum</span></li>
+          <li><span class="fname">action</span><span class="ftype">granted / revoked</span></li>
+          <li><span class="fname">occurred_at</span><span class="ftype">timestamptz</span></li>
+        </ul>
+      </div>
+
+      <div class="table-card">
+        <div class="t-head"><span class="sq" style="background:var(--gold)"></span><span>enrollments</span></div>
+        <ul>
+          <li><span class="fname">id</span><span class="ftype">uuid · pk</span></li>
+          <li><span class="fname">user_id</span><span class="ftype">fk → users</span></li>
+          <li><span class="fname">type</span><span class="ftype">card / investment</span></li>
+          <li><span class="fname">provider</span><span class="ftype">text</span></li>
+          <li><span class="fname">product_name</span><span class="ftype">text</span></li>
+          <li><span class="fname">signed_up_at</span><span class="ftype">date</span></li>
+          <li><span class="fname">signup_gift</span><span class="ftype">text</span></li>
+          <li><span class="fname">cooldown_months</span><span class="ftype">int</span></li>
+          <li><span class="fname">cancelled_at</span><span class="ftype">date · nullable</span></li>
+          <li><span class="fname">reactivation_eligible_at</span><span class="ftype">generated</span></li>
+        </ul>
+      </div>
+
+      <div class="table-card">
+        <div class="t-head"><span class="sq" style="background:var(--teal)"></span><span>card_monthly_activity</span></div>
+        <ul>
+          <li><span class="fname">id</span><span class="ftype">uuid · pk</span></li>
+          <li><span class="fname">enrollment_id</span><span class="ftype">fk → enrollments</span></li>
+          <li><span class="fname">month</span><span class="ftype">date</span></li>
+          <li><span class="fname">spend_amount</span><span class="ftype">numeric</span></li>
+          <li><span class="fname">miles_earned</span><span class="ftype">numeric</span></li>
+          <li><span class="fname">cashback_earned</span><span class="ftype">numeric</span></li>
+        </ul>
+      </div>
+
+      <div class="table-card">
+        <div class="t-head"><span class="sq" style="background:var(--plum)"></span><span>savings_snapshots</span></div>
+        <ul>
+          <li><span class="fname">id</span><span class="ftype">uuid · pk</span></li>
+          <li><span class="fname">user_id</span><span class="ftype">fk → users</span></li>
+          <li><span class="fname">recorded_at</span><span class="ftype">date</span></li>
+          <li><span class="fname">cash_balance</span><span class="ftype">numeric</span></li>
+          <li><span class="fname">fd_amount</span><span class="ftype">numeric</span></li>
+          <li><span class="fname">fd_rate_pct</span><span class="ftype">numeric</span></li>
+          <li><span class="fname">fd_tenure_months</span><span class="ftype">int</span></li>
+        </ul>
+      </div>
+
+      <div class="table-card">
+        <div class="t-head"><span class="sq" style="background:var(--gold)"></span><span>benchmark_rates</span></div>
+        <ul>
+          <li><span class="fname">id</span><span class="ftype">uuid · pk</span></li>
+          <li><span class="fname">instrument</span><span class="ftype">text</span></li>
+          <li><span class="fname">annualised_return_pct</span><span class="ftype">numeric</span></li>
+          <li><span class="fname">as_of_date</span><span class="ftype">date</span></li>
+          <li><span class="fname">source_note</span><span class="ftype">text</span></li>
+        </ul>
+      </div>
+
+      <div class="table-card">
+        <div class="t-head"><span class="sq" style="background:var(--gold)"></span><span>card_offers</span></div>
+        <ul>
+          <li><span class="fname">id</span><span class="ftype">uuid · pk</span></li>
+          <li><span class="fname">bank</span><span class="ftype">text</span></li>
+          <li><span class="fname">card_name</span><span class="ftype">text</span></li>
+          <li><span class="fname">gift_description</span><span class="ftype">text</span></li>
+          <li><span class="fname">min_spend</span><span class="ftype">numeric</span></li>
+          <li><span class="fname">spend_window_days</span><span class="ftype">int</span></li>
+          <li><span class="fname">valid_until</span><span class="ftype">date</span></li>
+          <li><span class="fname">source_url</span><span class="ftype">text</span></li>
+          <li><span class="fname">updated_at</span><span class="ftype">timestamptz</span></li>
+        </ul>
+      </div>
+
+    </div>
+
+    <div class="callout">
+      <h5>Why three categories: income, commitment, reward</h5>
+      <p><strong>Income</strong> is the recurring driver — asked as an annual figure and revisited every year, since it's what unlocks everything else. <strong>Commitment</strong> covers the ongoing costs and routines that come with things like children or housing. <strong>Reward &amp; enrolment</strong> is where Priority Banking, credit cards and schemes like Baby Bonus live — moments where enrolling now pays off. Every <code>recommendation_rules</code> row is tagged with exactly one of the three.</p>
+    </div>
+
+    <div class="callout">
+      <h5>Why <code>consent_log</code> exists on its own</h5>
+      <p>You asked to store mobile numbers and emails for marketing — under Singapore's PDPA that requires clear, provable opt-in. A boolean on <code>users</code> can't show what someone agreed to or when. Every grant and revoke gets its own timestamped row here instead, so there's a real audit trail if it's ever challenged.</p>
+    </div>
+
+    <div class="callout">
+      <h5>Why <code>reactivation_eligible_at</code> is generated, not typed in</h5>
+      <p>Most Singapore banks won't pay a welcome gift again if you held (or cancelled) the same card in the last 12 months — but the exact cooldown varies by bank and card. <code>cooldown_months</code> is stored per enrolment so <code>reactivation_eligible_at</code> can be computed as <code>cancelled_at + cooldown_months</code> instead of hard-coding one rule for every bank.</p>
+    </div>
+
+    <div class="callout">
+      <h5>Why FD is a contract and ES3 isn't</h5>
+      <p>A fixed deposit's rate is contractual — the bank owes you that number. <code>benchmark_rates</code> for things like the SGX ES3 (STI) ETF or a diversified portfolio are historical averages pulled from public data, not a promise — they can go up, down, or lose money entirely. Every comparison screen using this table needs the same disclaimer: past performance isn't a projection of future returns, and this is general information, not personalised investment advice under MAS rules.</p>
+    </div>
+
+    <div class="callout">
+      <h5>Why <code>card_offers</code> is separate from <code>enrollments</code></h5>
+      <p><code>enrollments</code> is what a user actually has. <code>card_offers</code> is what's currently available to sign up for — gift, minimum spend, spend window and a hard <code>valid_until</code> date. These expire on their own schedule (some weekly, some by year), same as <code>benchmark_rates</code>.</p>
+      <p style="margin-top:10px;">Two things make staleness fail safe instead of silent: every read of <code>card_offers</code> filters <code>WHERE valid_until &gt;= now()</code>, so an un-refreshed table just shows fewer offers, never wrong ones — and the "Updated 3d ago" / "Rates checked 12d ago" labels on screens 05 and 06 are computed from <code>MAX(updated_at)</code>, not typed in, so staleness is visible to users even if the maintainer falls behind. A monthly check on that same <code>MAX(updated_at)</code> is what should be nagging the maintainer, rather than relying on memory.</p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <div>
+        <div class="section-eyebrow">Rule logic</div>
+        <h2>What actually triggers each station</h2>
+        <p class="section-sub">The schema only says <code>category</code> is one of three values — these are six of the real rules behind it. Writing them out surfaced two gaps: bank balances aren't collected, so Priority Banking has to be a soft nudge; and a child's age wasn't collected either, so <code>eldest_child_age_band</code> got added to the profile above.</p>
+      </div>
+    </div>
+
+    <div class="rule-grid">
+      <div class="rule-card">
+        <div class="r-head"><span class="sq" style="background:var(--gold)"></span><span>first_card</span></div>
+        <h4>Get a no-fee first card</h4>
+        <div class="cond">career_stage = just_started</div>
+        <p class="why">Fires once — cleared after the recommendation is actioned in <code>user_recommendations</code>.</p>
+      </div>
+      <div class="rule-card">
+        <div class="r-head"><span class="sq" style="background:var(--plum)"></span><span>twins_commitment</span></div>
+        <h4>Budget for double costs</h4>
+        <div class="cond">children_status → twins_multiples (new)</div>
+        <p class="why">Same trigger as the reward beside it — this is the interchange, in practice.</p>
+      </div>
+      <div class="rule-card">
+        <div class="r-head"><span class="sq" style="background:var(--gold)"></span><span>twins_reward</span></div>
+        <h4>Claim Baby Bonus + CDA</h4>
+        <div class="cond">children_status → twins_multiples (new)</div>
+        <p class="why">One trigger, two rows — a commitment and a reward can share a condition.</p>
+      </div>
+      <div class="rule-card">
+        <div class="r-head"><span class="sq" style="background:var(--gold)"></span><span>priority_banking</span></div>
+        <h4>Check Priority Banking eligibility</h4>
+        <div class="cond">income_band ≥ $100k–200k</div>
+        <p class="why">A soft nudge, not a precise trigger — we don't track actual bank balances, only self-reported income.</p>
+      </div>
+      <div class="rule-card">
+        <div class="r-head"><span class="sq" style="background:var(--plum)"></span><span>school_years</span></div>
+        <h4>Plan for school-age costs</h4>
+        <div class="cond">eldest_child_age_band = school_age</div>
+        <p class="why"><code>children_status</code> alone can't tell a newborn from a teenager — hence the new field.</p>
+      </div>
+      <div class="rule-card">
+        <div class="r-head"><span class="sq" style="background:var(--teal)"></span><span>career_peak</span></div>
+        <h4>Build a simple investing habit</h4>
+        <div class="cond">career_stage = established AND income_band = $200k+</div>
+        <p class="why">Income category — nudges toward a habit, not a specific fund (keeps it out of regulated advice).</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <div>
+        <div class="section-eyebrow">Calculators</div>
+        <h2>The three formulas doing the work</h2>
+        <p class="section-sub">Every number on screens 05 and 06 comes from one of these — nothing fancier, and nothing that requires bank-account linking to work.</p>
+      </div>
+    </div>
+
+    <div class="rule-grid">
+      <div class="rule-card">
+        <div class="r-head"><span class="sq" style="background:var(--gold)"></span><span>miles_vs_cashback</span></div>
+        <h4>Miles vs cashback</h4>
+        <div class="cond">max( min(spend,cap) × mpd × mile_value, spend × cashback_rate )</div>
+        <p class="why">Worked example: $2,000 spend → 8,000 miles at ≈2¢ (~$144) beats 1.5% cashback ($30).</p>
+      </div>
+      <div class="rule-card">
+        <div class="r-head"><span class="sq" style="background:var(--plum)"></span><span>fd_monthly_equivalent</span></div>
+        <h4>Fixed deposit, per month</h4>
+        <div class="cond">principal × fd_rate_pct ÷ 12</div>
+        <p class="why">Worked example: $20,000 at 1.60% p.a. → $26.67/month. Contractual — this one is a promise.</p>
+      </div>
+      <div class="rule-card">
+        <div class="r-head"><span class="sq" style="background:var(--teal)"></span><span>benchmark_monthly_equivalent</span></div>
+        <h4>ES3 / other investments, per month</h4>
+        <div class="cond">principal × annualised_return_pct ÷ 12</div>
+        <p class="why">Worked example: $20,000 at ~7% p.a. (ES3, 5-yr average) → $116.67/month — historical, not guaranteed.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <div>
+        <div class="section-eyebrow">Sequencing</div>
+        <h2>Next steps</h2>
+      </div>
+    </div>
+    <ol class="next-steps">
+      <li>Validate the 6–7 life stages and their trigger rules across income, commitments and reward-enrolment with ~10 real people before writing any code — this content is the actual product.</li>
+      <li>Build screens 01 and 02 only for v1 (onboarding + the line); add cards, savings and the rest once the line itself feels right.</li>
+      <li>Write the PDPA consent copy before the marketing toggle ships, not after.</li>
+      <li>Get real, current numbers for <code>benchmark_rates</code> before showing screen 06 to anyone — the ES3 and portfolio figures here are illustrative, not verified as of today.</li>
+      <li>Set a refresh cadence for <code>card_offers</code> — the three shown on screen 05 are real July 2026 promotions, but two of them expire within weeks; without a recurring update process this list goes stale fast.</li>
+      <li>Have someone check the "Grow Your Money" wording against MAS's advice/comparison boundary before launch — informational and comparison content is fine, personalised recommendations to buy aren't, without a licence.</li>
+    </ol>
+  </section>
+
+  <footer>MentorMe is a concept mockup — screens and figures above are illustrative examples, not sourced from any bank, agency or clinical guideline currently in force.</footer>
+
+</div>
