@@ -2,6 +2,7 @@ import SwiftUI
 
 struct PropertyReportView: View {
     let property: SGProperty
+    @EnvironmentObject var shortlistStore: ShortlistStore
 
     private var nearestSchools: [SchoolDistance] {
         SGSchoolData.nearest(to: property.location, limit: 4)
@@ -11,10 +12,18 @@ struct PropertyReportView: View {
         property.leaseBand()
     }
 
+    private var townAveragePsf: Int? {
+        SGPropertyData.averagePsf(inTown: property.town)
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
                 header
+
+                if property.type == .condo {
+                    priceSection
+                }
 
                 reportSection(
                     title: "School priority",
@@ -56,7 +65,6 @@ struct PropertyReportView: View {
 
                 reportSection(title: "Coming soon", icon: "clock.arrow.circlepath", learnMoreID: nil) {
                     ComingSoonRow(title: "Transit distance", detail: "Walk time to the nearest MRT station or bus interchange.")
-                    ComingSoonRow(title: "Price sanity check", detail: "How the asking psf compares to recent transactions nearby.")
                 }
 
                 Text("This report uses illustrative sample data to demonstrate the idea. Before relying on the school-priority read for actual Primary 1 registration, always verify against MOE's official school search — priority bands and balloting rules can change year to year.")
@@ -68,6 +76,86 @@ struct PropertyReportView: View {
         }
         .navigationTitle(property.name)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
+                    shortlistStore.toggle(property.id)
+                } label: {
+                    Image(systemName: shortlistStore.isShortlisted(property.id) ? "star.fill" : "star")
+                        .foregroundStyle(shortlistStore.isShortlisted(property.id) ? .yellow : Color.accentColor)
+                }
+            }
+        }
+    }
+
+    private var priceSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Label("Price", systemImage: "dollarsign.circle.fill")
+                    .font(.headline)
+                Spacer()
+            }
+
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                if let psf = property.pricePsfHistoric {
+                    Text("$\(psf)")
+                        .font(.title3.weight(.bold).monospacedDigit())
+                    Text("/ sqft, historic")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            if let sqft = property.unitSizeSqft {
+                Text("~\(Double(property.indicativePrice).currencyString) indicative, for a ~\(sqft) sqft unit")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+
+            if let avg = townAveragePsf, let psf = property.pricePsfHistoric {
+                let delta = psf - avg
+                if abs(delta) < 25 {
+                    Text("In line with the sample average for \(property.town) ($\(avg)/sqft).")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text("$\(abs(delta))/sqft \(delta > 0 ? "above" : "below") the sample average for \(property.town) ($\(avg)/sqft).")
+                        .font(.caption)
+                        .foregroundStyle(delta > 0 ? .orange : .green)
+                }
+            }
+
+            if let facilities = property.facilities {
+                Divider()
+                HStack {
+                    Text("Facilities")
+                        .font(.subheadline.weight(.semibold))
+                    Spacer()
+                    Text(facilities.title)
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(Color.accentColor)
+                }
+                Text(facilities.description)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            if let mcst = property.mcstFeeMonthly {
+                Divider()
+                HStack {
+                    Text("MCST fee")
+                        .font(.subheadline.weight(.semibold))
+                    Spacer()
+                    Text("$\(mcst)/month")
+                        .font(.subheadline.weight(.bold))
+                }
+                Text("Paid to the Management Corporation for upkeep of shared facilities and common property — separate from property tax.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding()
+        .background(RoundedRectangle(cornerRadius: 16).fill(Color(.secondarySystemGroupedBackground)))
     }
 
     @ViewBuilder
@@ -216,6 +304,7 @@ private struct ComingSoonRow: View {
 
 #Preview {
     NavigationStack {
-        PropertyReportView(property: SGPropertyData.all[1])
+        PropertyReportView(property: SGPropertyData.all.first { $0.id == "trilinq-clementi" }!)
     }
+    .environmentObject(ShortlistStore())
 }

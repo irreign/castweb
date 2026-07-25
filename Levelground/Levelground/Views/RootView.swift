@@ -16,4 +16,5 @@ struct RootView: View {
     RootView()
         .environmentObject(ProfileStore())
         .environmentObject(ReadingStore())
+        .environmentObject(ShortlistStore())
 }

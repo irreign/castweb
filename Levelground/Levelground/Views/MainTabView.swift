@@ -25,4 +25,5 @@ struct MainTabView: View {
     MainTabView()
         .environmentObject(ProfileStore())
         .environmentObject(ReadingStore())
+        .environmentObject(ShortlistStore())
 }
