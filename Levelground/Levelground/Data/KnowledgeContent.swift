@@ -302,6 +302,47 @@ enum KnowledgeContent {
                 "Rules here change relatively often and vary enormously by location — treat anything general (including this) as a starting point for a conversation with a local tax professional, not a final answer."
             ],
             readMinutes: 4
+        ),
+        KnowledgeItem(
+            id: "school-priority-explained",
+            title: "How School-Distance Priority Actually Works",
+            category: .schoolsAndLocation,
+            level: .new,
+            summary: "Living within 1km or 2km of a popular school changes your odds at Primary 1 registration — here's the mechanism.",
+            body: [
+                "Singapore's Primary 1 registration runs in phases, and several of the early phases give priority to children whose home address is close to the school — within 1km first, then 1km-2km, before the process opens up to everyone else island-wide.",
+                "If a phase has more applicants than places, priority is decided within that phase by home-to-school distance, and if it's still tied, by ballot. Being within 1km doesn't guarantee a place if the school is oversubscribed even within that ring — it just puts you ahead of everyone farther away.",
+                "This is exactly why some popular schools show a visible price premium on nearby homes: parents are effectively paying for a better position in the priority queue, years before their child is old enough to enroll.",
+                "The distance is measured from your registered residential address to the school, not from where you happen to be living temporarily — so this only works if you actually live there, not just hold a lease on paper."
+            ],
+            readMinutes: 4
+        ),
+        KnowledgeItem(
+            id: "balloting-phases-explained",
+            title: "What Happens When a Phase Is Oversubscribed",
+            category: .schoolsAndLocation,
+            level: .someExperience,
+            summary: "Distance gets you into the right tier. Balloting decides who wins when that tier is still too full.",
+            body: [
+                "Within any given registration phase, applicants are grouped by distance band first. If a band has more children than remaining places, a computerized ballot decides among that band — distance doesn't break ties beyond getting you into the right group.",
+                "This means two families both within 1km of a sought-after school can have very different outcomes purely on luck, once that 1km group itself is oversubscribed. Being closer within the 1km ring doesn't count for more than being just barely inside it.",
+                "Because of this, treat the 1km ring as improving your odds meaningfully, not as a guarantee. For an extremely popular school, even 1km families sometimes miss out and move to their next-priority school."
+            ],
+            readMinutes: 3
+        ),
+        KnowledgeItem(
+            id: "lease-decay-explained",
+            title: "Why Remaining Lease Years Change What You Can Borrow",
+            category: .schoolsAndLocation,
+            level: .someExperience,
+            summary: "The same flat can be much harder to finance once its lease crosses certain age thresholds.",
+            body: [
+                "A 99-year leasehold property doesn't lose value in a straight line as the lease runs down — the drop tends to accelerate once remaining lease crosses thresholds that banks and retirement-savings schemes use to restrict financing.",
+                "As remaining lease shortens, banks typically reduce how much they'll lend against the property and shorten the loan tenure they'll offer, and rules around using retirement savings toward the purchase tend to tighten as well.",
+                "This matters most for buyers who plan to hold long-term or who might need to sell to a younger buyer eventually — a shrinking pool of financeable buyers puts downward pressure on resale demand well before the lease is actually close to zero.",
+                "Always check the current thresholds and figures with a bank directly — they get revised periodically, and a rule of thumb that was true a few years ago may already be out of date."
+            ],
+            readMinutes: 4
         )
     ]
 

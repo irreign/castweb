@@ -52,6 +52,7 @@ enum KnowledgeCategory: String, Codable, CaseIterable, Identifiable {
     case investmentMetrics
     case marketCycles
     case taxes
+    case schoolsAndLocation
 
     var id: String { rawValue }
 
@@ -65,6 +66,7 @@ enum KnowledgeCategory: String, Codable, CaseIterable, Identifiable {
         case .investmentMetrics: return "Investment Returns"
         case .marketCycles: return "Market Cycles"
         case .taxes: return "Taxes & Fees"
+        case .schoolsAndLocation: return "Schools & Location"
         }
     }
 
@@ -78,6 +80,7 @@ enum KnowledgeCategory: String, Codable, CaseIterable, Identifiable {
         case .investmentMetrics: return "chart.pie.fill"
         case .marketCycles: return "waveform.path.ecg"
         case .taxes: return "percent"
+        case .schoolsAndLocation: return "building.2.fill"
         }
     }
 }
