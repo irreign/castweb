@@ -54,7 +54,16 @@ enum SGSchoolData {
         SGSchool(id: "catholic-high", name: "Catholic High School (Primary)", area: "Bishan", location: GeoPoint(lat: 1.3567, lon: 103.8508)),
         SGSchool(id: "pei-hwa", name: "Pei Hwa Presbyterian Primary School", area: "Bukit Timah", location: GeoPoint(lat: 1.3423, lon: 103.7913)),
         SGSchool(id: "acs-primary", name: "Anglo-Chinese School (Primary)", area: "Novena", location: GeoPoint(lat: 1.3277, lon: 103.8377)),
-        SGSchool(id: "st-hildas", name: "St. Hilda's Primary School", area: "Tampines", location: GeoPoint(lat: 1.3496, lon: 103.9391))
+        SGSchool(id: "st-hildas", name: "St. Hilda's Primary School", area: "Tampines", location: GeoPoint(lat: 1.3496, lon: 103.9391)),
+        SGSchool(id: "radin-mas", name: "Radin Mas Primary School", area: "Telok Blangah", location: GeoPoint(lat: 1.2735, lon: 103.8195)),
+        SGSchool(id: "balestier-hill", name: "Balestier Hill Primary School", area: "Balestier", location: GeoPoint(lat: 1.3270, lon: 103.8460)),
+        SGSchool(id: "kong-hwa", name: "Kong Hwa School", area: "Geylang", location: GeoPoint(lat: 1.3195, lon: 103.8890)),
+        SGSchool(id: "temasek-primary", name: "Temasek Primary School", area: "Bedok", location: GeoPoint(lat: 1.3200, lon: 103.9350)),
+        SGSchool(id: "jurong-west-primary", name: "Jurong West Primary School", area: "Jurong West", location: GeoPoint(lat: 1.3405, lon: 103.7045)),
+        SGSchool(id: "princess-elizabeth", name: "Princess Elizabeth Primary School", area: "Bukit Batok", location: GeoPoint(lat: 1.3520, lon: 103.7550)),
+        SGSchool(id: "woodgrove-primary", name: "Woodgrove Primary School", area: "Woodlands", location: GeoPoint(lat: 1.4372, lon: 103.7868)),
+        SGSchool(id: "northland-primary", name: "Northland Primary School", area: "Yishun", location: GeoPoint(lat: 1.4280, lon: 103.8300)),
+        SGSchool(id: "punggol-primary", name: "Punggol Primary School", area: "Punggol", location: GeoPoint(lat: 1.4010, lon: 103.9020))
     ]
 
     static func nearest(to point: GeoPoint, limit: Int = 4) -> [SchoolDistance] {

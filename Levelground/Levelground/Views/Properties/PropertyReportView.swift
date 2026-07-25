@@ -12,8 +12,8 @@ struct PropertyReportView: View {
         property.leaseBand()
     }
 
-    private var townAveragePsf: Int? {
-        SGPropertyData.averagePsf(inTown: property.town)
+    private var districtAveragePsf: Int? {
+        SGPropertyData.averagePsf(inDistrict: property.district)
     }
 
     var body: some View {
@@ -112,14 +112,15 @@ struct PropertyReportView: View {
                     .foregroundStyle(.secondary)
             }
 
-            if let avg = townAveragePsf, let psf = property.pricePsfHistoric {
+            if let avg = districtAveragePsf, let psf = property.pricePsfHistoric {
                 let delta = psf - avg
+                let districtCode = SGDistrict.code(property.district)
                 if abs(delta) < 25 {
-                    Text("In line with the sample average for \(property.town) ($\(avg)/sqft).")
+                    Text("In line with the sample average for \(districtCode) ($\(avg)/sqft).")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 } else {
-                    Text("$\(abs(delta))/sqft \(delta > 0 ? "above" : "below") the sample average for \(property.town) ($\(avg)/sqft).")
+                    Text("$\(abs(delta))/sqft \(delta > 0 ? "above" : "below") the sample average for \(districtCode) ($\(avg)/sqft).")
                         .font(.caption)
                         .foregroundStyle(delta > 0 ? .orange : .green)
                 }
@@ -192,7 +193,7 @@ struct PropertyReportView: View {
                     .padding(.vertical, 3)
                     .background(Capsule().fill(Color.accentColor.opacity(0.15)))
                     .foregroundStyle(Color.accentColor)
-                Text(property.town)
+                Text("\(SGDistrict.code(property.district)) · \(property.town)")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }

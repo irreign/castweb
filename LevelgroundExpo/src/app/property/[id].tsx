@@ -8,7 +8,15 @@ import { Radii, Spacing, useColors } from '@/constants/theme';
 import { useShortlist } from '@/context/ShortlistContext';
 import { formatCurrency, formatKm } from '@/lib/format';
 import { nearestSchools } from '@/lib/geo';
-import { BAND_INFO, FACILITIES_INFO, leaseBandFor, PROPERTY_TYPE_TITLE, tenureTitle, type SchoolPriorityBand } from '@/lib/models';
+import {
+  BAND_INFO,
+  DISTRICT_INFO,
+  FACILITIES_INFO,
+  leaseBandFor,
+  PROPERTY_TYPE_TITLE,
+  tenureTitle,
+  type SchoolPriorityBand,
+} from '@/lib/models';
 import { averagePsf, propertyById } from '@/lib/properties';
 import { SCHOOLS } from '@/lib/schools';
 
@@ -36,7 +44,8 @@ export default function PropertyReportScreen() {
   const schools = nearestSchools(property.location, SCHOOLS, 4);
   const closest = schools[0];
   const lease = leaseBandFor(property);
-  const avgPsf = averagePsf(property.town);
+  const avgPsf = averagePsf(property.district);
+  const districtInfo = DISTRICT_INFO[property.district];
 
   return (
     <>
@@ -51,7 +60,9 @@ export default function PropertyReportScreen() {
           <View style={[styles.typeBadge, { backgroundColor: colors.accentWash }]}>
             <Text style={[styles.typeBadgeText, { color: colors.accentStrong }]}>{PROPERTY_TYPE_TITLE[property.type]}</Text>
           </View>
-          <Text style={{ color: colors.muted, fontSize: 13 }}>{property.town}</Text>
+          <Text style={{ color: colors.muted, fontSize: 13 }}>
+            {districtInfo?.code} · {property.town}
+          </Text>
         </View>
         <Text style={[styles.title, { color: colors.ink }]}>{property.name}</Text>
 
@@ -67,7 +78,7 @@ export default function PropertyReportScreen() {
               </Text>
             )}
             {avgPsf != null && property.pricePsfHistoric != null && (
-              <PsfCompare psf={property.pricePsfHistoric} avg={avgPsf} town={property.town} />
+              <PsfCompare psf={property.pricePsfHistoric} avg={avgPsf} districtCode={districtInfo?.code ?? 'this district'} />
             )}
             <Divider />
             <RowLine label="Facilities" value={property.facilities ? FACILITIES_INFO[property.facilities].title : '—'} strong />
@@ -184,19 +195,19 @@ function Divider() {
   return <View style={{ height: 1, backgroundColor: colors.border, marginVertical: 10 }} />;
 }
 
-function PsfCompare({ psf, avg, town }: { psf: number; avg: number; town: string }) {
+function PsfCompare({ psf, avg, districtCode }: { psf: number; avg: number; districtCode: string }) {
   const colors = useColors();
   const delta = psf - avg;
   if (Math.abs(delta) < 25) {
     return (
       <Text style={[styles.note, { color: colors.muted }]}>
-        In line with the sample average for {town} (${avg}/sqft).
+        In line with the sample average for {districtCode} (${avg}/sqft).
       </Text>
     );
   }
   return (
     <Text style={[styles.note, { color: delta > 0 ? colors.flag : colors.accentStrong }]}>
-      ${Math.abs(delta)}/sqft {delta > 0 ? 'above' : 'below'} the sample average for {town} (${avg}/sqft).
+      ${Math.abs(delta)}/sqft {delta > 0 ? 'above' : 'below'} the sample average for {districtCode} (${avg}/sqft).
     </Text>
   );
 }

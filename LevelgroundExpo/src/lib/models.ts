@@ -129,6 +129,45 @@ export interface SchoolDistance {
   band: SchoolPriorityBand;
 }
 
+// ---------- Singapore districts ----------
+
+/** Singapore's 28 postal districts, used the way local agents and buyers actually talk about area. */
+export const DISTRICT_INFO: Record<number, { code: string; name: string }> = {
+  1: { code: 'D01', name: 'Raffles Place, Cecil, Marina, People\'s Park' },
+  2: { code: 'D02', name: 'Anson, Tanjong Pagar' },
+  3: { code: 'D03', name: 'Queenstown, Tiong Bahru, Alexandra' },
+  4: { code: 'D04', name: 'Telok Blangah, Harbourfront' },
+  5: { code: 'D05', name: 'Pasir Panjang, Clementi, West Coast' },
+  6: { code: 'D06', name: 'City Hall, Beach Road' },
+  7: { code: 'D07', name: 'Bugis, Golden Mile' },
+  8: { code: 'D08', name: 'Little India, Farrer Park' },
+  9: { code: 'D09', name: 'Orchard, River Valley, Cairnhill' },
+  10: { code: 'D10', name: 'Bukit Timah, Holland, Tanglin' },
+  11: { code: 'D11', name: 'Novena, Thomson, Watten Estate' },
+  12: { code: 'D12', name: 'Balestier, Toa Payoh, Serangoon' },
+  13: { code: 'D13', name: 'Macpherson, Braddell' },
+  14: { code: 'D14', name: 'Geylang, Eunos, Paya Lebar' },
+  15: { code: 'D15', name: 'Katong, Joo Chiat, Marine Parade' },
+  16: { code: 'D16', name: 'Bedok, Upper East Coast' },
+  17: { code: 'D17', name: 'Loyang, Changi' },
+  18: { code: 'D18', name: 'Tampines, Pasir Ris' },
+  19: { code: 'D19', name: 'Hougang, Punggol, Sengkang, Serangoon Garden' },
+  20: { code: 'D20', name: 'Bishan, Ang Mo Kio' },
+  21: { code: 'D21', name: 'Upper Bukit Timah, Beauty World, Clementi Park' },
+  22: { code: 'D22', name: 'Jurong, Boon Lay, Tuas' },
+  23: { code: 'D23', name: 'Bukit Batok, Bukit Panjang, Choa Chu Kang, Hillview' },
+  24: { code: 'D24', name: 'Lim Chu Kang, Tengah' },
+  25: { code: 'D25', name: 'Woodlands, Kranji' },
+  26: { code: 'D26', name: 'Upper Thomson, Springleaf' },
+  27: { code: 'D27', name: 'Yishun, Sembawang' },
+  28: { code: 'D28', name: 'Seletar, Yio Chu Kang' },
+};
+
+export function districtLabel(district: number): string {
+  const info = DISTRICT_INFO[district];
+  return info ? `${info.code} · ${info.name}` : `District ${district}`;
+}
+
 // ---------- Properties ----------
 
 export type PropertyType = 'hdb' | 'condo' | 'landed';
@@ -182,6 +221,8 @@ export interface SGProperty {
   name: string;
   type: PropertyType;
   town: string;
+  /** Singapore postal district (1–28). See DISTRICT_INFO. */
+  district: number;
   tenure: Tenure;
   location: GeoPoint;
   /** Historic transacted price per square foot (SGD). Condos only. */

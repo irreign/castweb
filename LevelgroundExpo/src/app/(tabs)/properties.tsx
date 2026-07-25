@@ -9,12 +9,21 @@ import { Radii, Spacing, useColors } from '@/constants/theme';
 import { useShortlist } from '@/context/ShortlistContext';
 import { formatCurrency, formatKm } from '@/lib/format';
 import { distanceKm } from '@/lib/geo';
-import { FACILITIES_INFO, FACILITIES_ORDER, facilitiesAtLeast, tenureTitle, type FacilitiesLevel, type SGProperty } from '@/lib/models';
+import {
+  DISTRICT_INFO,
+  FACILITIES_INFO,
+  FACILITIES_ORDER,
+  districtLabel,
+  facilitiesAtLeast,
+  tenureTitle,
+  type FacilitiesLevel,
+  type SGProperty,
+} from '@/lib/models';
 import { PROPERTIES, propertyById } from '@/lib/properties';
 import { SCHOOLS } from '@/lib/schools';
 
 const CONDOS = PROPERTIES.filter((p) => p.type === 'condo');
-const AREAS = Array.from(new Set(CONDOS.map((p) => p.town))).sort();
+const DISTRICTS = Array.from(new Set(CONDOS.map((p) => p.district))).sort((a, b) => a - b);
 
 type Mode = 'search' | 'shortlist';
 
@@ -23,7 +32,7 @@ export default function PropertiesScreen() {
   const { shortlistedIds, toggle, isShortlisted } = useShortlist();
   const [mode, setMode] = useState<Mode>('search');
 
-  const [area, setArea] = useState<string | null>(null);
+  const [district, setDistrict] = useState<string | null>(null);
   const [schoolId, setSchoolId] = useState<string | null>(null);
   const [maxBudget, setMaxBudget] = useState(3_000_000);
   const [minFacilities, setMinFacilities] = useState<FacilitiesLevel | null>(null);
@@ -33,7 +42,7 @@ export default function PropertiesScreen() {
 
   const results = useMemo(() => {
     let pool = CONDOS;
-    if (area) pool = pool.filter((p) => p.town === area);
+    if (district) pool = pool.filter((p) => p.district === Number(district));
     pool = pool.filter((p) => p.indicativePrice <= maxBudget);
     if (minFacilities) pool = pool.filter((p) => facilitiesAtLeast(p.facilities ?? 'basic', minFacilities));
     pool = pool.filter((p) => (p.mcstFeeMonthly ?? 0) <= maxMcst);
@@ -50,7 +59,7 @@ export default function PropertiesScreen() {
       withDistance.sort((a, b) => a.property.indicativePrice - b.property.indicativePrice);
     }
     return withDistance;
-  }, [area, school, maxBudget, minFacilities, maxMcst]);
+  }, [district, school, maxBudget, minFacilities, maxMcst]);
 
   const shortlistedProperties = Array.from(shortlistedIds)
     .map((id) => propertyById(id))
@@ -70,10 +79,10 @@ export default function PropertiesScreen() {
           <Text style={[styles.sectionLabel, { color: colors.muted }]}>FIND A CONDO</Text>
           <View style={[styles.filterCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <SelectField
-              label="Area"
-              value={area}
-              options={AREAS.map((a) => ({ value: a, label: a }))}
-              onChange={setArea}
+              label="District"
+              value={district}
+              options={DISTRICTS.map((d) => ({ value: String(d), label: districtLabel(d) }))}
+              onChange={setDistrict}
             />
             <SelectField
               label="Near school"
@@ -192,7 +201,7 @@ function CondoRow({
         <View style={{ flex: 1 }}>
           <Text style={[styles.condoName, { color: colors.ink }]}>{property.name}</Text>
           <Text style={[styles.condoMeta, { color: colors.muted }]}>
-            {property.town} · {tenureTitle(property.tenure)}
+            {DISTRICT_INFO[property.district]?.code} · {property.town} · {tenureTitle(property.tenure)}
           </Text>
           <View style={styles.badgeRow}>
             {property.pricePsfHistoric != null && (

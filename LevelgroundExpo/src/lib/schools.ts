@@ -30,4 +30,43 @@ export const SCHOOLS: SGSchool[] = [
     location: { lat: 1.3277, lon: 103.8377 },
   },
   { id: 'st-hildas', name: "St. Hilda's Primary School", area: 'Tampines', location: { lat: 1.3496, lon: 103.9391 } },
+  { id: 'radin-mas', name: 'Radin Mas Primary School', area: 'Telok Blangah', location: { lat: 1.2735, lon: 103.8195 } },
+  {
+    id: 'balestier-hill',
+    name: 'Balestier Hill Primary School',
+    area: 'Balestier',
+    location: { lat: 1.327, lon: 103.846 },
+  },
+  { id: 'kong-hwa', name: 'Kong Hwa School', area: 'Geylang', location: { lat: 1.3195, lon: 103.889 } },
+  { id: 'temasek-primary', name: 'Temasek Primary School', area: 'Bedok', location: { lat: 1.32, lon: 103.935 } },
+  {
+    id: 'jurong-west-primary',
+    name: 'Jurong West Primary School',
+    area: 'Jurong West',
+    location: { lat: 1.3405, lon: 103.7045 },
+  },
+  {
+    id: 'princess-elizabeth',
+    name: 'Princess Elizabeth Primary School',
+    area: 'Bukit Batok',
+    location: { lat: 1.352, lon: 103.755 },
+  },
+  {
+    id: 'woodgrove-primary',
+    name: 'Woodgrove Primary School',
+    area: 'Woodlands',
+    location: { lat: 1.4372, lon: 103.7868 },
+  },
+  {
+    id: 'northland-primary',
+    name: 'Northland Primary School',
+    area: 'Yishun',
+    location: { lat: 1.428, lon: 103.83 },
+  },
+  {
+    id: 'punggol-primary',
+    name: 'Punggol Primary School',
+    area: 'Punggol',
+    location: { lat: 1.401, lon: 103.902 },
+  },
 ];

@@ -11,7 +11,7 @@ struct PropertiesView: View {
     @State private var mode: Mode = .search
 
     // Filters
-    @State private var selectedArea: String?
+    @State private var selectedDistrict: Int?
     @State private var selectedSchoolID: String?
     @State private var maxBudget: Double = 3_000_000
     @State private var minFacilities: FacilitiesLevel?
@@ -21,8 +21,8 @@ struct PropertiesView: View {
         SGPropertyData.all.filter { $0.type == .condo }
     }
 
-    private var areas: [String] {
-        Array(Set(condos.map { $0.town })).sorted()
+    private var districts: [Int] {
+        Array(Set(condos.map { $0.district })).sorted()
     }
 
     private var selectedSchool: SGSchool? {
@@ -32,8 +32,8 @@ struct PropertiesView: View {
 
     private var filteredResults: [(property: SGProperty, distanceKm: Double?)] {
         var pool = condos
-        if let area = selectedArea {
-            pool = pool.filter { $0.town == area }
+        if let selectedDistrict {
+            pool = pool.filter { $0.district == selectedDistrict }
         }
         pool = pool.filter { $0.indicativePrice <= Int(maxBudget) }
         if let minFacilities {
@@ -90,9 +90,11 @@ struct PropertiesView: View {
     private var searchList: some View {
         List {
             Section("Find a condo") {
-                Picker("Area", selection: $selectedArea) {
-                    Text("Any").tag(String?.none)
-                    ForEach(areas, id: \.self) { Text($0).tag(Optional($0)) }
+                Picker("District", selection: $selectedDistrict) {
+                    Text("Any").tag(Int?.none)
+                    ForEach(districts, id: \.self) { district in
+                        Text(SGDistrict.label(district)).tag(Optional(district))
+                    }
                 }
 
                 Picker("Near school", selection: $selectedSchoolID) {
@@ -202,7 +204,7 @@ private struct CondoRow: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(property.name)
                     .font(.subheadline.weight(.semibold))
-                Text("\(property.town) · \(property.tenure.title)")
+                Text("\(SGDistrict.code(property.district)) · \(property.town) · \(property.tenure.title)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 HStack(spacing: 8) {
