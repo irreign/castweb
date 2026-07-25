@@ -124,6 +124,13 @@ struct HomeView: View {
                     QuickToolCard(title: "Rental Yield", icon: "chart.pie.fill")
                 }
                 .buttonStyle(.plain)
+
+                NavigationLink {
+                    ViewingChecklistView()
+                } label: {
+                    QuickToolCard(title: "Checklist", icon: "checklist")
+                }
+                .buttonStyle(.plain)
             }
         }
     }

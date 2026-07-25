@@ -16,6 +16,12 @@ struct ToolsView: View {
                     } label: {
                         ToolRow(title: "Rental Yield", subtitle: "Compare gross and net yield across properties", icon: "chart.pie.fill")
                     }
+
+                    NavigationLink {
+                        ViewingChecklistView()
+                    } label: {
+                        ToolRow(title: "Viewing Checklist", subtitle: "Questions to ask while you're at the property", icon: "checklist")
+                    }
                 } footer: {
                     Text("These tools give estimates to help you ask better questions. They aren't financial advice — always confirm real numbers with a lender or advisor before committing.")
                 }
