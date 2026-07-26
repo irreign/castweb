@@ -1,17 +1,32 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Text, View, StyleSheet } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Screen } from '../components/Screen';
+import { Gate } from '../components/Gate';
 import { LineMap } from '../components/LineMap';
 import { InfoCard } from '../components/InfoCard';
 import { useTheme } from '../theme';
-import { activeCards } from '../data/mock';
+import { activeCards, lineFields } from '../data/mock';
 import type { HomeStackParamList } from '../navigation/types';
 
 type Props = NativeStackScreenProps<HomeStackParamList, 'Home'>;
 
 export default function HomeScreen({ navigation }: Props) {
   const c = useTheme();
+  const [setUp, setSetUp] = useState(false);
+
+  if (!setUp) {
+    return (
+      <Gate
+        title="Let's map your stage"
+        sub="Six quick questions, just for the line below — nothing else needed yet."
+        fields={lineFields}
+        cta="Show my line"
+        onContinue={() => setSetUp(true)}
+      />
+    );
+  }
+
   return (
     <Screen>
       <Text style={[styles.greet, { color: c.inkSoft }]}>

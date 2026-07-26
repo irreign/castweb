@@ -124,11 +124,24 @@ export const profile = {
   email: 'meilin.tan@mail.com',
 };
 
-export const onboardingFields = [
+// Shown on Home, first visit only — placing you on the line.
+export const lineFields = [
   { label: 'Housing', options: ['HDB', 'Condo', 'Landed', 'Renting'], active: 'HDB' },
   { label: 'Household', options: ['Single', 'Married', 'Married + kids'], active: 'Married' },
   { label: 'Children', options: ['None', 'Expecting', 'One child', 'Twins / multiples'], active: 'Twins / multiples' },
   { label: "Oldest child's age", options: ['Newborn', 'Toddler', 'School-age', 'Teen'], active: 'Newborn' },
   { label: 'Career stage', options: ['Just started', 'Building up', 'Established', 'Own business'], active: 'Building up' },
   { label: 'Annual income', options: ['Under $50k', '$50k–100k', '$100k–200k', '$200k+'], active: '$100k–200k' },
+];
+
+// Shown on the Cards tab, first visit only.
+export const cardFields = [
+  { label: 'Do you have any credit cards already?', options: ['None', '1 card', '2–3 cards', '4+ cards'], active: '2–3 cards' },
+  { label: 'Which bank do you use most?', options: ['DBS', 'OCBC', 'UOB', 'Other'], active: 'DBS' },
+];
+
+// Shown on the Grow tab, first visit only.
+export const growFields = [
+  { label: 'Roughly how much do you have in savings?', options: ['Under $10k', '$10k–50k', '$50k–150k', '$150k+'], active: '$10k–50k' },
+  { label: 'Do you have a fixed deposit already?', options: ['No', 'Yes'], active: 'No' },
 ];

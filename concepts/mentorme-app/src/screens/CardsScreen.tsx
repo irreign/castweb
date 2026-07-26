@@ -1,14 +1,29 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Text, View, TouchableOpacity, StyleSheet } from 'react-native';
 import { Screen } from '../components/Screen';
+import { Gate } from '../components/Gate';
 import { EnrollRow } from '../components/EnrollRow';
 import { OfferRow } from '../components/OfferRow';
 import { CompareTable } from '../components/CompareTable';
 import { useTheme } from '../theme';
-import { enrollments, cardOffers, milesVsCashback } from '../data/mock';
+import { enrollments, cardOffers, milesVsCashback, cardFields } from '../data/mock';
 
 export default function CardsScreen() {
   const c = useTheme();
+  const [setUp, setSetUp] = useState(false);
+
+  if (!setUp) {
+    return (
+      <Gate
+        title="Quick one about your cards"
+        sub="Two questions, asked here because they only matter for this screen."
+        fields={cardFields}
+        cta="Show my cards"
+        onContinue={() => setSetUp(true)}
+      />
+    );
+  }
+
   return (
     <Screen>
       <Text style={[styles.title, { color: c.ink }]}>Your cards</Text>

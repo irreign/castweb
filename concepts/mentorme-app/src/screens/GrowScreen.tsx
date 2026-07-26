@@ -1,12 +1,27 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Text, View, TouchableOpacity, StyleSheet } from 'react-native';
 import { Screen } from '../components/Screen';
+import { Gate } from '../components/Gate';
 import { CompareTable } from '../components/CompareTable';
 import { useTheme } from '../theme';
-import { growInputs, growComparison } from '../data/mock';
+import { growInputs, growComparison, growFields } from '../data/mock';
 
 export default function GrowScreen() {
   const c = useTheme();
+  const [setUp, setSetUp] = useState(false);
+
+  if (!setUp) {
+    return (
+      <Gate
+        title="Quick one about your savings"
+        sub="Two questions, asked here because they only matter for this comparison."
+        fields={growFields}
+        cta="See my comparison"
+        onContinue={() => setSetUp(true)}
+      />
+    );
+  }
+
   return (
     <Screen>
       <Text style={[styles.title, { color: c.ink }]}>Grow your money</Text>
