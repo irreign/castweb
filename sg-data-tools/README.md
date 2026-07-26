@@ -66,13 +66,21 @@ hammering OneMap) and writes `hdb-resale.output.json`.
 
 1. Register at https://eservice.ura.gov.sg/maps/api/ for an AccessKey (free,
    takes a few minutes).
-2. `export URA_ACCESS_KEY="your-key-here"`
+2. `cp .env.example .env`, then edit `.env` and set `URA_ACCESS_KEY` to your
+   real key. `.env` is gitignored — it never gets committed. (A plain shell
+   `export` also works for a one-off manual run, but only `.env` gets picked
+   up by the weekly automation in section 5, since launchd jobs don't
+   inherit your shell's environment.)
 3. `node fetch-ura-private.mjs 1` (batch 1–4, each a different quarterly
    slice — run a couple of them to get more coverage)
 
 Writes `ura-transactions.output.json` — real project names, psf, floor area,
-district, tenure, transaction date. This is the one that would have caught
+district, tenure, transaction date. This is the one that catches things like
 Daintree Residence automatically instead of me having to know it by name.
+A single batch can easily be 15,000+ rows across a few hundred projects —
+run `node summarize-ura.mjs` afterward to condense that down to one row per
+project (name, district, tenure, avg/min/max psf), which is small enough to
+actually paste into chat.
 
 ## 5. Running it automatically every week
 
@@ -116,25 +124,29 @@ launchctl unload ~/Library/LaunchAgents/com.henry.sgdatatools.weekly.plist
 rm ~/Library/LaunchAgents/com.henry.sgdatatools.weekly.plist
 ```
 
-**What it actually does:** runs whichever of the schools/HDB/URA fetches are
-configured (edit the variables near the top of `run-weekly.sh` — HDB and URA
-are blank/unset until you fill in a dataset id / access key), and saves a
-dated copy of each output file (`schools.output.2026-08-03.json`, etc.) so
-you can compare week to week instead of overwriting. It does **not** commit
-or push anything automatically — you still choose when to hand a file back
-to me to fold into the app.
+**What it actually does:** runs schools (dataset id already filled in) and
+HDB resale (collection 189, already filled in) unconditionally, runs URA
+too if `.env` has a real `URA_ACCESS_KEY` in it, and — if URA ran — also
+runs `summarize-ura.mjs` automatically so you get the condensed per-project
+summary without an extra manual step. Every output gets a dated copy
+(`schools.output.2026-08-03.json`, etc.) so you can compare week to week
+instead of overwriting. It does **not** commit or push anything
+automatically, and does not send anything to me — you still choose when to
+hand a file over to be folded into the app.
 
 ## Honesty check on all of this
 
-- OneMap: confirmed working — you've run it successfully.
-- data.gov.sg scripts: use the `datastore_search` API, confirmed against
-  data.gov.sg's own documented example (not guessed — an earlier version of
-  this script guessed a different, wrong API shape before that correction).
-  The field names (`school_name`, `town`, `resale_price`, etc.) are
-  long-stable schemas I'm confident about. Dataset IDs still rotate, which
-  is why they're required arguments rather than hardcoded.
-- URA: the AccessKey → Token → invokeUraDS flow is long-documented, but I
-  could not test it live from this session (network policy blocks
-  `ura.gov.sg` here) — if the response shape is off, the field names in
-  `fetch-ura-private.mjs`'s mapping are the first thing to check against
-  URA's current docs.
+- OneMap: confirmed working.
+- data.gov.sg `datastore_search` (schools): confirmed working — the exact
+  endpoint came from data.gov.sg's own documented example, not a guess.
+- data.gov.sg collections API (HDB resale, collection 189): confirmed the
+  collection id and that dataset-id discovery + per-dataset fetching works.
+- URA private transactions: confirmed working end to end — 20,507
+  transactions across 292 projects on the first real run.
+
+Everything above has now actually been run successfully at least once. What
+hasn't been independently double-checked yet: whether every field URA
+returns is being mapped correctly in `fetch-ura-private.mjs` (psf is
+computed as price÷area, which assumes `area` is in square feet — worth a
+sanity check against a project you know the numbers for), and whether batch
+2–4 behave the same way batch 1 did.

@@ -9,12 +9,22 @@
 set -uo pipefail
 cd "$(dirname "$0")"
 
+# Real credentials live in .env (gitignored, never committed) — copy
+# .env.example to .env and fill it in. launchd jobs don't inherit your
+# shell's exported env vars, so this is the only reliable way to get
+# URA_ACCESS_KEY into a scheduled run.
+if [ -f .env ]; then
+  set -a
+  # shellcheck disable=SC1091
+  source .env
+  set +a
+fi
+
 # ---- Configure these ----
 SCHOOLS_DATASET_ID="d_688b934f82c1059ed0a6993d2a829089"
 HDB_COLLECTION_ID="189"   # "Resale Flat Prices" collection, confirmed
 HDB_TOWN=""               # optional, e.g. BEDOK — leave blank for all towns
-# URA_ACCESS_KEY: export it in your shell profile, or uncomment and set here:
-# URA_ACCESS_KEY="your-key-here"
+# URA_ACCESS_KEY comes from .env, see above.
 # --------------------------
 
 # launchd runs jobs with a minimal PATH — make sure node is findable.
@@ -53,14 +63,21 @@ else
 fi
 
 if [ -n "${URA_ACCESS_KEY:-}" ]; then
-  echo "[$DATE] Fetching URA transactions..." >> "$LOG"
+  echo "[$DATE] Fetching URA transactions (batch 1)..." >> "$LOG"
   node fetch-ura-private.mjs 1 >> "$LOG" 2>&1
   if [ -f ura-transactions.output.json ]; then
     cp ura-transactions.output.json "ura-transactions.output.$DATE.json"
     echo "[$DATE] Saved ura-transactions.output.$DATE.json" >> "$LOG"
+
+    echo "[$DATE] Summarizing URA transactions by project..." >> "$LOG"
+    node summarize-ura.mjs ura-transactions.output.json >> "$LOG" 2>&1
+    if [ -f ura-summary.output.json ]; then
+      cp ura-summary.output.json "ura-summary.output.$DATE.json"
+      echo "[$DATE] Saved ura-summary.output.$DATE.json" >> "$LOG"
+    fi
   fi
 else
-  echo "[$DATE] Skipping URA — URA_ACCESS_KEY not set." >> "$LOG"
+  echo "[$DATE] Skipping URA — URA_ACCESS_KEY not set (copy .env.example to .env and fill it in)." >> "$LOG"
 fi
 
 echo "[$DATE] Done." >> "$LOG"
