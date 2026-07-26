@@ -4,40 +4,35 @@
 // Usage:
 //   node fetch-schools.mjs <dataset-id> [--level=PRIMARY]
 //
-// You MUST pass the current dataset ID yourself — see fetch-dataset.mjs for
-// how to find it on data.gov.sg (search "General information of schools",
-// open the dataset, click "Data API", copy the id shown there). This script
-// deliberately does not hardcode one, since that ID is the part most likely
-// to have rotated since this was written.
+// Get the dataset id from the dataset's page on data.gov.sg (it's in the
+// page URL: .../datasets/d_xxxxxxxx/view).
 //
-// Expected CSV columns (as of the dataset's long-standing schema): school_name,
-// address, postal_code, mrt_desc, mainlevel_code (PRIMARY / SECONDARY / etc).
-// If data.gov.sg has renamed these columns, the script will print what it
-// actually found so you can adjust the field names below.
+// Expected fields (data.gov.sg's long-standing schema for this dataset):
+// school_name, address, postal_code, mrt_desc, mainlevel_code (PRIMARY /
+// SECONDARY / etc). If data.gov.sg has renamed these, the script prints the
+// actual field names it found so you can adjust below.
 
 import { writeFile } from 'node:fs/promises';
-import { fetchDatasetCsv, parseCsv } from './fetch-dataset.mjs';
+import { fetchAllRecords } from './fetch-dataset.mjs';
 import { geocode } from './onemap.mjs';
 
 async function main() {
   const [datasetId, ...rest] = process.argv.slice(2);
   if (!datasetId) {
     console.error('Usage: node fetch-schools.mjs <dataset-id> [--level=PRIMARY]');
-    console.error('See the comment at the top of this file for how to find the dataset id.');
     process.exit(1);
   }
   const levelFlag = rest.find((a) => a.startsWith('--level='));
   const levelFilter = levelFlag ? levelFlag.split('=')[1].toUpperCase() : null;
 
   console.log(`Fetching school directory (dataset ${datasetId})...`);
-  const csv = await fetchDatasetCsv(datasetId);
-  const rows = parseCsv(csv);
+  const rows = await fetchAllRecords(datasetId);
 
   if (rows.length === 0) {
-    console.error('Got 0 rows — the CSV may be empty or the dataset ID is wrong.');
+    console.error('Got 0 rows — the dataset id is probably wrong.');
     process.exit(1);
   }
-  console.log(`Columns found: ${Object.keys(rows[0]).join(', ')}`);
+  console.log(`Got ${rows.length} schools. Fields found: ${Object.keys(rows[0]).join(', ')}`);
 
   let filtered = rows;
   if (levelFilter) {

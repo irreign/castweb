@@ -1,79 +1,58 @@
-// Generic puller for data.gov.sg's "poll-download" API, which is the current
-// (as of this writing) way to get a CSV out of a dataset on data.gov.sg.
+// data.gov.sg's public CKAN-style `datastore_search` API. Confirmed against
+// data.gov.sg's own documented example (not guessed) — plain JSON records,
+// paginated via limit/offset, with optional exact-match `filters` and `sort`.
 //
-// Confidence: medium. data.gov.sg has changed its API shape before (there
-// used to be an older CKAN-style `datastore_search` API). If poll-download
-// 404s or returns something unexpected, data.gov.sg's site has a "Data API"
-// tab on every dataset page that shows a ready-to-use fetch snippet with the
-// CURRENT endpoint and dataset ID for that exact dataset — copy that over
-// this file's request instead of trusting this comment.
-//
-// You get the dataset ID by: go to data.gov.sg, search for the dataset by
-// name, open it, click "Data API", and copy the id that looks like
-// "d_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" out of the snippet shown there.
+// Docs pattern: https://data.gov.sg/api/action/datastore_search?resource_id=<id>&limit=10
 
-const POLL_DOWNLOAD_URL = (datasetId) =>
-  `https://api-open.data.gov.sg/v1/public/api/datasets/${datasetId}/poll-download`;
+const BASE = 'https://data.gov.sg/api/action/datastore_search';
 
-export async function fetchDatasetCsv(datasetId) {
-  const res = await fetch(POLL_DOWNLOAD_URL(datasetId));
-  if (!res.ok) {
-    throw new Error(
-      `data.gov.sg poll-download failed (${res.status}) for dataset ${datasetId}. ` +
-        `The dataset ID may be stale — see the comment at the top of fetch-dataset.mjs.`
-    );
-  }
-  const body = await res.json();
-  const downloadUrl = body?.data?.url;
-  if (!downloadUrl) {
-    throw new Error(`Unexpected response shape from data.gov.sg: ${JSON.stringify(body)}`);
-  }
-  const csvRes = await fetch(downloadUrl);
-  if (!csvRes.ok) {
-    throw new Error(`Failed to download CSV from ${downloadUrl} (${csvRes.status})`);
-  }
-  return await csvRes.text();
-}
+/**
+ * Fetch records from a data.gov.sg dataset, paginating automatically.
+ *
+ * @param {string} datasetId - e.g. "d_688b934f82c1059ed0a6993d2a829089"
+ * @param {object} [options]
+ * @param {number} [options.pageSize=1000] - rows per request
+ * @param {Record<string,string>} [options.filters] - exact-match field filters,
+ *   e.g. { town: "BEDOK" }
+ * @param {string} [options.sort] - e.g. "month desc"
+ * @param {(records: object[]) => boolean} [options.stopWhen] - called after
+ *   each page; return true to stop paginating early (e.g. once sorted rows
+ *   go past a date cutoff you care about)
+ */
+export async function fetchAllRecords(datasetId, options = {}) {
+  const { pageSize = 1000, filters, sort, stopWhen } = options;
+  let offset = 0;
+  let all = [];
+  let total = Infinity;
 
-export function parseCsv(csvText) {
-  const lines = csvText.split(/\r?\n/).filter((l) => l.length > 0);
-  const headers = splitCsvLine(lines[0]);
-  return lines.slice(1).map((line) => {
-    const cells = splitCsvLine(line);
-    const row = {};
-    headers.forEach((h, i) => {
-      row[h] = cells[i] ?? '';
-    });
-    return row;
-  });
-}
+  while (offset < total) {
+    const url = new URL(BASE);
+    url.searchParams.set('resource_id', datasetId);
+    url.searchParams.set('limit', String(pageSize));
+    url.searchParams.set('offset', String(offset));
+    if (filters) url.searchParams.set('filters', JSON.stringify(filters));
+    if (sort) url.searchParams.set('sort', sort);
 
-function splitCsvLine(line) {
-  const cells = [];
-  let cur = '';
-  let inQuotes = false;
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-    if (inQuotes) {
-      if (ch === '"') {
-        if (line[i + 1] === '"') {
-          cur += '"';
-          i++;
-        } else {
-          inQuotes = false;
-        }
-      } else {
-        cur += ch;
-      }
-    } else if (ch === '"') {
-      inQuotes = true;
-    } else if (ch === ',') {
-      cells.push(cur);
-      cur = '';
-    } else {
-      cur += ch;
+    const res = await fetch(url);
+    if (!res.ok) {
+      throw new Error(
+        `data.gov.sg datastore_search failed (${res.status}) for dataset ${datasetId}. ` +
+          `Double-check the dataset id from the dataset's page on data.gov.sg.`
+      );
     }
+    const body = await res.json();
+    if (!body.success) {
+      throw new Error(`data.gov.sg returned an error: ${JSON.stringify(body)}`);
+    }
+
+    const { records, total: reportedTotal } = body.result;
+    total = reportedTotal ?? records.length;
+    all = all.concat(records);
+    offset += records.length;
+
+    if (records.length === 0) break; // safety net against infinite loop
+    if (stopWhen && stopWhen(records)) break;
   }
-  cells.push(cur);
-  return cells;
+
+  return all;
 }

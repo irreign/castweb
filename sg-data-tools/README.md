@@ -75,17 +75,15 @@ Daintree Residence automatically instead of me having to know it by name.
 
 ## Honesty check on all of this
 
-- OneMap: I'm confident this works as written.
-- data.gov.sg scripts: the CSV *columns* I'm confident about (long-stable
-  schemas), the poll-download *mechanism* I'm fairly confident about, but the
-  exact dataset IDs rotate, which is why they're required arguments instead
-  of something I hardcoded and hoped was still right.
+- OneMap: confirmed working — you've run it successfully.
+- data.gov.sg scripts: use the `datastore_search` API, confirmed against
+  data.gov.sg's own documented example (not guessed — an earlier version of
+  this script guessed a different, wrong API shape before that correction).
+  The field names (`school_name`, `town`, `resale_price`, etc.) are
+  long-stable schemas I'm confident about. Dataset IDs still rotate, which
+  is why they're required arguments rather than hardcoded.
 - URA: the AccessKey → Token → invokeUraDS flow is long-documented, but I
   could not test it live from this session (network policy blocks
   `ura.gov.sg` here) — if the response shape is off, the field names in
   `fetch-ura-private.mjs`'s mapping are the first thing to check against
   URA's current docs.
-
-None of these scripts were run before being handed to you. Expect the first
-attempt at each to surface a small mismatch (a renamed column, a stale
-dataset ID) rather than working perfectly blind.
