@@ -1,56 +1,88 @@
-// Pulls real HDB resale transactions from data.gov.sg — actual town, block,
-// street, floor area, lease commence date, and resale price.
+// Pulls real HDB resale transactions from data.gov.sg.
+//
+// "Resale Flat Prices" isn't a single dataset — it's a *collection* of
+// several datasets split by time period (e.g. 1990-1999, 2000-2012,
+// 2012-2014, 2015-2016, 2017-onwards), grouped under collection id 189
+// (confirmed directly from data.gov.sg, not guessed). This script fetches
+// the collection's metadata to discover the current child dataset ids, then
+// queries each one with the classic datastore_search API (confirmed working
+// against fetch-dataset.mjs already).
 //
 // Usage:
-//   node fetch-hdb-resale.mjs <dataset-id> [TOWN] [--months=6]
+//   node fetch-hdb-resale.mjs [collectionId] [TOWN] [--months=6]
+//   node fetch-hdb-resale.mjs                          # defaults to 189, all towns, 6 months
+//   node fetch-hdb-resale.mjs 189 BEDOK --months=3
 //
-// Get the dataset id from the dataset's page on data.gov.sg (search "Resale
-// Flat Prices", pick the resource covering recent years, copy the id from
-// the page URL: .../datasets/d_xxxxxxxx/view).
-//
-// Expected fields (long-standing schema for this dataset): month, town,
-// flat_type, block, street_name, storey_range, floor_area_sqm, flat_model,
-// lease_commence_date, remaining_lease, resale_price.
+// Confidence note: the collection-metadata endpoint and its exact JSON shape
+// weren't something I could verify live (network policy blocks data.gov.sg
+// from this session). Rather than guess a field name and risk being wrong
+// again, this scans the raw metadata response for anything shaped like a
+// dataset id (`d_` + 32 hex characters) instead of assuming a specific
+// field path — if the collection's structure changes, this still finds the
+// ids as long as they appear anywhere in the response.
 
 import { writeFile } from 'node:fs/promises';
 import { fetchAllRecords } from './fetch-dataset.mjs';
 import { geocode } from './onemap.mjs';
 
+const METADATA_URL = (collectionId) =>
+  `https://api-production.data.gov.sg/v2/public/api/collections/${collectionId}/metadata`;
+
+async function discoverDatasetIds(collectionId) {
+  const res = await fetch(METADATA_URL(collectionId));
+  if (!res.ok) {
+    throw new Error(`Collection metadata request failed (${res.status}) for collection ${collectionId}.`);
+  }
+  const text = await res.text();
+  const ids = [...new Set(text.match(/d_[0-9a-f]{32}/g) ?? [])];
+  if (ids.length === 0) {
+    console.error('Raw metadata response (no dataset-id-shaped strings found in it):');
+    console.error(text);
+    throw new Error('Could not find any dataset ids in the collection metadata — see the raw response above.');
+  }
+  return ids;
+}
+
 async function main() {
   const args = process.argv.slice(2);
-  const datasetId = args[0];
-  if (!datasetId) {
-    console.error('Usage: node fetch-hdb-resale.mjs <dataset-id> [TOWN] [--months=6]');
-    process.exit(1);
-  }
-  const townFilter = args[1] && !args[1].startsWith('--') ? args[1].toUpperCase() : null;
-  const monthsFlag = args.find((a) => a.startsWith('--months='));
+  const collectionId = args[0] && /^\d+$/.test(args[0]) ? args[0] : '189';
+  const rest = args[0] === collectionId ? args.slice(1) : args;
+  const townFilter = rest[0] && !rest[0].startsWith('--') ? rest[0].toUpperCase() : null;
+  const monthsFlag = rest.find((a) => a.startsWith('--months='));
   const monthsBack = monthsFlag ? parseInt(monthsFlag.split('=')[1], 10) : 6;
 
   const cutoff = new Date();
   cutoff.setMonth(cutoff.getMonth() - monthsBack);
   const cutoffStr = `${cutoff.getFullYear()}-${String(cutoff.getMonth() + 1).padStart(2, '0')}`;
 
-  console.log(
-    `Fetching HDB resale transactions (dataset ${datasetId})${townFilter ? ` in ${townFilter}` : ''}, back to ${cutoffStr}...`
-  );
+  console.log(`Looking up dataset ids inside collection ${collectionId}...`);
+  const datasetIds = await discoverDatasetIds(collectionId);
+  console.log(`Found ${datasetIds.length} dataset id(s): ${datasetIds.join(', ')}`);
 
-  const rows = await fetchAllRecords(datasetId, {
-    filters: townFilter ? { town: townFilter } : undefined,
-    sort: 'month desc',
-    // Sorted newest-first, so once an entire page is older than our cutoff
-    // there's no point fetching further pages.
-    stopWhen: (page) => page.every((r) => r.month < cutoffStr),
-  });
+  let allRows = [];
+  for (const id of datasetIds) {
+    console.log(`Fetching from dataset ${id}${townFilter ? ` (town=${townFilter})` : ''}...`);
+    try {
+      const rows = await fetchAllRecords(id, {
+        filters: townFilter ? { town: townFilter } : undefined,
+        sort: 'month desc',
+        stopWhen: (page) => page.every((r) => r.month && r.month < cutoffStr),
+      });
+      console.log(`  -> ${rows.length} rows`);
+      allRows = allRows.concat(rows);
+    } catch (err) {
+      console.warn(`  -> failed: ${err.message}`);
+    }
+  }
 
-  if (rows.length === 0) {
-    console.error('Got 0 rows — check the town spelling (must match the data exactly, e.g. "BEDOK") or the dataset id.');
+  if (allRows.length === 0) {
+    console.error('No rows fetched from any dataset in this collection — check the town spelling or widen --months.');
     process.exit(1);
   }
-  console.log(`Fetched ${rows.length} rows. Fields found: ${Object.keys(rows[0]).join(', ')}`);
+  console.log(`Fields found: ${Object.keys(allRows[0]).join(', ')}`);
 
-  const filtered = rows.filter((r) => r.month >= cutoffStr);
-  console.log(`${filtered.length} of those are within the last ${monthsBack} months.`);
+  const filtered = allRows.filter((r) => r.month && r.month >= cutoffStr);
+  console.log(`${filtered.length} of ${allRows.length} fetched rows are within the last ${monthsBack} months.`);
 
   if (filtered.length === 0) {
     process.exit(1);

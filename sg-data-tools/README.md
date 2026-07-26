@@ -46,18 +46,21 @@ OneMap — takes a couple minutes since it's one request per school. Writes
 
 ## 3. HDB resale transactions (data.gov.sg)
 
-Same deal — search **"Resale Flat Prices"** on data.gov.sg (pick the resource
-covering recent years), and copy the id from that dataset's page URL.
+"Resale Flat Prices" isn't one dataset — it's a *collection* of several,
+split by time period. The collection id (`189`) is already confirmed and
+built in as the default, so no manual dataset-id hunting needed here:
 
 ```
-node fetch-hdb-resale.mjs <dataset-id> BEDOK --months=6
+node fetch-hdb-resale.mjs             # collection 189, all towns, last 6 months
+node fetch-hdb-resale.mjs 189 BEDOK --months=6
 ```
 
 Town name is optional (case-insensitive, must match how it appears in the
 data, e.g. `BEDOK`, `JURONG WEST`); omit it to pull all towns. `--months`
-controls how far back to look. Geocodes a sample of up to 30 matching
-transactions (not all of them, to avoid hammering OneMap) and writes
-`hdb-resale.output.json`.
+controls how far back to look. The script fetches the collection's metadata
+first to find its current child dataset ids, pulls from each, then geocodes
+a sample of up to 30 matching transactions (not all of them, to avoid
+hammering OneMap) and writes `hdb-resale.output.json`.
 
 ## 4. Private property transactions (URA) — needs a free API key
 
