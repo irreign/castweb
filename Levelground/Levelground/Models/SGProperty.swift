@@ -440,6 +440,20 @@ enum SGPropertyData {
             indicativePrice: 1_890_000
         ),
         SGProperty(
+            id: "daintree-residence",
+            name: "Daintree Residence",
+            type: .condo,
+            town: "Toh Tuck / Bukit Timah",
+            district: 21,
+            tenure: Tenure(type: .leasehold99, leaseStartYear: 2021),
+            location: GeoPoint(lat: 1.3390, lon: 103.7830),
+            pricePsfHistoric: 1750,
+            unitSizeSqft: 1000,
+            mcstFeeMonthly: 420,
+            facilities: .full,
+            indicativePrice: 1_750_000
+        ),
+        SGProperty(
             id: "braddell-view-hdb",
             name: "Braddell View",
             type: .hdb,
