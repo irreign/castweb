@@ -6,6 +6,7 @@ import { Gate } from '../components/Gate';
 import { LineMap } from '../components/LineMap';
 import { InfoCard } from '../components/InfoCard';
 import { useTheme } from '../theme';
+import { useAppState } from '../state/AppState';
 import { activeCards, lineFields } from '../data/mock';
 import type { HomeStackParamList } from '../navigation/types';
 
@@ -13,6 +14,8 @@ type Props = NativeStackScreenProps<HomeStackParamList, 'Home'>;
 
 export default function HomeScreen({ navigation }: Props) {
   const c = useTheme();
+  const { profile } = useAppState();
+  const firstName = profile.name.split(' ')[0] || 'there';
   const [setUp, setSetUp] = useState(false);
 
   if (!setUp) {
@@ -30,7 +33,7 @@ export default function HomeScreen({ navigation }: Props) {
   return (
     <Screen>
       <Text style={[styles.greet, { color: c.inkSoft }]}>
-        Hi, <Text style={{ color: c.ink, fontWeight: '700' }}>Mei</Text> — updated today
+        Hi, <Text style={{ color: c.ink, fontWeight: '700' }}>{firstName}</Text> — updated today
       </Text>
 
       <Text style={[styles.label, { color: c.inkFaint }]}>YOUR LINE</Text>

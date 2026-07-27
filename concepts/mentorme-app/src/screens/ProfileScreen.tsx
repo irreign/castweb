@@ -2,20 +2,21 @@ import React, { useState } from 'react';
 import { Text, View, Switch, TouchableOpacity, StyleSheet } from 'react-native';
 import { Screen } from '../components/Screen';
 import { useTheme } from '../theme';
-import { profile } from '../data/mock';
+import { useAppState } from '../state/AppState';
 
 export default function ProfileScreen() {
   const c = useTheme();
   const [notify, setNotify] = useState(true);
+  const { profile } = useAppState();
 
   return (
     <Screen>
       <Text style={[styles.title, { color: c.ink }]}>Your profile</Text>
       <Text style={[styles.sub, { color: c.inkSoft }]}>This is the only screen that stores contact details.</Text>
 
-      <Row label="Name" value={profile.name} />
-      <Row label="Mobile number" value={profile.mobile} />
-      <Row label="Email" value={profile.email} />
+      <Row label="Name" value={profile.name || '—'} />
+      <Row label="Mobile number" value={profile.mobile || '—'} />
+      <Row label="Email" value={profile.email || '—'} />
 
       <View style={[styles.toggleRow, { borderBottomColor: c.line }]}>
         <View style={{ flex: 1, paddingRight: 12 }}>

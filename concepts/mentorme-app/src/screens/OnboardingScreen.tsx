@@ -4,16 +4,17 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Screen } from '../components/Screen';
 import { TextField } from '../components/TextField';
 import { useTheme } from '../theme';
-import { profile } from '../data/mock';
+import { useAppState } from '../state/AppState';
 import type { RootStackParamList } from '../navigation/types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Onboarding'>;
 
 export default function OnboardingScreen({ navigation }: Props) {
   const c = useTheme();
-  const [name, setName] = useState(profile.name);
-  const [mobile, setMobile] = useState(profile.mobile);
-  const [email, setEmail] = useState(profile.email);
+  const { setProfile } = useAppState();
+  const [name, setName] = useState('');
+  const [mobile, setMobile] = useState('');
+  const [email, setEmail] = useState('');
 
   return (
     <Screen>
@@ -28,7 +29,10 @@ export default function OnboardingScreen({ navigation }: Props) {
 
       <TouchableOpacity
         style={[styles.button, { backgroundColor: c.gold }]}
-        onPress={() => navigation.replace('Main')}
+        onPress={() => {
+          setProfile({ name: name.trim(), mobile: mobile.trim(), email: email.trim() });
+          navigation.replace('Main');
+        }}
         activeOpacity={0.85}
       >
         <Text style={styles.buttonText}>Continue →</Text>

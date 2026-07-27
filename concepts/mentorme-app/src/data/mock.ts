@@ -41,22 +41,6 @@ export const twinsGuide = {
   ],
 };
 
-export const enrollments = [
-  {
-    name: "DBS Woman's World Card",
-    status: 'active' as const,
-    signedUp: '12 Mar 2025',
-    gift: '20,000 miles',
-  },
-  {
-    name: 'Citi Rewards Card',
-    status: 'cancelled' as const,
-    cancelled: '10 Feb 2025',
-    gift: '16,000 miles',
-    reactivateFrom: '10 Feb 2026',
-  },
-];
-
 export const cardOffers = [
   {
     name: 'HSBC Revolution',
@@ -117,12 +101,6 @@ export const growComparison = [
   { where: 'SGX ES3 (STI ETF)', rate: '~7.0% p.a.*', perMonth: '$116.67' },
   { where: 'Diversified portfolio', rate: '~5.5% p.a.*', perMonth: '$91.67' },
 ];
-
-export const profile = {
-  name: 'Mei Lin Tan',
-  mobile: '+65 9123 4567',
-  email: 'meilin.tan@mail.com',
-};
 
 // Shown on Home, first visit only — placing you on the line.
 export const lineFields = [
