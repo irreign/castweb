@@ -308,14 +308,16 @@ export const ARTICLES: KnowledgeItem[] = [
     category: 'schoolsAndLocation',
     level: 'new',
     summary:
-      "Living within 1km or 2km of a popular school changes your odds at Primary 1 registration — here's the mechanism.",
+      "Living within 1km or 2km of a popular school changes your odds at Primary 1 registration — here's the mechanism, and the phases it actually sits inside.",
     body: [
-      "Singapore's Primary 1 registration runs in phases, and several of the early phases give priority to children whose home address is close to the school — within 1km first, then 1km-2km, before the process opens up to everyone else island-wide.",
-      "If a phase has more applicants than places, priority is decided within that phase by home-to-school distance, and if it's still tied, by ballot. Being within 1km doesn't guarantee a place if the school is oversubscribed even within that ring — it just puts you ahead of everyone farther away.",
+      "Singapore's Primary 1 registration runs through a sequence of phases, each opening a school to a different group before it's finally open to everyone: Phase 1 (a sibling already at the school), Phase 2A(1) (a parent on the board or staff), Phase 2A(2) (a parent who's a registered alumnus), Phase 2B (a recognised community leader or school volunteer, or a child endorsed by a religious/clan body tied to the school), then Phase 2C — every remaining Singapore Citizen or PR child, which is where most families with no specific tie to the school actually register.",
+      "The 1km / 1km-2km / beyond-2km distance priority isn't a phase of its own — it's the tiebreaker used inside whichever phase you're in, whenever that phase has more applicants for a school than places left. It matters most in Phase 2C, since that's where nearly everyone without an alumni or volunteer connection ends up. Being within 1km doesn't guarantee a place if the school is oversubscribed even within that ring — it just puts you ahead of everyone farther away in your phase.",
+      "If a school still isn't fully placed after Phase 2C, there's a Phase 2C Supplementary round from schools with remaining vacancies, and finally Phase 3 for children who aren't Singapore Citizens or PRs.",
       'This is exactly why some popular schools show a visible price premium on nearby homes: parents are effectively paying for a better position in the priority queue, years before their child is old enough to enroll.',
       "The distance is measured from your registered residential address to the school, not from where you happen to be living temporarily — so this only works if you actually live there, not just hold a lease on paper.",
+      "There's no fixed nationwide split of how many seats go to each phase — it depends entirely on how many siblings, alumni, and volunteers apply to that specific school that year. A handful of highly sought-after schools fill most of their intake before Phase 2C even opens, leaving only a few seats for everyone else; most schools still have the bulk of their seats open at Phase 2C. MOE publishes each school's actual starting vacancy count for Phase 2C every year after registration closes — that real, school-specific number is worth far more than any general rule of thumb.",
     ],
-    readMinutes: 4,
+    readMinutes: 5,
   },
   {
     id: 'balloting-phases-explained',

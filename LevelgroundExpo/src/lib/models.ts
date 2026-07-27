@@ -110,18 +110,65 @@ export type SchoolPriorityBand = 'within1km' | 'within2km' | 'beyond2km';
 export const BAND_INFO: Record<SchoolPriorityBand, { title: string; phaseNote: string }> = {
   within1km: {
     title: 'Within 1km',
-    phaseNote: "Phase 2A(1) priority — the strongest priority tier open to non-alumni families.",
+    phaseNote:
+      'Top priority in whichever phase you register in — most families with no tie to the school register in Phase 2C, where this is the strongest tier available.',
   },
   within2km: {
     title: '1km – 2km',
-    phaseNote:
-      "Phase 2A(1) priority doesn't apply, but you still get Phase 2B priority ahead of the general public ballot.",
+    phaseNote: 'Still ahead of beyond-2km applicants in your registration phase, but not ahead of anyone closer.',
   },
   beyond2km: {
     title: 'Beyond 2km',
-    phaseNote: "No distance-based priority. You'd register in Phase 2C, competing island-wide by ballot.",
+    phaseNote: 'No distance-based edge — you compete islandwide within your phase, usually settled by ballot.',
   },
 };
+
+/** Singapore's Primary 1 registration phases, in order. Distance priority
+ * (see SchoolPriorityBand) is the tiebreaker used *within* a phase when
+ * that phase has more applicants for a school than places left — it isn't
+ * a phase of its own, and it mostly matters in Phase 2C, since that's
+ * where families with no other tie to the school register. */
+export interface RegistrationPhase {
+  id: string;
+  title: string;
+  whoQualifies: string;
+}
+
+export const REGISTRATION_PHASES: RegistrationPhase[] = [
+  { id: 'phase1', title: 'Phase 1', whoQualifies: 'A sibling is currently studying at the school.' },
+  {
+    id: 'phase2a1',
+    title: 'Phase 2A(1)',
+    whoQualifies: "A parent sits on the school's board/management committee, or works at the school.",
+  },
+  {
+    id: 'phase2a2',
+    title: 'Phase 2A(2)',
+    whoQualifies: "A parent is an alumnus registered with the school's alumni association.",
+  },
+  {
+    id: 'phase2b',
+    title: 'Phase 2B',
+    whoQualifies:
+      'A parent is a recognised community leader or school volunteer, or the child is endorsed by a religious/clan body affiliated with the school.',
+  },
+  {
+    id: 'phase2c',
+    title: 'Phase 2C',
+    whoQualifies:
+      "Everyone else — every remaining Singapore Citizen or PR child. This is where distance priority (1km / 1-2km / beyond) actually decides most outcomes.",
+  },
+  {
+    id: 'phase2csupp',
+    title: 'Phase 2C Supplementary',
+    whoQualifies: "For children not yet placed anywhere — choose from schools that still have vacancies.",
+  },
+  {
+    id: 'phase3',
+    title: 'Phase 3',
+    whoQualifies: 'Children who are not Singapore Citizens or PRs, if places remain.',
+  },
+];
 
 export interface SchoolDistance {
   school: SGSchool;

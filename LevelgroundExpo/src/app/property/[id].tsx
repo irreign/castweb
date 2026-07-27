@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Link, Stack, useLocalSearchParams } from 'expo-router';
+import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { ProgressBar } from '@/components/ProgressBar';
@@ -14,6 +15,7 @@ import {
   FACILITIES_INFO,
   leaseBandFor,
   PROPERTY_TYPE_TITLE,
+  REGISTRATION_PHASES,
   tenureTitle,
   type SchoolPriorityBand,
 } from '@/lib/models';
@@ -112,6 +114,7 @@ export default function PropertyReportScreen() {
               </View>
             ))}
           </View>
+          <PhaseDisclosure />
         </ReportCard>
 
         <ReportCard title="Lease decay" icon="hourglass-outline" learnMoreId="lease-decay-explained">
@@ -195,6 +198,38 @@ function Divider() {
   return <View style={{ height: 1, backgroundColor: colors.border, marginVertical: 10 }} />;
 }
 
+function PhaseDisclosure() {
+  const colors = useColors();
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <View style={{ marginTop: Spacing.sm }}>
+      <Pressable onPress={() => setExpanded((v) => !v)} style={styles.phaseToggle}>
+        <Text style={{ color: colors.accentStrong, fontSize: 12, fontWeight: '700' }}>
+          {expanded ? 'Hide' : 'See all'} registration phases
+        </Text>
+        <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={14} color={colors.accentStrong} />
+      </Pressable>
+      {expanded && (
+        <View style={{ marginTop: 8 }}>
+          {REGISTRATION_PHASES.map((phase, index) => (
+            <View key={phase.id} style={[styles.phaseRow, index === 0 && { borderTopWidth: 0 }, { borderTopColor: colors.border }]}>
+              <Text style={{ color: colors.ink, fontSize: 12, fontWeight: '700', width: 132 }}>{phase.title}</Text>
+              <Text style={{ color: colors.muted, fontSize: 12, flex: 1, lineHeight: 16 }}>{phase.whoQualifies}</Text>
+            </View>
+          ))}
+          <Text style={[styles.note, { color: colors.muted, marginTop: 8 }]}>
+            There's no fixed nationwide split of seats per phase — it varies by school and year. Some schools fill
+            most places before Phase 2C even opens; most still have the bulk of seats open at that point. MOE
+            publishes each school's actual Phase 2C starting vacancy count annually — that's worth more than any
+            general rule of thumb.
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
 function PsfCompare({ psf, avg, districtCode }: { psf: number; avg: number; districtCode: string }) {
   const colors = useColors();
   const delta = psf - avg;
@@ -231,6 +266,8 @@ const styles = StyleSheet.create({
   bandBadge: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
   bandBadgeText: { fontSize: 13, fontWeight: '700' },
   schoolRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 5 },
+  phaseToggle: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start' },
+  phaseRow: { flexDirection: 'row', paddingVertical: 6, borderTopWidth: StyleSheet.hairlineWidth, gap: 8 },
   leaseRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
   comingSoonRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
   disclaimer: { fontSize: 11, lineHeight: 16, marginTop: Spacing.sm },

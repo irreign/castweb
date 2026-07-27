@@ -42,6 +42,8 @@ struct PropertyReportView: View {
                         }
                     }
                     .padding(.top, 4)
+
+                    PhaseDisclosure()
                 }
 
                 reportSection(
@@ -252,6 +254,48 @@ private struct SchoolDistanceRow: View {
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(.secondary)
         }
+    }
+}
+
+private struct PhaseDisclosure: View {
+    @State private var expanded = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Button {
+                withAnimation { expanded.toggle() }
+            } label: {
+                HStack(spacing: 4) {
+                    Text(expanded ? "Hide registration phases" : "See all registration phases")
+                        .font(.caption.weight(.bold))
+                    Image(systemName: expanded ? "chevron.up" : "chevron.down")
+                        .font(.caption2)
+                }
+                .foregroundStyle(Color.accentColor)
+            }
+            .buttonStyle(.plain)
+
+            if expanded {
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(RegistrationPhaseData.all) { phase in
+                        HStack(alignment: .top, spacing: 8) {
+                            Text(phase.title)
+                                .font(.caption.weight(.bold))
+                                .frame(width: 130, alignment: .leading)
+                            Text(phase.whoQualifies)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.vertical, 6)
+                        Divider()
+                    }
+                }
+                Text("There's no fixed nationwide split of seats per phase — it varies by school and year. Some schools fill most places before Phase 2C even opens; most still have the bulk of seats open at that point. MOE publishes each school's actual Phase 2C starting vacancy count annually — that's worth more than any general rule of thumb.")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.top, 6)
     }
 }
 
