@@ -5,6 +5,7 @@ import { ChipRow } from '../components/Chip';
 import { TextField } from '../components/TextField';
 import { CompareTable } from '../components/CompareTable';
 import { ProGate } from '../components/ProGate';
+import { TrendBars } from '../components/TrendBars';
 import { useTheme } from '../theme';
 import { useAppState } from '../state/AppState';
 import {
@@ -22,16 +23,16 @@ const SRS_EXAMPLE_TOPUP = 6000;
 
 export default function GrowScreen() {
   const c = useTheme();
-  const [setUp, setSetUp] = useState(false);
   const [savingsInput, setSavingsInput] = useState('');
   const [incomeInput, setIncomeInput] = useState('');
   const [hasFd, setHasFd] = useState('No');
 
-  const { savings, annualIncome, setMoneyInputs, netWorthHistory, addNetWorthCheckIn } = useAppState();
+  const { savings, annualIncome, setMoneyInputs, netWorthHistory, addNetWorthCheckIn, gatesCompleted, markGateComplete } =
+    useAppState();
   const [checkInOpen, setCheckInOpen] = useState(false);
   const [checkInValue, setCheckInValue] = useState('');
 
-  if (!setUp) {
+  if (!gatesCompleted.grow) {
     return (
       <Screen>
         <Text style={[styles.title, { color: c.ink }]}>Quick one about your savings</Text>
@@ -59,7 +60,7 @@ export default function GrowScreen() {
           style={[styles.button, { backgroundColor: c.gold }]}
           onPress={() => {
             setMoneyInputs(parseCurrencyInput(savingsInput), parseCurrencyInput(incomeInput));
-            setSetUp(true);
+            markGateComplete('grow');
           }}
           activeOpacity={0.85}
         >
@@ -140,6 +141,7 @@ export default function GrowScreen() {
 
       <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.line, marginTop: 14 }]}>
         <Text style={[styles.kicker, { color: c.teal }]}>NET WORTH CHECK-IN</Text>
+        <TrendBars values={netWorthHistory.map((e) => e.amount)} />
         {lastEntry ? (
           <Text style={[styles.cardBody, { color: c.inkSoft }]}>
             Last recorded: <Text style={{ fontWeight: '800', color: c.ink }}>{formatCurrency(lastEntry.amount)}</Text>

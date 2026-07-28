@@ -1,11 +1,12 @@
 import React from 'react';
-import { Text } from 'react-native';
+import { Text, View } from 'react-native';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useColorScheme } from 'react-native';
 
 import { useTheme } from '../theme';
+import { useAppState } from '../state/AppState';
 import OnboardingScreen from '../screens/OnboardingScreen';
 import HomeScreen from '../screens/HomeScreen';
 import StationDetailScreen from '../screens/StationDetailScreen';
@@ -60,6 +61,7 @@ function MainTabs() {
 export default function RootNavigator() {
   const scheme = useColorScheme();
   const c = useTheme();
+  const { isLoaded, hasAccount } = useAppState();
 
   const navTheme = {
     ...(scheme === 'dark' ? DarkTheme : DefaultTheme),
@@ -73,9 +75,15 @@ export default function RootNavigator() {
     },
   };
 
+  if (!isLoaded) {
+    // Briefly waiting on AsyncStorage before deciding whether to show onboarding
+    // or go straight back to the account someone already set up.
+    return <View style={{ flex: 1, backgroundColor: c.paper }} />;
+  }
+
   return (
     <NavigationContainer theme={navTheme}>
-      <RootStack.Navigator screenOptions={{ headerShown: false }}>
+      <RootStack.Navigator screenOptions={{ headerShown: false }} initialRouteName={hasAccount ? 'Main' : 'Onboarding'}>
         <RootStack.Screen name="Onboarding" component={OnboardingScreen} />
         <RootStack.Screen name="Main" component={MainTabs} />
       </RootStack.Navigator>

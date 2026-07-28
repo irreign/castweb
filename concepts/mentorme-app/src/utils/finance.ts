@@ -44,6 +44,27 @@ export function parseCurrencyInput(text: string): number {
   return isK ? n * 1000 : n;
 }
 
+// DBS Woman's World Card: 4 mpd on the first $2,000 of eligible monthly spend, 0.4 mpd beyond that.
+// Miles valued at ≈2¢ each for a Krisflyer transfer (illustrative — actual redemption value varies by flight).
+const MILES_CARD_CAP = 2_000;
+const MILES_CARD_BONUS_MPD = 4;
+const MILES_CARD_BASE_MPD = 0.4;
+const MILE_VALUE = 0.02;
+
+// OCBC 365-style card: blended average cashback rate across categories (illustrative).
+const CASHBACK_RATE = 0.015;
+
+export function milesCardValue(monthlySpend: number): number {
+  const bonusSpend = Math.min(monthlySpend, MILES_CARD_CAP);
+  const baseSpend = Math.max(0, monthlySpend - MILES_CARD_CAP);
+  const miles = bonusSpend * MILES_CARD_BONUS_MPD + baseSpend * MILES_CARD_BASE_MPD;
+  return miles * MILE_VALUE;
+}
+
+export function cashbackCardValue(monthlySpend: number): number {
+  return monthlySpend * CASHBACK_RATE;
+}
+
 /** Comma-formatted dollar string, avoiding a dependency on Intl/toLocaleString support in Hermes. */
 export function formatCurrency(n: number): string {
   const rounded = Math.round(n);

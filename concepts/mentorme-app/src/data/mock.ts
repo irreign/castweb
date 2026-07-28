@@ -93,11 +93,6 @@ export const cardOffers = [
   },
 ];
 
-export const milesVsCashback = [
-  { card: "Woman's World", basis: '8,000 miles', value: '≈$144' },
-  { card: '365 Cashback', basis: '1.5% cashback', value: '$30' },
-];
-
 // Shown on Home, first visit only — placing you on the line.
 export const lineFields = [
   { label: 'Housing', options: ['HDB', 'Condo', 'Landed', 'Renting'], active: 'HDB' },

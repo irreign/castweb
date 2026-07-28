@@ -1,30 +1,61 @@
 import React, { useState } from 'react';
 import { Text, View, TouchableOpacity, StyleSheet } from 'react-native';
 import { Screen } from '../components/Screen';
-import { Gate } from '../components/Gate';
+import { ChipRow } from '../components/Chip';
+import { TextField } from '../components/TextField';
 import { EnrollRow } from '../components/EnrollRow';
 import { OfferRow } from '../components/OfferRow';
 import { CompareTable } from '../components/CompareTable';
+import { ProGate } from '../components/ProGate';
 import { useTheme } from '../theme';
 import { useAppState } from '../state/AppState';
-import { cardOffers, milesVsCashback, cardFields } from '../data/mock';
+import { cardOffers, cardFields } from '../data/mock';
+import { milesCardValue, cashbackCardValue, formatCurrency, parseCurrencyInput } from '../utils/finance';
 
 export default function CardsScreen() {
   const c = useTheme();
-  const [setUp, setSetUp] = useState(false);
-  const { enrollments } = useAppState();
+  const [spendInput, setSpendInput] = useState('');
+  const [hasCards, setHasCards] = useState(cardFields[0].active);
+  const [bank, setBank] = useState(cardFields[1].active);
 
-  if (!setUp) {
+  const { enrollments, cardMonthlySpend, setCardSpend, gatesCompleted, markGateComplete } = useAppState();
+
+  if (!gatesCompleted.cards) {
     return (
-      <Gate
-        title="Quick one about your cards"
-        sub="Two questions, asked here because they only matter for this screen."
-        fields={cardFields}
-        cta="Show my cards"
-        onContinue={() => setSetUp(true)}
-      />
+      <Screen>
+        <Text style={[styles.title, { color: c.ink }]}>Quick one about your cards</Text>
+        <Text style={[styles.sub, { color: c.inkSoft }]}>
+          Three questions, asked here because they only matter for this screen.
+        </Text>
+
+        <ChipRow label={cardFields[0].label} options={cardFields[0].options} active={hasCards} />
+        <ChipRow label={cardFields[1].label} options={cardFields[1].options} active={bank} />
+        <TextField
+          label="Roughly how much do you spend on cards monthly?"
+          value={spendInput}
+          onChangeText={setSpendInput}
+          keyboardType="numeric"
+          placeholder="e.g. 2500"
+        />
+
+        <TouchableOpacity
+          style={[styles.button, { backgroundColor: c.gold }]}
+          onPress={() => {
+            setCardSpend(parseCurrencyInput(spendInput));
+            markGateComplete('cards');
+          }}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.buttonText}>Show my cards →</Text>
+        </TouchableOpacity>
+      </Screen>
     );
   }
+
+  const milesValue = milesCardValue(cardMonthlySpend);
+  const cashbackValue = cashbackCardValue(cardMonthlySpend);
+  const milesWins = milesValue >= cashbackValue;
+  const annualGap = Math.abs(milesValue - cashbackValue) * 12;
 
   return (
     <Screen>
@@ -63,18 +94,27 @@ export default function CardsScreen() {
         date, not that it won't change. Confirm current terms before applying.
       </Text>
 
-      {enrollments.length > 0 ? (
-        <>
-          <Text style={[styles.label, { color: c.inkFaint, marginTop: 18 }]}>MILES VS CASHBACK, THIS MONTH</Text>
-          <CompareTable
-            headers={['Card', 'On $2,000 spend', 'Value']}
-            rows={milesVsCashback.map((m) => [m.card, m.basis, m.value])}
-          />
-          <Text style={[styles.footnote, { color: c.inkFaint }]}>
-            Miles valued at ≈2¢ each for a Krisflyer transfer — actual redemption value depends on the flight.
-          </Text>
-        </>
-      ) : null}
+      <Text style={[styles.label, { color: c.inkFaint, marginTop: 18 }]}>MILES VS CASHBACK ON YOUR {formatCurrency(cardMonthlySpend)}/MONTH</Text>
+      <CompareTable
+        headers={['Card', 'Structure', 'Value']}
+        rows={[
+          ["Woman's World (miles)", '4 mpd to $2k, then 0.4', formatCurrency(milesValue)],
+          ['365 Cashback', '1.5% blended', formatCurrency(cashbackValue)],
+        ]}
+      />
+      <Text style={[styles.footnote, { color: c.inkFaint }]}>
+        Miles valued at ≈2¢ each for a Krisflyer transfer — actual redemption value depends on the flight.
+      </Text>
+
+      <ProGate
+        title="Which card actually wins for you"
+        teaser="We can tell you exactly which structure wins on your real spend, and what that's worth over a full year — not just a per-month snapshot."
+      >
+        <Text style={[styles.cardBody, { color: c.inkSoft }]}>
+          At {formatCurrency(cardMonthlySpend)}/month, <Text style={{ fontWeight: '800', color: c.ink }}>{milesWins ? "Woman's World" : '365 Cashback'}</Text>{' '}
+          wins — worth an estimated <Text style={{ fontWeight: '800', color: c.ink }}>{formatCurrency(annualGap)}</Text> more per year than the other option.
+        </Text>
+      </ProGate>
 
       <TouchableOpacity style={[styles.outlineBtn, { borderColor: c.line }]} activeOpacity={0.7}>
         <Text style={{ color: c.ink, fontWeight: '700', fontSize: 13.5 }}>Compare all your cards</Text>
@@ -89,6 +129,9 @@ const styles = StyleSheet.create({
   labelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 18 },
   label: { fontSize: 11, fontWeight: '700', letterSpacing: 0.9 },
   footnote: { fontSize: 11, lineHeight: 15, marginTop: 4, marginBottom: 4 },
+  button: { paddingVertical: 15, borderRadius: 14, alignItems: 'center', marginTop: 16 },
+  buttonText: { color: '#201404', fontWeight: '800', fontSize: 15 },
   outlineBtn: { borderWidth: 1.5, borderRadius: 14, paddingVertical: 12, alignItems: 'center', marginTop: 14 },
   empty: { borderWidth: 1, borderRadius: 14, padding: 15, marginTop: 12 },
+  cardBody: { fontSize: 13, lineHeight: 19 },
 });

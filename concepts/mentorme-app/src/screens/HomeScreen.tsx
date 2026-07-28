@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Text, View, StyleSheet } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Screen } from '../components/Screen';
@@ -14,18 +14,17 @@ type Props = NativeStackScreenProps<HomeStackParamList, 'Home'>;
 
 export default function HomeScreen({ navigation }: Props) {
   const c = useTheme();
-  const { profile } = useAppState();
+  const { profile, gatesCompleted, markGateComplete } = useAppState();
   const firstName = profile.name.split(' ')[0] || 'there';
-  const [setUp, setSetUp] = useState(false);
 
-  if (!setUp) {
+  if (!gatesCompleted.home) {
     return (
       <Gate
         title="Let's map your stage"
         sub="Six quick questions, just for the line below — nothing else needed yet."
         fields={lineFields}
         cta="Show my line"
-        onContinue={() => setSetUp(true)}
+        onContinue={() => markGateComplete('home')}
       />
     );
   }
