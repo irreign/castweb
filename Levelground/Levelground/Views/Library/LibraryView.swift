@@ -4,9 +4,13 @@ struct LibraryView: View {
     @EnvironmentObject var readingStore: ReadingStore
     @State private var searchText = ""
     @State private var selectedCategory: KnowledgeCategory?
+    @State private var showBookmarkedOnly = false
 
     private var filtered: [KnowledgeItem] {
         var items = KnowledgeContent.all
+        if showBookmarkedOnly {
+            items = items.filter { readingStore.isBookmarked($0.id) }
+        }
         if let category = selectedCategory {
             items = items.filter { $0.category == category }
         }
@@ -25,6 +29,12 @@ struct LibraryView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     categoryFilterRow
 
+                    if showBookmarkedOnly {
+                        Text("Showing \(readingStore.bookmarkedIDs.count) bookmarked article\(readingStore.bookmarkedIDs.count == 1 ? "" : "s").")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
                     VStack(spacing: 10) {
                         ForEach(filtered) { item in
                             NavigationLink(value: item.id) {
@@ -35,7 +45,7 @@ struct LibraryView: View {
                     }
 
                     if filtered.isEmpty {
-                        Text("No articles match your search.")
+                        Text(showBookmarkedOnly ? "You haven't bookmarked any articles yet." : "No articles match your search.")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                             .frame(maxWidth: .infinity)
@@ -47,6 +57,15 @@ struct LibraryView: View {
             .background(Color(.systemGroupedBackground))
             .navigationTitle("Library")
             .searchable(text: $searchText, prompt: "Search topics")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        showBookmarkedOnly.toggle()
+                    } label: {
+                        Image(systemName: showBookmarkedOnly ? "bookmark.fill" : "bookmark")
+                    }
+                }
+            }
             .navigationDestination(for: String.self) { id in
                 if let item = KnowledgeContent.item(id: id) {
                     ArticleDetailView(item: item)

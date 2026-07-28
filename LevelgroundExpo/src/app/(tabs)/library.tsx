@@ -12,31 +12,56 @@ import { CATEGORY_INFO, KNOWLEDGE_CATEGORIES, type KnowledgeCategory } from '@/l
 
 export default function LibraryScreen() {
   const colors = useColors();
-  const { isRead, isBookmarked } = useReading();
+  const { isRead, isBookmarked, bookmarkedIds } = useReading();
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState<KnowledgeCategory | null>(null);
+  const [showBookmarkedOnly, setShowBookmarkedOnly] = useState(false);
 
   const filtered = useMemo(() => {
     let items = ARTICLES;
+    if (showBookmarkedOnly) items = items.filter((a) => bookmarkedIds.has(a.id));
     if (category) items = items.filter((a) => a.category === category);
     const q = search.trim().toLowerCase();
     if (q) items = items.filter((a) => a.title.toLowerCase().includes(q) || a.summary.toLowerCase().includes(q));
     return items;
-  }, [search, category]);
+  }, [search, category, showBookmarkedOnly, bookmarkedIds]);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <View style={styles.searchWrap}>
-        <View style={[styles.search, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Ionicons name="search" size={15} color={colors.muted} />
-          <TextInput
-            value={search}
-            onChangeText={setSearch}
-            placeholder="Search topics"
-            placeholderTextColor={colors.muted}
-            style={[styles.searchInput, { color: colors.ink }]}
-          />
+        <View style={styles.searchRow}>
+          <View style={[styles.search, { backgroundColor: colors.surface, borderColor: colors.border, flex: 1 }]}>
+            <Ionicons name="search" size={15} color={colors.muted} />
+            <TextInput
+              value={search}
+              onChangeText={setSearch}
+              placeholder="Search topics"
+              placeholderTextColor={colors.muted}
+              style={[styles.searchInput, { color: colors.ink }]}
+            />
+          </View>
+          <Pressable
+            onPress={() => setShowBookmarkedOnly((v) => !v)}
+            style={[
+              styles.bookmarkToggle,
+              {
+                backgroundColor: showBookmarkedOnly ? colors.accent : colors.surface,
+                borderColor: showBookmarkedOnly ? colors.accent : colors.border,
+              },
+            ]}
+          >
+            <Ionicons
+              name={showBookmarkedOnly ? 'bookmark' : 'bookmark-outline'}
+              size={16}
+              color={showBookmarkedOnly ? '#fff' : colors.muted}
+            />
+          </Pressable>
         </View>
+        {showBookmarkedOnly && (
+          <Text style={{ color: colors.muted, fontSize: 11, marginTop: 6 }}>
+            Showing {bookmarkedIds.size} bookmarked article{bookmarkedIds.size === 1 ? '' : 's'}.
+          </Text>
+        )}
         <FlatList
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -58,7 +83,11 @@ export default function LibraryScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         ItemSeparatorComponent={() => <View style={{ height: Spacing.sm }} />}
-        ListEmptyComponent={<Text style={{ color: colors.muted, textAlign: 'center', marginTop: Spacing.xl }}>No articles match your search.</Text>}
+        ListEmptyComponent={
+          <Text style={{ color: colors.muted, textAlign: 'center', marginTop: Spacing.xl }}>
+            {showBookmarkedOnly ? "You haven't bookmarked any articles yet." : 'No articles match your search.'}
+          </Text>
+        }
         renderItem={({ item }) => (
           <Link href={`/article/${item.id}`} asChild>
             <Pressable>
@@ -85,6 +114,7 @@ export default function LibraryScreen() {
 
 const styles = StyleSheet.create({
   searchWrap: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.sm },
+  searchRow: { flexDirection: 'row', gap: Spacing.sm },
   search: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -93,6 +123,14 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     paddingHorizontal: Spacing.md,
     height: 40,
+  },
+  bookmarkToggle: {
+    width: 40,
+    height: 40,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   searchInput: { flex: 1, fontSize: 14 },
   listContent: { padding: Spacing.lg, paddingTop: Spacing.sm },

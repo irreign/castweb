@@ -9,37 +9,42 @@ struct PropertiesView: View {
     }
 
     @State private var mode: Mode = .search
-
-    // Filters
-    @State private var selectedDistrict: Int?
-    @State private var selectedSchoolID: String?
-    @State private var maxBudget: Double = 3_000_000
-    @State private var minFacilities: FacilitiesLevel?
-    @State private var maxMcstFee: Double = 700
-
-    private var condos: [SGProperty] {
-        SGPropertyData.all.filter { $0.type == .condo }
-    }
+    @State private var compareMode = false
+    @State private var filters = PropertySearchFilters.default
+    @State private var filtersLoaded = false
 
     private var districts: [Int] {
-        Array(Set(condos.map { $0.district })).sorted()
+        Array(Set(SGPropertyData.all.map { $0.district })).sorted()
     }
 
     private var selectedSchool: SGSchool? {
-        guard let id = selectedSchoolID else { return nil }
+        guard let id = filters.schoolID else { return nil }
         return SGSchoolData.all.first { $0.id == id }
     }
 
     private var filteredResults: [(property: SGProperty, distanceKm: Double?)] {
-        var pool = condos
-        if let selectedDistrict {
-            pool = pool.filter { $0.district == selectedDistrict }
+        var pool = SGPropertyData.all
+        if let propertyType = filters.propertyType {
+            pool = pool.filter { $0.type == propertyType }
         }
-        pool = pool.filter { $0.indicativePrice <= Int(maxBudget) }
-        if let minFacilities {
+        if let district = filters.district {
+            pool = pool.filter { $0.district == district }
+        }
+        pool = pool.filter { $0.indicativePrice <= Int(filters.maxBudget) }
+        if let minFacilities = filters.minFacilities {
             pool = pool.filter { ($0.facilities ?? .basic) >= minFacilities }
         }
-        pool = pool.filter { ($0.mcstFeeMonthly ?? 0) <= Int(maxMcstFee) }
+        pool = pool.filter { ($0.mcstFeeMonthly ?? 0) <= Int(filters.maxMcstFee) }
+        if filters.minLeaseYears > 0 {
+            pool = pool.filter { property in
+                let band = property.leaseBand()
+                switch band {
+                case .notApplicable: return true
+                case .healthy(let years), .caution(let years), .highRisk(let years):
+                    return Double(years) >= filters.minLeaseYears
+                }
+            }
+        }
 
         var withDistance: [(property: SGProperty, distanceKm: Double?)] = pool.map { property in
             if let school = selectedSchool {
@@ -73,7 +78,7 @@ struct PropertiesView: View {
                 if mode == .search {
                     searchList
                 } else {
-                    shortlistList
+                    shortlistBody
                 }
             }
             .navigationTitle("Properties")
@@ -82,6 +87,15 @@ struct PropertiesView: View {
                     ArticleDetailView(item: item)
                 }
             }
+            .onAppear {
+                if !filtersLoaded {
+                    filters = PropertySearchFilters.load()
+                    filtersLoaded = true
+                }
+            }
+            .onChange(of: filters) { _, newValue in
+                if filtersLoaded { newValue.save() }
+            }
         }
     }
 
@@ -89,41 +103,50 @@ struct PropertiesView: View {
 
     private var searchList: some View {
         List {
-            Section("Find a condo") {
-                Picker("District", selection: $selectedDistrict) {
+            Section("Find a property") {
+                Picker("Type", selection: $filters.propertyType) {
+                    Text("Any").tag(PropertyType?.none)
+                    ForEach([PropertyType.hdb, .condo, .landed], id: \.self) { type in
+                        Text(type.title).tag(Optional(type))
+                    }
+                }
+
+                Picker("District", selection: $filters.district) {
                     Text("Any").tag(Int?.none)
                     ForEach(districts, id: \.self) { district in
                         Text(SGDistrict.label(district)).tag(Optional(district))
                     }
                 }
 
-                Picker("Near school", selection: $selectedSchoolID) {
+                Picker("Near school", selection: $filters.schoolID) {
                     Text("Any").tag(String?.none)
                     ForEach(SGSchoolData.all) { school in
                         Text(school.name).tag(Optional(school.id))
                     }
                 }
                 if selectedSchool != nil {
-                    Text("Showing condos within 2km — beyond that, distance gives no registration priority.")
+                    Text("Showing properties within 2km — beyond that, distance gives no registration priority.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
 
-                sliderRow(label: "Budget up to", value: $maxBudget, range: 800_000...3_000_000, step: 50_000) { Double($0).currencyString }
+                sliderRow(label: "Budget up to", value: $filters.maxBudget, range: 400_000...4_000_000, step: 50_000) { Double($0).currencyString }
 
-                Picker("Facilities, at least", selection: $minFacilities) {
+                Picker("Facilities, at least", selection: $filters.minFacilities) {
                     Text("Any").tag(FacilitiesLevel?.none)
                     ForEach(FacilitiesLevel.allCases, id: \.self) { level in
                         Text(level.title).tag(Optional(level))
                     }
                 }
 
-                sliderRow(label: "MCST fee up to", value: $maxMcstFee, range: 200...700, step: 25) { "$\(Int($0))/mo" }
+                sliderRow(label: "MCST fee up to", value: $filters.maxMcstFee, range: 200...700, step: 25) { "$\(Int($0))/mo" }
+
+                sliderRow(label: "Lease remaining, at least", value: $filters.minLeaseYears, range: 0...90, step: 5) { $0 == 0 ? "Any" : "\(Int($0)) yrs" }
             }
 
             Section("\(filteredResults.count) match\(filteredResults.count == 1 ? "" : "es")") {
                 if filteredResults.isEmpty {
-                    Text("No condos in the sample data meet all of these — try loosening a filter.")
+                    Text("No properties in the sample data meet all of these — try loosening a filter.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 } else {
@@ -131,7 +154,7 @@ struct PropertiesView: View {
                         NavigationLink {
                             PropertyReportView(property: entry.property)
                         } label: {
-                            CondoRow(
+                            PropertyRow(
                                 property: entry.property,
                                 distanceKm: entry.distanceKm,
                                 isShortlisted: shortlistStore.isShortlisted(entry.property.id),
@@ -141,7 +164,7 @@ struct PropertiesView: View {
                     }
                 }
             } footer: {
-                Text("Sample condos for demonstration — coordinates, psf and fees are illustrative, not sourced from URA/MCST records.")
+                Text("Sample properties for demonstration — coordinates, psf and fees are illustrative, not sourced from URA/HDB/MCST records.")
             }
         }
     }
@@ -169,23 +192,47 @@ struct PropertiesView: View {
 
     // MARK: - Shortlist
 
-    private var shortlistList: some View {
+    private var shortlistBody: some View {
         List {
             if shortlistedProperties.isEmpty {
-                Text("Nothing shortlisted yet — star a condo from Search to save it here.")
+                Text("Nothing shortlisted yet — star a property from Search to save it here.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             } else {
-                ForEach(shortlistedProperties) { property in
-                    NavigationLink {
-                        PropertyReportView(property: property)
-                    } label: {
-                        CondoRow(
-                            property: property,
-                            distanceKm: nil,
-                            isShortlisted: true,
-                            onToggleStar: { shortlistStore.toggle(property.id) }
-                        )
+                if shortlistedProperties.count >= 2 {
+                    Button(compareMode ? "✕ Close comparison" : "⇔ Compare shortlisted") {
+                        compareMode.toggle()
+                    }
+                }
+
+                if compareMode && shortlistedProperties.count >= 2 {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(alignment: .top, spacing: 12) {
+                            ForEach(shortlistedProperties) { property in
+                                NavigationLink {
+                                    PropertyReportView(property: property)
+                                } label: {
+                                    CompareCard(property: property)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .padding(.vertical, 6)
+                    }
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
+                } else {
+                    ForEach(shortlistedProperties) { property in
+                        NavigationLink {
+                            PropertyReportView(property: property)
+                        } label: {
+                            PropertyRow(
+                                property: property,
+                                distanceKm: nil,
+                                isShortlisted: true,
+                                onToggleStar: { shortlistStore.toggle(property.id) }
+                            )
+                        }
                     }
                 }
             }
@@ -193,7 +240,7 @@ struct PropertiesView: View {
     }
 }
 
-private struct CondoRow: View {
+private struct PropertyRow: View {
     let property: SGProperty
     let distanceKm: Double?
     let isShortlisted: Bool
@@ -248,6 +295,61 @@ private struct CondoRow: View {
             }
         }
         .padding(.vertical, 4)
+    }
+}
+
+private struct CompareCard: View {
+    let property: SGProperty
+
+    private var nearest: SchoolDistance? {
+        SGSchoolData.nearest(to: property.location, limit: 1).first
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(property.name)
+                .font(.caption.weight(.bold))
+                .foregroundStyle(.primary)
+                .frame(minHeight: 30, alignment: .top)
+                .multilineTextAlignment(.leading)
+            Text("\(SGDistrict.code(property.district)) · \(property.type.title)")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+
+            compareRow("Tenure", property.tenure.title)
+            if let psf = property.pricePsfHistoric {
+                compareRow("Psf", "$\(psf)")
+            }
+            compareRow("Price", Double(property.indicativePrice).currencyString)
+            if let facilities = property.facilities {
+                compareRow("Facilities", facilities.title)
+            }
+            if let mcst = property.mcstFeeMonthly {
+                compareRow("MCST", "$\(mcst)/mo")
+            }
+            compareRow("Lease", property.leaseBand().title)
+            if let nearest {
+                compareRow("Nearest school", "\(nearest.school.name), \(String(format: "%.1f km", nearest.distanceKm))")
+            }
+        }
+        .padding(12)
+        .frame(width: 190, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 12).fill(Color(.secondarySystemGroupedBackground)))
+    }
+
+    @ViewBuilder
+    private func compareRow(_ label: String, _ value: String) -> some View {
+        VStack(alignment: .leading, spacing: 1) {
+            Text(label.uppercased())
+                .font(.system(size: 9, weight: .medium))
+                .foregroundStyle(.secondary)
+            Text(value)
+                .font(.caption.weight(.semibold))
+        }
+        .padding(.top, 6)
+        .overlay(alignment: .top) {
+            Divider()
+        }
     }
 }
 
