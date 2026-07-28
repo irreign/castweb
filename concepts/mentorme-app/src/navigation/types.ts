@@ -7,6 +7,7 @@ export type MainTabParamList = {
   HomeTab: undefined;
   Cards: undefined;
   Grow: undefined;
+  Ask: undefined;
   Profile: undefined;
 };
 

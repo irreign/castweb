@@ -56,7 +56,7 @@ export default function CardsScreen() {
         <Text style={{ fontSize: 10.5, color: c.inkFaint }}>Updated 3d ago</Text>
       </View>
       {cardOffers.map((o, i) => (
-        <OfferRow key={i} name={o.name} ends={o.ends} gift={o.gift} meta={o.meta} />
+        <OfferRow key={i} name={o.name} ends={o.ends} gift={o.gift} meta={o.meta} url={o.url} />
       ))}
       <Text style={[styles.footnote, { color: c.inkFaint }]}>
         Sourced from public bank, MoneySmart & SingSaver promotions as of Jul 2026 — "Ongoing" means no published end

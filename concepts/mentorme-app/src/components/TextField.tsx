@@ -12,7 +12,7 @@ export function TextField({
   label: string;
   value: string;
   onChangeText: (v: string) => void;
-  keyboardType?: 'default' | 'email-address' | 'phone-pad';
+  keyboardType?: 'default' | 'email-address' | 'phone-pad' | 'numeric';
   placeholder?: string;
 }) {
   const c = useTheme();

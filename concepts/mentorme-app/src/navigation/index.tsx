@@ -11,6 +11,7 @@ import HomeScreen from '../screens/HomeScreen';
 import StationDetailScreen from '../screens/StationDetailScreen';
 import CardsScreen from '../screens/CardsScreen';
 import GrowScreen from '../screens/GrowScreen';
+import AskScreen from '../screens/AskScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import type { RootStackParamList, HomeStackParamList, MainTabParamList } from './types';
 
@@ -31,6 +32,7 @@ const TAB_ICON: Record<string, string> = {
   HomeTab: '🧭',
   Cards: '💳',
   Grow: '📈',
+  Ask: '💬',
   Profile: '👤',
 };
 
@@ -49,6 +51,7 @@ function MainTabs() {
       <Tab.Screen name="HomeTab" component={HomeStackNavigator} options={{ title: 'Line' }} />
       <Tab.Screen name="Cards" component={CardsScreen} options={{ title: 'Cards' }} />
       <Tab.Screen name="Grow" component={GrowScreen} options={{ title: 'Grow' }} />
+      <Tab.Screen name="Ask" component={AskScreen} options={{ title: 'Ask' }} />
       <Tab.Screen name="Profile" component={ProfileScreen} options={{ title: 'Profile' }} />
     </Tab.Navigator>
   );

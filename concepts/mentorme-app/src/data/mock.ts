@@ -47,59 +47,55 @@ export const cardOffers = [
     ends: 'Ends 31 Jul',
     gift: 'S$400 cash or 6,140 points, plus a shot at a 10g gold bar',
     meta: 'Min spend $500 by end of following month · no annual fee',
+    url: 'https://www.hsbc.com.sg/credit-cards/products/revolution/',
   },
   {
     name: 'OCBC 90°N Visa',
     ends: 'Ends 2 Aug',
     gift: '$400 cash, 25,000 Max Miles, or a Dyson Airstrait',
     meta: 'Min spend $400 within 30 days',
+    url: 'https://www.ocbc.com/personal-banking/cards/90-n-card',
   },
   {
     name: 'UOB One',
     ends: 'Ends 30 Sep',
     gift: "Up to 20% quarterly cashback (McDonald's, Grab, Shopee, SimplyGo, groceries) + $100 Samsung e-voucher",
     meta: 'Min spend $1,000 in first month',
+    url: 'https://www.uob.com.sg/personal/cards/cashback/one-card.page',
   },
   {
     name: 'Amex KrisFlyer',
     ends: "Ends 31 Jan '27",
     gift: '16,000 miles + 2,200 base miles on local spend',
     meta: 'Min spend $2,000 within 90 days',
+    url: 'https://www.americanexpress.com/en-sg/credit-cards/krisflyer-credit-card/',
   },
   {
     name: 'Citi Rewards Card',
     ends: 'Ongoing',
     gift: 'S$420 cash or 16,000 miles',
     meta: 'Min spend $500 within 30 days',
+    url: 'https://www.citibank.com.sg/gcb/credit_cards/rewards-card.htm',
   },
   {
     name: 'DBS Altitude (code ALTS38)',
     ends: 'Ongoing',
     gift: '38,000 bonus miles',
     meta: '$196.20 annual fee · spend $800 within 60 days',
+    url: 'https://www.dbs.com.sg/personal/cards/credit-cards/dbs-altitude-visa-card',
   },
   {
     name: 'StanChart Visa Infinite',
     ends: 'Ongoing',
     gift: '50,000 bonus miles',
     meta: '$599.50 annual fee · spend $2,000 within 60 days',
+    url: 'https://www.sc.com/sg/credit-cards/visa-infinite-card/',
   },
 ];
 
 export const milesVsCashback = [
   { card: "Woman's World", basis: '8,000 miles', value: '≈$144' },
   { card: '365 Cashback', basis: '1.5% cashback', value: '$30' },
-];
-
-export const growInputs = {
-  cashBalance: '$20,000',
-  fdRate: '1.60% p.a. (12-mth)',
-};
-
-export const growComparison = [
-  { where: 'Best FD', rate: '1.60% p.a.', perMonth: '$26.67' },
-  { where: 'SGX ES3 (STI ETF)', rate: '~7.0% p.a.*', perMonth: '$116.67' },
-  { where: 'Diversified portfolio', rate: '~5.5% p.a.*', perMonth: '$91.67' },
 ];
 
 // Shown on Home, first visit only — placing you on the line.
@@ -118,8 +114,3 @@ export const cardFields = [
   { label: 'Which bank do you use most?', options: ['DBS', 'OCBC', 'UOB', 'Other'], active: 'DBS' },
 ];
 
-// Shown on the Grow tab, first visit only.
-export const growFields = [
-  { label: 'Roughly how much do you have in savings?', options: ['Under $10k', '$10k–50k', '$50k–150k', '$150k+'], active: '$10k–50k' },
-  { label: 'Do you have a fixed deposit already?', options: ['No', 'Yes'], active: 'No' },
-];
