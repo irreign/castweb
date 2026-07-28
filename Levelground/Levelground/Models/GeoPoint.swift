@@ -1,8 +1,13 @@
+import CoreLocation
 import Foundation
 
 struct GeoPoint: Codable, Equatable {
     let lat: Double
     let lon: Double
+
+    var clCoordinate: CLLocationCoordinate2D {
+        CLLocationCoordinate2D(latitude: lat, longitude: lon)
+    }
 
     /// Great-circle distance in kilometres (haversine formula).
     func distanceKm(to other: GeoPoint) -> Double {

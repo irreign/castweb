@@ -16,6 +16,21 @@ struct PropertyReportView: View {
         SGPropertyData.averagePsf(inDistrict: property.district)
     }
 
+    private static let affordDownPercent: Double = 20
+    private static let affordRate: Double = 4.0
+    private static let affordTermYears: Double = 25
+
+    private var affordabilityEstimate: (loan: Double, monthly: Double) {
+        let price = Double(property.indicativePrice)
+        let loan = price * (1 - Self.affordDownPercent / 100)
+        let monthlyRate = Self.affordRate / 100 / 12
+        let n = Self.affordTermYears * 12
+        guard n > 0 else { return (loan, 0) }
+        if monthlyRate == 0 { return (loan, loan / n) }
+        let factor = pow(1 + monthlyRate, n)
+        return (loan, loan * (monthlyRate * factor) / (factor - 1))
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
@@ -63,6 +78,29 @@ struct PropertyReportView: View {
                     Text(leaseBand.note)
                         .font(.footnote)
                         .foregroundStyle(.secondary)
+                }
+
+                reportSection(title: "Affordability", icon: "banknote.fill", learnMoreID: nil) {
+                    HStack(alignment: .firstTextBaseline) {
+                        Text("Est. monthly payment")
+                            .font(.subheadline.weight(.semibold))
+                        Spacer()
+                        Text(affordabilityEstimate.monthly.currencyString)
+                            .font(.subheadline.weight(.bold))
+                            .foregroundStyle(Color.accentColor)
+                    }
+                    Text("Loan amount (\(Int(100 - Self.affordDownPercent))% LTV): \(affordabilityEstimate.loan.currencyString)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text("Assumes \(Int(Self.affordDownPercent))% down payment, \(String(format: "%.1f", Self.affordRate))% interest, \(Int(Self.affordTermYears))-year term — adjust to your own numbers.")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    NavigationLink {
+                        MortgageCalculatorView(initialPrice: Double(property.indicativePrice))
+                    } label: {
+                        Text("Open full calculator")
+                            .font(.caption.weight(.semibold))
+                    }
                 }
 
                 reportSection(title: "Coming soon", icon: "clock.arrow.circlepath", learnMoreID: nil) {

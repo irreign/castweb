@@ -1,10 +1,14 @@
 import SwiftUI
 
 struct MortgageCalculatorView: View {
-    @State private var price: Double = 500_000
+    @State private var price: Double
     @State private var downPaymentPercent: Double = 20
     @State private var interestRate: Double = 4.0
     @State private var termYears: Double = 25
+
+    init(initialPrice: Double = 500_000) {
+        _price = State(initialValue: initialPrice)
+    }
 
     private var loanAmount: Double {
         price * (1 - downPaymentPercent / 100)

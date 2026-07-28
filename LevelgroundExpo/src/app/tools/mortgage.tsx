@@ -1,3 +1,4 @@
+import { useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -5,9 +6,16 @@ import { SliderField } from '@/components/SliderField';
 import { Spacing, useColors } from '@/constants/theme';
 import { formatCurrency } from '@/lib/format';
 
+function initialPriceFrom(param: string | undefined): number {
+  const parsed = param ? Number(param) : NaN;
+  if (!Number.isFinite(parsed) || parsed <= 0) return 500_000;
+  return Math.min(5_000_000, Math.max(50_000, parsed));
+}
+
 export default function MortgageScreen() {
   const colors = useColors();
-  const [price, setPrice] = useState(500_000);
+  const { price: priceParam } = useLocalSearchParams<{ price?: string }>();
+  const [price, setPrice] = useState(() => initialPriceFrom(priceParam));
   const [downPaymentPercent, setDownPaymentPercent] = useState(20);
   const [interestRate, setInterestRate] = useState(4.0);
   const [termYears, setTermYears] = useState(25);

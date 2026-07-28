@@ -1,3 +1,4 @@
+import MapKit
 import SwiftUI
 
 struct PropertiesView: View {
@@ -8,10 +9,21 @@ struct PropertiesView: View {
         case shortlist = "Shortlist"
     }
 
+    private enum ResultsView {
+        case list, map
+    }
+
     @State private var mode: Mode = .search
     @State private var compareMode = false
     @State private var filters = PropertySearchFilters.default
     @State private var filtersLoaded = false
+    @State private var keyword = ""
+    @State private var resultsView: ResultsView = .list
+    @State private var selectedPropertyID: String?
+
+    @State private var savedSearches: [SavedPropertySearch] = []
+    @State private var showSaveSearchAlert = false
+    @State private var saveSearchName = ""
 
     private var districts: [Int] {
         Array(Set(SGPropertyData.all.map { $0.district })).sorted()
@@ -29,6 +41,14 @@ struct PropertiesView: View {
         }
         if let district = filters.district {
             pool = pool.filter { $0.district == district }
+        }
+        let query = keyword.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if !query.isEmpty {
+            pool = pool.filter { property in
+                property.name.lowercased().contains(query)
+                    || property.town.lowercased().contains(query)
+                    || SGDistrict.label(property.district).lowercased().contains(query)
+            }
         }
         pool = pool.filter { $0.indicativePrice <= Int(filters.maxBudget) }
         if let minFacilities = filters.minFacilities {
@@ -55,9 +75,29 @@ struct PropertiesView: View {
 
         if selectedSchool != nil {
             withDistance = withDistance.filter { ($0.distanceKm ?? .infinity) <= 2.0 }
+        }
+
+        let effectiveSort: PropertySortOption = (filters.sortOption == .nearestSchool && selectedSchool == nil) ? .priceLowHigh : filters.sortOption
+        switch effectiveSort {
+        case .nearestSchool:
             withDistance.sort { ($0.distanceKm ?? 0) < ($1.distanceKm ?? 0) }
-        } else {
+        case .priceLowHigh:
             withDistance.sort { $0.property.indicativePrice < $1.property.indicativePrice }
+        case .priceHighLow:
+            withDistance.sort { $0.property.indicativePrice > $1.property.indicativePrice }
+        case .psfLowHigh:
+            withDistance.sort { ($0.property.pricePsfHistoric ?? Int.max) < ($1.property.pricePsfHistoric ?? Int.max) }
+        case .psfHighLow:
+            withDistance.sort { lhs, rhs in
+                switch (lhs.property.pricePsfHistoric, rhs.property.pricePsfHistoric) {
+                case (nil, nil): return false
+                case (nil, _): return false
+                case (_, nil): return true
+                case let (l?, r?): return l > r
+                }
+            }
+        case .nameAZ:
+            withDistance.sort { $0.property.name < $1.property.name }
         }
         return withDistance
     }
@@ -90,11 +130,23 @@ struct PropertiesView: View {
             .onAppear {
                 if !filtersLoaded {
                     filters = PropertySearchFilters.load()
+                    savedSearches = SavedSearchStore.load()
                     filtersLoaded = true
                 }
             }
             .onChange(of: filters) { _, newValue in
                 if filtersLoaded { newValue.save() }
+            }
+            .alert("Save Search", isPresented: $showSaveSearchAlert) {
+                TextField("Search name", text: $saveSearchName)
+                Button("Save") {
+                    let name = saveSearchName.trimmingCharacters(in: .whitespaces)
+                    guard !name.isEmpty else { return }
+                    savedSearches.append(SavedPropertySearch(name: name, filters: filters))
+                    SavedSearchStore.save(savedSearches)
+                    saveSearchName = ""
+                }
+                Button("Cancel", role: .cancel) { saveSearchName = "" }
             }
         }
     }
@@ -103,6 +155,33 @@ struct PropertiesView: View {
 
     private var searchList: some View {
         List {
+            Section("Saved searches") {
+                Button {
+                    showSaveSearchAlert = true
+                } label: {
+                    Label("Save current search", systemImage: "plus.circle")
+                }
+                ForEach(savedSearches) { saved in
+                    Button {
+                        filters = saved.filters
+                    } label: {
+                        HStack {
+                            Text(saved.name)
+                                .foregroundStyle(.primary)
+                            Spacer()
+                            Image(systemName: "arrow.uturn.right.circle")
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .swipeActions {
+                        Button("Delete", role: .destructive) {
+                            savedSearches.removeAll { $0.id == saved.id }
+                            SavedSearchStore.save(savedSearches)
+                        }
+                    }
+                }
+            }
+
             Section("Find a property") {
                 Picker("Type", selection: $filters.propertyType) {
                     Text("Any").tag(PropertyType?.none)
@@ -142,13 +221,44 @@ struct PropertiesView: View {
                 sliderRow(label: "MCST fee up to", value: $filters.maxMcstFee, range: 200...700, step: 25) { "$\(Int($0))/mo" }
 
                 sliderRow(label: "Lease remaining, at least", value: $filters.minLeaseYears, range: 0...90, step: 5) { $0 == 0 ? "Any" : "\(Int($0)) yrs" }
+
+                Picker("Sort by", selection: $filters.sortOption) {
+                    ForEach(PropertySortOption.allCases, id: \.self) { option in
+                        Text(option.title).tag(option)
+                    }
+                }
             }
 
-            Section("\(filteredResults.count) match\(filteredResults.count == 1 ? "" : "es")") {
+            Section {
+                Picker("View", selection: $resultsView) {
+                    Text("List").tag(ResultsView.list)
+                    Text("Map").tag(ResultsView.map)
+                }
+                .pickerStyle(.segmented)
+                .padding(.vertical, 4)
+                .listRowSeparator(.hidden)
+
                 if filteredResults.isEmpty {
                     Text("No properties in the sample data meet all of these — try loosening a filter.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
+                } else if resultsView == .map {
+                    PropertyMapView(results: filteredResults, school: selectedSchool, selection: $selectedPropertyID)
+                        .frame(height: 320)
+                        .listRowInsets(EdgeInsets())
+
+                    if let selectedPropertyID, let entry = filteredResults.first(where: { $0.property.id == selectedPropertyID }) {
+                        NavigationLink {
+                            PropertyReportView(property: entry.property)
+                        } label: {
+                            PropertyRow(
+                                property: entry.property,
+                                distanceKm: entry.distanceKm,
+                                isShortlisted: shortlistStore.isShortlisted(entry.property.id),
+                                onToggleStar: { shortlistStore.toggle(entry.property.id) }
+                            )
+                        }
+                    }
                 } else {
                     ForEach(filteredResults, id: \.property.id) { entry in
                         NavigationLink {
@@ -163,10 +273,13 @@ struct PropertiesView: View {
                         }
                     }
                 }
+            } header: {
+                Text("\(filteredResults.count) match\(filteredResults.count == 1 ? "" : "es")")
             } footer: {
                 Text("Sample properties for demonstration — coordinates, psf and fees are illustrative, not sourced from URA/HDB/MCST records.")
             }
         }
+        .searchable(text: $keyword, prompt: "Search by name or area")
     }
 
     @ViewBuilder
@@ -237,6 +350,33 @@ struct PropertiesView: View {
                 }
             }
         }
+    }
+}
+
+private struct PropertyMapView: View {
+    let results: [(property: SGProperty, distanceKm: Double?)]
+    let school: SGSchool?
+    @Binding var selection: String?
+
+    @State private var cameraPosition = MapCameraPosition.region(
+        MKCoordinateRegion(
+            center: CLLocationCoordinate2D(latitude: 1.35, longitude: 103.82),
+            span: MKCoordinateSpan(latitudeDelta: 0.35, longitudeDelta: 0.35)
+        )
+    )
+
+    var body: some View {
+        Map(position: $cameraPosition, selection: $selection) {
+            ForEach(results, id: \.property.id) { entry in
+                Marker(entry.property.name, coordinate: entry.property.location.clCoordinate)
+                    .tag(entry.property.id)
+            }
+            if let school {
+                Marker(school.name, systemImage: "graduationcap.fill", coordinate: school.location.clCoordinate)
+                    .tint(.blue)
+            }
+        }
+        .mapStyle(.standard)
     }
 }
 

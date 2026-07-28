@@ -1,7 +1,9 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Link } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { Chip } from '@/components/Chip';
 import { SelectField } from '@/components/SelectField';
 import { SliderField } from '@/components/SliderField';
 import { StarButton } from '@/components/StarButton';
@@ -19,8 +21,10 @@ import {
   leaseBandFor,
   tenureTitle,
   type FacilitiesLevel,
+  type GeoPoint,
   type PropertyType,
   type SGProperty,
+  type SGSchool,
 } from '@/lib/models';
 import { PROPERTIES, propertyById } from '@/lib/properties';
 import { SCHOOLS } from '@/lib/schools';
@@ -28,6 +32,17 @@ import { loadJSON, saveJSON } from '@/lib/storage';
 
 const DISTRICTS = Array.from(new Set(PROPERTIES.map((p) => p.district))).sort((a, b) => a - b);
 const PROPERTY_TYPES: PropertyType[] = ['hdb', 'condo', 'landed'];
+
+type SortOption = 'nearestSchool' | 'priceLowHigh' | 'priceHighLow' | 'psfLowHigh' | 'psfHighLow' | 'nameAZ';
+
+const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+  { value: 'nearestSchool', label: 'Nearest school' },
+  { value: 'priceLowHigh', label: 'Price: Low-High' },
+  { value: 'priceHighLow', label: 'Price: High-Low' },
+  { value: 'psfLowHigh', label: 'PSF: Low-High' },
+  { value: 'psfHighLow', label: 'PSF: High-Low' },
+  { value: 'nameAZ', label: 'Name A–Z' },
+];
 
 interface SearchFilters {
   propertyType: PropertyType | null;
@@ -37,6 +52,7 @@ interface SearchFilters {
   minFacilities: FacilitiesLevel | null;
   maxMcst: number;
   minLeaseYears: number;
+  sortOption: SortOption;
 }
 
 const DEFAULT_FILTERS: SearchFilters = {
@@ -47,26 +63,53 @@ const DEFAULT_FILTERS: SearchFilters = {
   minFacilities: null,
   maxMcst: 700,
   minLeaseYears: 0,
+  sortOption: 'nearestSchool',
 };
 
 const FILTERS_KEY = 'levelground.propertySearchFilters';
 
+interface SavedSearch {
+  id: string;
+  name: string;
+  filters: SearchFilters;
+  createdAt: number;
+}
+
+const SAVED_SEARCHES_KEY = 'levelground.savedSearches';
+
+// Rough mainland bounding box, used only to place dots on the schematic map — not a real projection.
+const SG_BOUNDS = { minLat: 1.15, maxLat: 1.47, minLon: 103.6, maxLon: 104.05 };
+
+function projectPoint(point: GeoPoint) {
+  const left = ((point.lon - SG_BOUNDS.minLon) / (SG_BOUNDS.maxLon - SG_BOUNDS.minLon)) * 100;
+  const top = ((SG_BOUNDS.maxLat - point.lat) / (SG_BOUNDS.maxLat - SG_BOUNDS.minLat)) * 100;
+  return { left: Math.min(96, Math.max(4, left)), top: Math.min(94, Math.max(6, top)) };
+}
+
 type Mode = 'search' | 'shortlist';
+type ResultsView = 'list' | 'map';
 
 export default function PropertiesScreen() {
   const colors = useColors();
   const { shortlistedIds, toggle, isShortlisted } = useShortlist();
   const [mode, setMode] = useState<Mode>('search');
   const [compareMode, setCompareMode] = useState(false);
+  const [resultsView, setResultsView] = useState<ResultsView>('list');
+  const [keyword, setKeyword] = useState('');
 
   const [filters, setFilters] = useState<SearchFilters>(DEFAULT_FILTERS);
   const [filtersLoaded, setFiltersLoaded] = useState(false);
 
+  const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([]);
+  const [showSaveInput, setShowSaveInput] = useState(false);
+  const [saveName, setSaveName] = useState('');
+
   useEffect(() => {
     loadJSON(FILTERS_KEY, DEFAULT_FILTERS).then((saved) => {
-      setFilters(saved);
+      setFilters({ ...DEFAULT_FILTERS, ...saved });
       setFiltersLoaded(true);
     });
+    loadJSON<SavedSearch[]>(SAVED_SEARCHES_KEY, []).then(setSavedSearches);
   }, []);
 
   useEffect(() => {
@@ -81,6 +124,15 @@ export default function PropertiesScreen() {
     let pool = PROPERTIES;
     if (filters.propertyType) pool = pool.filter((p) => p.type === filters.propertyType);
     if (filters.district) pool = pool.filter((p) => p.district === Number(filters.district));
+    const q = keyword.trim().toLowerCase();
+    if (q) {
+      pool = pool.filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          p.town.toLowerCase().includes(q) ||
+          districtLabel(p.district).toLowerCase().includes(q)
+      );
+    }
     pool = pool.filter((p) => p.indicativePrice <= filters.maxBudget);
     if (filters.minFacilities) {
       pool = pool.filter((p) => facilitiesAtLeast(p.facilities ?? 'basic', filters.minFacilities!));
@@ -100,16 +152,69 @@ export default function PropertiesScreen() {
 
     if (school) {
       withDistance = withDistance.filter((r) => (r.distanceKm ?? Infinity) <= 2.0);
-      withDistance.sort((a, b) => (a.distanceKm ?? 0) - (b.distanceKm ?? 0));
-    } else {
-      withDistance.sort((a, b) => a.property.indicativePrice - b.property.indicativePrice);
     }
+
+    const effectiveSort: SortOption = filters.sortOption === 'nearestSchool' && !school ? 'priceLowHigh' : filters.sortOption;
+    withDistance = [...withDistance].sort((a, b) => {
+      switch (effectiveSort) {
+        case 'nearestSchool':
+          return (a.distanceKm ?? 0) - (b.distanceKm ?? 0);
+        case 'priceLowHigh':
+          return a.property.indicativePrice - b.property.indicativePrice;
+        case 'priceHighLow':
+          return b.property.indicativePrice - a.property.indicativePrice;
+        case 'psfLowHigh':
+          return (a.property.pricePsfHistoric ?? Infinity) - (b.property.pricePsfHistoric ?? Infinity);
+        case 'psfHighLow': {
+          const ap = a.property.pricePsfHistoric;
+          const bp = b.property.pricePsfHistoric;
+          if (ap == null && bp == null) return 0;
+          if (ap == null) return 1;
+          if (bp == null) return -1;
+          return bp - ap;
+        }
+        case 'nameAZ':
+          return a.property.name.localeCompare(b.property.name);
+        default:
+          return 0;
+      }
+    });
     return withDistance;
-  }, [filters, school]);
+  }, [filters, school, keyword]);
 
   const shortlistedProperties = Array.from(shortlistedIds)
     .map((id) => propertyById(id))
     .filter((p): p is SGProperty => !!p);
+
+  const handleSaveSearch = () => {
+    const name = saveName.trim();
+    if (!name) return;
+    const entry: SavedSearch = { id: `${Date.now()}`, name, filters, createdAt: Date.now() };
+    setSavedSearches((prev) => {
+      const next = [...prev, entry];
+      saveJSON(SAVED_SEARCHES_KEY, next);
+      return next;
+    });
+    setSaveName('');
+    setShowSaveInput(false);
+  };
+
+  const confirmDeleteSavedSearch = (saved: SavedSearch) => {
+    Alert.alert(saved.name, 'Delete this saved search?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () => {
+          setSavedSearches((prev) => {
+            const next = prev.filter((s) => s.id !== saved.id);
+            saveJSON(SAVED_SEARCHES_KEY, next);
+            return next;
+          });
+        },
+      },
+    ]);
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -122,6 +227,54 @@ export default function PropertiesScreen() {
 
       {mode === 'search' ? (
         <ScrollView contentContainerStyle={styles.content}>
+          <View style={[styles.searchBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Ionicons name="search" size={15} color={colors.muted} />
+            <TextInput
+              value={keyword}
+              onChangeText={setKeyword}
+              placeholder="Search by name or area"
+              placeholderTextColor={colors.muted}
+              style={[styles.searchInput, { color: colors.ink }]}
+            />
+          </View>
+
+          <Text style={[styles.sectionLabel, { color: colors.muted }]}>SAVED SEARCHES</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: Spacing.sm, alignItems: 'center' }}>
+            {savedSearches.map((s) => (
+              <Chip key={s.id} label={s.name} onPress={() => setFilters({ ...DEFAULT_FILTERS, ...s.filters })} onLongPress={() => confirmDeleteSavedSearch(s)} />
+            ))}
+            {showSaveInput ? (
+              <View style={[styles.saveInputRow, { borderColor: colors.border, backgroundColor: colors.surface }]}>
+                <TextInput
+                  value={saveName}
+                  onChangeText={setSaveName}
+                  placeholder="Search name"
+                  placeholderTextColor={colors.muted}
+                  style={[styles.saveInput, { color: colors.ink }]}
+                  autoFocus
+                  onSubmitEditing={handleSaveSearch}
+                />
+                <Pressable onPress={handleSaveSearch} hitSlop={8}>
+                  <Ionicons name="checkmark" size={18} color={colors.accentStrong} />
+                </Pressable>
+                <Pressable
+                  onPress={() => {
+                    setShowSaveInput(false);
+                    setSaveName('');
+                  }}
+                  hitSlop={8}
+                >
+                  <Ionicons name="close" size={18} color={colors.muted} />
+                </Pressable>
+              </View>
+            ) : (
+              <Pressable onPress={() => setShowSaveInput(true)} style={[styles.addSavedChip, { borderColor: colors.border }]}>
+                <Ionicons name="add" size={14} color={colors.accentStrong} />
+                <Text style={{ color: colors.accentStrong, fontSize: 12, fontWeight: '700' }}>Save search</Text>
+              </Pressable>
+            )}
+          </ScrollView>
+
           <Text style={[styles.sectionLabel, { color: colors.muted }]}>FIND A PROPERTY</Text>
           <View style={[styles.filterCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <SelectField
@@ -182,13 +335,35 @@ export default function PropertiesScreen() {
             />
           </View>
 
-          <Text style={[styles.sectionLabel, { color: colors.muted }]}>
-            {results.length} MATCH{results.length === 1 ? '' : 'ES'}
-          </Text>
+          <Text style={[styles.sectionLabel, { color: colors.muted }]}>SORT BY</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: Spacing.sm }}>
+            {SORT_OPTIONS.map((opt) => (
+              <Chip
+                key={opt.value}
+                label={opt.label}
+                selected={filters.sortOption === opt.value}
+                onPress={() => patchFilters({ sortOption: opt.value })}
+              />
+            ))}
+          </ScrollView>
+
+          <View style={styles.resultsHeaderRow}>
+            <Text style={[styles.sectionLabel, { color: colors.muted, marginTop: 0 }]}>
+              {results.length} MATCH{results.length === 1 ? '' : 'ES'}
+            </Text>
+            {results.length > 0 && (
+              <View style={[styles.viewToggle, { backgroundColor: colors.surface2 }]}>
+                <ViewToggleButton label="List" active={resultsView === 'list'} onPress={() => setResultsView('list')} />
+                <ViewToggleButton label="Map" active={resultsView === 'map'} onPress={() => setResultsView('map')} />
+              </View>
+            )}
+          </View>
           {results.length === 0 ? (
             <Text style={{ color: colors.muted, fontSize: 13 }}>
               No properties in the sample data meet all of these — try loosening a filter.
             </Text>
+          ) : resultsView === 'map' ? (
+            <SchematicMap results={results} school={school} />
           ) : (
             <View style={{ gap: Spacing.sm }}>
               {results.map((r) => (
@@ -258,6 +433,51 @@ function SegButton({ label, active, onPress }: { label: string; active: boolean;
     >
       <Text style={{ color: active ? colors.ink : colors.muted, fontWeight: '700', fontSize: 13 }}>{label}</Text>
     </Pressable>
+  );
+}
+
+function ViewToggleButton({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
+  const colors = useColors();
+  return (
+    <Pressable onPress={onPress} style={[styles.viewToggleBtn, active && { backgroundColor: colors.surface }]}>
+      <Text style={{ color: active ? colors.ink : colors.muted, fontWeight: '700', fontSize: 11 }}>{label}</Text>
+    </Pressable>
+  );
+}
+
+function SchematicMap({ results, school }: { results: { property: SGProperty; distanceKm?: number }[]; school?: SGSchool }) {
+  const colors = useColors();
+  const schoolPos = school ? projectPoint(school.location) : null;
+  return (
+    <View>
+      <View style={[styles.mapBox, { backgroundColor: colors.surface2, borderColor: colors.border }]}>
+        {results.map((r) => {
+          const pos = projectPoint(r.property.location);
+          return (
+            <Link key={r.property.id} href={`/property/${r.property.id}`} asChild>
+              <Pressable
+                style={[
+                  styles.mapDot,
+                  { left: `${pos.left}%`, top: `${pos.top}%`, backgroundColor: colors.accent, borderColor: colors.surface },
+                ]}
+              />
+            </Link>
+          );
+        })}
+        {schoolPos && (
+          <View
+            style={[
+              styles.mapSchoolDot,
+              { left: `${schoolPos.left}%`, top: `${schoolPos.top}%`, borderColor: colors.ink },
+            ]}
+          />
+        )}
+      </View>
+      <Text style={[styles.mapLegend, { color: colors.muted }]}>
+        Schematic layout by coordinates — approximate, not to scale. Cross-check with a real map before visiting.
+        {school ? ' Diamond marks the selected school.' : ''}
+      </Text>
+    </View>
   );
 }
 
@@ -351,10 +571,60 @@ const styles = StyleSheet.create({
     borderRadius: Radii.sm - 2,
   },
   content: { padding: Spacing.lg, paddingBottom: Spacing.xl * 2 },
+  searchBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    paddingHorizontal: Spacing.md,
+    height: 40,
+  },
+  searchInput: { flex: 1, fontSize: 14 },
+  saveInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderRadius: Radii.pill,
+    paddingHorizontal: Spacing.md,
+    height: 34,
+  },
+  saveInput: { fontSize: 13, minWidth: 100 },
+  addSavedChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderWidth: 1,
+    borderRadius: Radii.pill,
+    paddingHorizontal: Spacing.md,
+    height: 34,
+  },
   sectionLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 0.6, marginTop: Spacing.lg, marginBottom: Spacing.sm },
   filterCard: { borderRadius: Radii.lg, borderWidth: 1, paddingHorizontal: Spacing.md, paddingBottom: Spacing.sm },
   hint: { fontSize: 11, lineHeight: 15, marginTop: -4, marginBottom: Spacing.sm },
   footer: { fontSize: 11, lineHeight: 16, marginTop: Spacing.lg },
+  resultsHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  viewToggle: { flexDirection: 'row', borderRadius: Radii.sm, padding: 2, gap: 2 },
+  viewToggleBtn: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: Radii.sm - 2 },
+  mapBox: {
+    height: 260,
+    borderRadius: Radii.lg,
+    borderWidth: 1,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  mapDot: { position: 'absolute', width: 12, height: 12, borderRadius: 6, marginLeft: -6, marginTop: -6, borderWidth: 2 },
+  mapSchoolDot: {
+    position: 'absolute',
+    width: 14,
+    height: 14,
+    marginLeft: -7,
+    marginTop: -7,
+    borderWidth: 2,
+    transform: [{ rotate: '45deg' }],
+  },
+  mapLegend: { fontSize: 11, lineHeight: 15, marginTop: Spacing.sm },
   condoRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',

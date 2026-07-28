@@ -28,6 +28,20 @@ const BAND_TINT: Record<SchoolPriorityBand, string> = {
   beyond2km: '#8A8F86',
 };
 
+const AFFORD_DOWN_PERCENT = 20;
+const AFFORD_RATE_PERCENT = 4.0;
+const AFFORD_TERM_YEARS = 25;
+
+function estimateMortgage(price: number, downPercent: number, ratePercent: number, termYears: number) {
+  const loan = price * (1 - downPercent / 100);
+  const monthlyRate = ratePercent / 100 / 12;
+  const n = termYears * 12;
+  if (n <= 0) return { loan, monthly: 0 };
+  const monthly =
+    monthlyRate === 0 ? loan / n : (loan * (monthlyRate * (1 + monthlyRate) ** n)) / ((1 + monthlyRate) ** n - 1);
+  return { loan, monthly };
+}
+
 export default function PropertyReportScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const colors = useColors();
@@ -129,6 +143,34 @@ export default function PropertyReportScreen() {
             />
           </View>
           <Text style={[styles.note, { color: colors.muted }]}>{lease.note}</Text>
+        </ReportCard>
+
+        <ReportCard title="Affordability" icon="calculator-outline">
+          {(() => {
+            const { loan, monthly } = estimateMortgage(
+              property.indicativePrice,
+              AFFORD_DOWN_PERCENT,
+              AFFORD_RATE_PERCENT,
+              AFFORD_TERM_YEARS
+            );
+            return (
+              <>
+                <RowLine label="Est. monthly payment" value={formatCurrency(monthly)} strong />
+                <Text style={[styles.note, { color: colors.muted }]}>
+                  Loan amount ({100 - AFFORD_DOWN_PERCENT}% LTV): {formatCurrency(loan)}
+                </Text>
+                <Text style={[styles.note, { color: colors.muted }]}>
+                  Assumes {AFFORD_DOWN_PERCENT}% down payment, {AFFORD_RATE_PERCENT.toFixed(1)}% interest,{' '}
+                  {AFFORD_TERM_YEARS}-year term — adjust to your own numbers.
+                </Text>
+                <Link href={{ pathname: '/tools/mortgage', params: { price: String(property.indicativePrice) } }} asChild>
+                  <Pressable style={{ marginTop: 6, alignSelf: 'flex-start' }}>
+                    <Text style={{ color: colors.accentStrong, fontSize: 12, fontWeight: '700' }}>Open full calculator</Text>
+                  </Pressable>
+                </Link>
+              </>
+            );
+          })()}
         </ReportCard>
 
         <ReportCard title="Coming soon" icon="time-outline">

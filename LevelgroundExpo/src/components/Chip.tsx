@@ -6,15 +6,18 @@ export function Chip({
   label,
   selected,
   onPress,
+  onLongPress,
 }: {
   label: string;
   selected?: boolean;
   onPress?: () => void;
+  onLongPress?: () => void;
 }) {
   const colors = useColors();
   return (
     <Pressable
       onPress={onPress}
+      onLongPress={onLongPress}
       style={[
         styles.chip,
         {
