@@ -1,13 +1,45 @@
 import React, { useState } from 'react';
-import { Text, View, Switch, TouchableOpacity, StyleSheet } from 'react-native';
+import { Text, View, Switch, TouchableOpacity, Alert, Platform, StyleSheet } from 'react-native';
+import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Screen } from '../components/Screen';
 import { useTheme } from '../theme';
 import { useAppState } from '../state/AppState';
+import type { MainTabParamList, RootStackParamList } from '../navigation/types';
 
-export default function ProfileScreen() {
+type Props = BottomTabScreenProps<MainTabParamList, 'Profile'>;
+
+export default function ProfileScreen({ navigation }: Props) {
   const c = useTheme();
   const [notify, setNotify] = useState(true);
-  const { profile } = useAppState();
+  const { profile, resetAll } = useAppState();
+
+  const RESET_MESSAGE =
+    "This clears your profile, savings, income, card spend, check-ins and Pro status — everything you've entered. This can't be undone.";
+
+  // RN Web's Alert.alert doesn't render anything by default — confirm() is the reliable
+  // cross-platform path, and native still gets the nicer Alert.alert treatment.
+  function confirmReset(): Promise<boolean> {
+    if (Platform.OS === 'web') {
+      return Promise.resolve(typeof window !== 'undefined' ? window.confirm(RESET_MESSAGE) : true);
+    }
+    return new Promise((resolve) => {
+      Alert.alert('Reset all your data?', RESET_MESSAGE, [
+        { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+        { text: 'Delete', style: 'destructive', onPress: () => resolve(true) },
+      ]);
+    });
+  }
+
+  const handleReset = async () => {
+    const confirmed = await confirmReset();
+    if (!confirmed) return;
+    await resetAll();
+    navigation.getParent<NativeStackNavigationProp<RootStackParamList>>()?.reset({
+      index: 0,
+      routes: [{ name: 'Onboarding' }],
+    });
+  };
 
   return (
     <Screen>
@@ -34,7 +66,7 @@ export default function ProfileScreen() {
       <TouchableOpacity style={styles.link}>
         <Text style={{ color: c.ink, fontWeight: '700', fontSize: 13 }}>Download my data</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.link}>
+      <TouchableOpacity style={styles.link} onPress={handleReset}>
         <Text style={{ color: c.critical, fontWeight: '700', fontSize: 13 }}>Delete my account</Text>
       </TouchableOpacity>
     </Screen>

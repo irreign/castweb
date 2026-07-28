@@ -51,6 +51,7 @@ type AppStateShape = Persisted & {
   freeAskLimit: number;
   markAskAnswered: (key: string) => void;
   markGateComplete: (key: GateKey) => void;
+  resetAll: () => Promise<void>;
 };
 
 const AppStateContext = createContext<AppStateShape | null>(null);
@@ -89,6 +90,10 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     setState((s) => (s.askAnswered.includes(key) ? s : { ...s, askAnswered: [...s.askAnswered, key] }));
   const markGateComplete = (key: GateKey) =>
     setState((s) => ({ ...s, gatesCompleted: { ...s.gatesCompleted, [key]: true } }));
+  const resetAll = async () => {
+    await AsyncStorage.removeItem(STORAGE_KEY);
+    setState(DEFAULTS);
+  };
 
   const value = useMemo<AppStateShape>(
     () => ({
@@ -104,6 +109,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       freeAskLimit: FREE_ASK_LIMIT,
       markAskAnswered,
       markGateComplete,
+      resetAll,
     }),
     [state, isLoaded, enrollments]
   );
