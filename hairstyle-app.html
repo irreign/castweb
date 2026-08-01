@@ -173,6 +173,26 @@
   .style-card { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.1rem; }
   .style-card .s-name { font-weight: 800; font-size: 0.9rem; margin-bottom: 0.35rem; }
   .style-card .s-why { font-size: 0.8rem; color: var(--muted); line-height: 1.6; }
+  .style-card-actions { margin-top: 0.9rem; padding-top: 0.9rem; border-top: 1px solid var(--border); }
+  .btn-preview {
+    background: white; border: 1.5px solid var(--violet); color: var(--violet);
+    cursor: pointer; padding: 0.45rem 0.8rem; border-radius: 8px;
+    font-family: inherit; font-weight: 700; font-size: 0.76rem;
+  }
+  .btn-preview:hover:not(:disabled) { background: var(--violet); color: white; }
+  .btn-preview:disabled { opacity: 0.45; cursor: not-allowed; }
+  .color-pick-select {
+    border: 1.5px solid var(--border); border-radius: 8px; padding: 0.35rem 0.5rem;
+    font-family: inherit; font-size: 0.76rem; margin-bottom: 0.6rem; width: 100%; background: white;
+  }
+  .preview-status { font-size: 0.76rem; color: var(--muted); margin-top: 0.6rem; }
+  .preview-status.err { color: var(--orange); font-weight: 600; }
+  .preview-img { width: 100%; border-radius: 8px; margin-top: 0.7rem; display: block; }
+  .spinner {
+    display: inline-block; width: 13px; height: 13px; border: 2px solid rgba(108,71,255,0.25);
+    border-top-color: var(--violet); border-radius: 50%; animation: spin 0.7s linear infinite; margin-right: 0.4rem; vertical-align: -2px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
 
   .swatch-row { display: flex; gap: 0.9rem; flex-wrap: wrap; }
   .swatch { display: flex; align-items: center; gap: 0.6rem; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 0.5rem 0.9rem 0.5rem 0.5rem; }
@@ -556,6 +576,22 @@
       reader.readAsDataURL(file);
     });
   }
+  function resizeDataUrl(dataUrl, maxDim, quality) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > height && width > maxDim) { height = Math.round(height * maxDim / width); width = maxDim; }
+        else if (height > maxDim) { width = Math.round(width * maxDim / height); height = maxDim; }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = reject;
+      img.src = dataUrl;
+    });
+  }
 
   /* ---------------- Recommendation engine ---------------- */
   function buildRecommendation() {
@@ -618,9 +654,22 @@
       rec.faceShapeLabel + ' face', rec.undertoneLabel + ' undertone', rec.goalLabel, rec.occasionLabel
     ].filter(Boolean).map(t => `<span class="mini-tag">${t}</span>`).join('');
 
-    document.getElementById('result-styles').innerHTML = rec.styles.map(s =>
-      `<div class="style-card"><div class="s-name">${s.name}</div><div class="s-why">${s.why}</div></div>`
-    ).join('');
+    const colorOptions = rec.colors.map(c => `<option value="${escapeHtml(c.name)}">${c.name}</option>`).join('');
+    document.getElementById('result-styles').innerHTML = rec.styles.map((s, i) => `
+      <div class="style-card" data-idx="${i}">
+        <div class="s-name">${s.name}</div>
+        <div class="s-why">${s.why}</div>
+        <div class="style-card-actions">
+          <select class="color-pick-select" id="color-pick-${i}">
+            <option value="">No colour change</option>
+            ${colorOptions}
+          </select>
+          <button class="btn-preview" id="preview-btn-${i}" onclick="previewStyle(${i})" ${rec.photo ? '' : 'disabled title="Upload a photo above to enable AI preview"'}>✨ Preview with AI</button>
+          <div class="preview-status" id="preview-status-${i}"></div>
+          <div id="preview-img-wrap-${i}"></div>
+        </div>
+      </div>
+    `).join('');
 
     document.getElementById('result-colors').innerHTML = rec.colors.map(c =>
       `<div class="swatch"><div class="swatch-dot" style="background:${c.hex}"></div><div class="swatch-name">${c.name}</div></div>`
@@ -631,6 +680,52 @@
     ).join('');
 
     document.getElementById('result-tips').innerHTML = rec.tips.map(t => `<li>${t}</li>`).join('');
+  }
+
+  /* ---------------- AI photo preview (calls the StyleBook backend) ---------------- */
+  async function previewStyle(idx) {
+    if (!currentResult || !currentResult.photo) return;
+    const style = currentResult.styles[idx];
+    const btn = document.getElementById(`preview-btn-${idx}`);
+    const status = document.getElementById(`preview-status-${idx}`);
+    const imgWrap = document.getElementById(`preview-img-wrap-${idx}`);
+    const colorName = document.getElementById(`color-pick-${idx}`).value || null;
+
+    btn.disabled = true;
+    status.className = 'preview-status';
+    status.innerHTML = '<span class="spinner"></span>Generating your AI preview — this can take up to 30 seconds...';
+    imgWrap.innerHTML = '';
+
+    try {
+      let resp;
+      try {
+        resp = await fetch('/api/preview', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            photo: currentResult.photo,
+            styleName: style.name,
+            styleDescription: style.why,
+            colorName
+          })
+        });
+      } catch (networkErr) {
+        throw new Error('Could not reach the AI backend. Make sure the StyleBook server is running (see server/README.md).');
+      }
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.error || 'Generation failed.');
+
+      const resized = await resizeDataUrl(data.image, 480, 0.85);
+      style.previewImage = resized;
+      style.previewColorName = colorName;
+      status.textContent = '';
+      imgWrap.innerHTML = `<img class="preview-img" src="${resized}" alt="AI preview of ${escapeHtml(style.name)}">`;
+    } catch (err) {
+      status.className = 'preview-status err';
+      status.textContent = `⚠ ${err.message}`;
+    } finally {
+      btn.disabled = false;
+    }
   }
 
   /* ---------------- Persistence (Style Book history) ---------------- */
@@ -738,7 +833,7 @@
           </div>
         </div>
       </div>
-      <div class="result-section"><h3>Recommended Hairstyles</h3><div class="style-cards">${l.styles.map(s => `<div class="style-card"><div class="s-name">${s.name}</div><div class="s-why">${s.why}</div></div>`).join('')}</div></div>
+      <div class="result-section"><h3>Recommended Hairstyles</h3><div class="style-cards">${l.styles.map(s => `<div class="style-card"><div class="s-name">${s.name}</div><div class="s-why">${s.why}</div>${s.previewImage ? `<img class="preview-img" src="${s.previewImage}" alt="AI preview of ${escapeHtml(s.name)}">` : ''}</div>`).join('')}</div></div>
       <div class="result-section"><h3>Hair Colour Palette</h3><div class="swatch-row">${l.colors.map(c => `<div class="swatch"><div class="swatch-dot" style="background:${c.hex}"></div><div class="swatch-name">${c.name}</div></div>`).join('')}</div></div>
       <div class="result-section"><h3>Makeup Guide</h3><ul class="makeup-list">${l.makeup.map(m => `<li><b>${m.label}:</b> ${m.value}</li>`).join('')}</ul></div>
       ${l.note ? `<div class="result-section"><h3>Your Note</h3><p style="font-size:0.88rem;color:var(--muted);line-height:1.7;">${escapeHtml(l.note)}</p></div>` : ''}
@@ -760,7 +855,7 @@
       <p><b>Face shape:</b> ${l.faceShapeLabel} &nbsp; <b>Undertone:</b> ${l.undertoneLabel} &nbsp; <b>Occasion:</b> ${l.occasionLabel}</p>
       ${l.photo ? `<img src="${l.photo}" style="width:160px;border-radius:8px;margin:1rem 0;">` : ''}
       <h2>Hairstyles</h2>
-      <ul>${l.styles.map(s => `<li><b>${s.name}</b> — ${s.why}</li>`).join('')}</ul>
+      <ul>${l.styles.map(s => `<li><b>${s.name}</b> — ${s.why}${s.previewImage ? `<br><img src="${s.previewImage}" style="width:140px;border-radius:6px;margin-top:0.4rem;">` : ''}</li>`).join('')}</ul>
       <h2>Hair Colour</h2>
       <ul>${l.colors.map(c => `<li>${c.name} (${c.hex})</li>`).join('')}</ul>
       <h2>Makeup</h2>
