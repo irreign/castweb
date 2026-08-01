@@ -104,9 +104,11 @@ function QuickTool({ href, icon, label }: { href: Href; icon: keyof typeof Ionic
   const colors = useColors();
   return (
     <Link href={href} asChild>
-      <Pressable style={[styles.quickTool, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <Ionicons name={icon} size={22} color={colors.accentStrong} />
-        <Text style={[styles.quickToolLabel, { color: colors.ink }]}>{label}</Text>
+      <Pressable style={styles.quickToolFlex}>
+        <View style={[styles.quickTool, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Ionicons name={icon} size={22} color={colors.accentStrong} />
+          <Text style={[styles.quickToolLabel, { color: colors.ink }]}>{label}</Text>
+        </View>
       </Pressable>
     </Link>
   );
@@ -131,8 +133,8 @@ const styles = StyleSheet.create({
   rowTitle: { fontSize: 14, fontWeight: '600' },
   rowMeta: { fontSize: 12, marginTop: 2 },
   quickRow: { flexDirection: 'row', gap: Spacing.sm },
+  quickToolFlex: { flex: 1 },
   quickTool: {
-    flex: 1,
     alignItems: 'center',
     gap: Spacing.xs + 2,
     paddingVertical: Spacing.lg,

@@ -454,14 +454,13 @@ function SchematicMap({ results, school }: { results: { property: SGProperty; di
         {results.map((r) => {
           const pos = projectPoint(r.property.location);
           return (
-            <Link key={r.property.id} href={`/property/${r.property.id}`} asChild>
-              <Pressable
-                style={[
-                  styles.mapDot,
-                  { left: `${pos.left}%`, top: `${pos.top}%`, backgroundColor: colors.accent, borderColor: colors.surface },
-                ]}
-              />
-            </Link>
+            <View key={r.property.id} style={[styles.mapDotAnchor, { left: `${pos.left}%`, top: `${pos.top}%` }]}>
+              <Link href={`/property/${r.property.id}`} asChild>
+                <Pressable>
+                  <View style={[styles.mapDot, { backgroundColor: colors.accent, borderColor: colors.surface }]} />
+                </Pressable>
+              </Link>
+            </View>
           );
         })}
         {schoolPos && (
@@ -495,30 +494,32 @@ function PropertyRow({
   const colors = useColors();
   return (
     <Link href={`/property/${property.id}`} asChild>
-      <Pressable style={[styles.condoRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <View style={{ flex: 1 }}>
-          <Text style={[styles.condoName, { color: colors.ink }]}>{property.name}</Text>
-          <Text style={[styles.condoMeta, { color: colors.muted }]}>
-            {DISTRICT_INFO[property.district]?.code} · {property.town} · {tenureTitle(property.tenure)}
-          </Text>
-          <View style={styles.badgeRow}>
-            {property.pricePsfHistoric != null && (
-              <Text style={[styles.psf, { color: colors.ink }]}>${property.pricePsfHistoric}/sqft</Text>
-            )}
-            {property.facilities && (
-              <View style={[styles.facPill, { backgroundColor: colors.accent }]}>
-                <Text style={styles.facPillText}>{FACILITIES_INFO[property.facilities].title}</Text>
-              </View>
-            )}
-            {property.mcstFeeMonthly != null && (
-              <Text style={[styles.mcstText, { color: colors.muted }]}>${property.mcstFeeMonthly}/mo MCST</Text>
-            )}
+      <Pressable>
+        <View style={[styles.condoRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.condoName, { color: colors.ink }]}>{property.name}</Text>
+            <Text style={[styles.condoMeta, { color: colors.muted }]}>
+              {DISTRICT_INFO[property.district]?.code} · {property.town} · {tenureTitle(property.tenure)}
+            </Text>
+            <View style={styles.badgeRow}>
+              {property.pricePsfHistoric != null && (
+                <Text style={[styles.psf, { color: colors.ink }]}>${property.pricePsfHistoric}/sqft</Text>
+              )}
+              {property.facilities && (
+                <View style={[styles.facPill, { backgroundColor: colors.accent }]}>
+                  <Text style={styles.facPillText}>{FACILITIES_INFO[property.facilities].title}</Text>
+                </View>
+              )}
+              {property.mcstFeeMonthly != null && (
+                <Text style={[styles.mcstText, { color: colors.muted }]}>${property.mcstFeeMonthly}/mo MCST</Text>
+              )}
+            </View>
+            <Text style={[styles.priceLine, { color: colors.muted }]}>{formatCurrency(property.indicativePrice)} indicative</Text>
           </View>
-          <Text style={[styles.priceLine, { color: colors.muted }]}>{formatCurrency(property.indicativePrice)} indicative</Text>
-        </View>
-        <View style={styles.trailStack}>
-          <StarButton filled={starred} onPress={onToggleStar} />
-          {km != null && <Text style={[styles.kmText, { color: colors.muted }]}>{formatKm(km)}</Text>}
+          <View style={styles.trailStack}>
+            <StarButton filled={starred} onPress={onToggleStar} />
+            {km != null && <Text style={[styles.kmText, { color: colors.muted }]}>{formatKm(km)}</Text>}
+          </View>
         </View>
       </Pressable>
     </Link>
@@ -532,20 +533,22 @@ function CompareCard({ property }: { property: SGProperty }) {
 
   return (
     <Link href={`/property/${property.id}`} asChild>
-      <Pressable style={[styles.compareCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <Text style={[styles.compareName, { color: colors.ink }]} numberOfLines={2}>
-          {property.name}
-        </Text>
-        <Text style={[styles.condoMeta, { color: colors.muted, marginBottom: 8 }]}>
-          {DISTRICT_INFO[property.district]?.code} · {PROPERTY_TYPE_TITLE[property.type]}
-        </Text>
-        <CompareRow label="Tenure" value={tenureTitle(property.tenure)} />
-        {property.pricePsfHistoric != null && <CompareRow label="Psf" value={`$${property.pricePsfHistoric}`} />}
-        <CompareRow label="Price" value={formatCurrency(property.indicativePrice)} />
-        {property.facilities && <CompareRow label="Facilities" value={FACILITIES_INFO[property.facilities].title} />}
-        {property.mcstFeeMonthly != null && <CompareRow label="MCST" value={`$${property.mcstFeeMonthly}/mo`} />}
-        <CompareRow label="Lease" value={lease.title} />
-        {nearest && <CompareRow label="Nearest school" value={`${nearest.school.name}, ${formatKm(nearest.distanceKm)}`} />}
+      <Pressable>
+        <View style={[styles.compareCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Text style={[styles.compareName, { color: colors.ink }]} numberOfLines={2}>
+            {property.name}
+          </Text>
+          <Text style={[styles.condoMeta, { color: colors.muted, marginBottom: 8 }]}>
+            {DISTRICT_INFO[property.district]?.code} · {PROPERTY_TYPE_TITLE[property.type]}
+          </Text>
+          <CompareRow label="Tenure" value={tenureTitle(property.tenure)} />
+          {property.pricePsfHistoric != null && <CompareRow label="Psf" value={`$${property.pricePsfHistoric}`} />}
+          <CompareRow label="Price" value={formatCurrency(property.indicativePrice)} />
+          {property.facilities && <CompareRow label="Facilities" value={FACILITIES_INFO[property.facilities].title} />}
+          {property.mcstFeeMonthly != null && <CompareRow label="MCST" value={`$${property.mcstFeeMonthly}/mo`} />}
+          <CompareRow label="Lease" value={lease.title} />
+          {nearest && <CompareRow label="Nearest school" value={`${nearest.school.name}, ${formatKm(nearest.distanceKm)}`} />}
+        </View>
       </Pressable>
     </Link>
   );
@@ -614,7 +617,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     position: 'relative',
   },
-  mapDot: { position: 'absolute', width: 12, height: 12, borderRadius: 6, marginLeft: -6, marginTop: -6, borderWidth: 2 },
+  mapDotAnchor: { position: 'absolute', width: 0, height: 0, marginLeft: -6, marginTop: -6 },
+  mapDot: { width: 12, height: 12, borderRadius: 6, borderWidth: 2 },
   mapSchoolDot: {
     position: 'absolute',
     width: 14,
