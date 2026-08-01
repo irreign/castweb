@@ -196,8 +196,15 @@
 
   .swatch-row { display: flex; gap: 0.9rem; flex-wrap: wrap; }
   .swatch { display: flex; align-items: center; gap: 0.6rem; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 0.5rem 0.9rem 0.5rem 0.5rem; }
-  .swatch-dot { width: 30px; height: 30px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 0 1px var(--border); flex-shrink: 0; }
+  .swatch-dot { width: 30px; height: 30px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 0 1px var(--border); flex-shrink: 0; position: relative; }
   .swatch-name { font-size: 0.8rem; font-weight: 700; }
+  .swatch-group-label { font-size: 0.72rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.6rem; }
+  .swatch-avoid .swatch-dot::after {
+    content: '✕'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    color: white; font-weight: 800; font-size: 0.7rem; text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  }
+  .swatch-avoid .swatch-name { color: var(--muted); text-decoration: line-through; }
+  .clothing-occasion-note { font-size: 0.85rem; color: var(--muted); line-height: 1.6; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); }
 
   .makeup-list { list-style: none; display: flex; flex-direction: column; gap: 0.6rem; }
   .makeup-list li { font-size: 0.85rem; line-height: 1.6; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 0.7rem 1rem; }
@@ -361,6 +368,12 @@
         </select>
       </div>
 
+      <!-- Step 8: Makeup style -->
+      <div class="step">
+        <div class="step-label"><span class="step-num">8</span> Preferred makeup style <span style="font-weight:500;color:var(--muted);">(optional)</span></div>
+        <div class="choice-grid" id="makeup-style-grid" data-group="makeupStyle"></div>
+      </div>
+
       <button class="btn-primary" id="generate-btn" onclick="generateRecommendation()">Generate My Style Guide →</button>
       <div class="validation-msg" id="validation-msg">Please select a face shape, hair texture, and undertone first.</div>
     </div>
@@ -383,6 +396,15 @@
       <div class="result-section">
         <h3>Hair Colour Palette</h3>
         <div class="swatch-row" id="result-colors"></div>
+      </div>
+
+      <div class="result-section">
+        <h3>Clothing Colour Palette</h3>
+        <div class="swatch-group-label">Colours that flatter you</div>
+        <div class="swatch-row" id="result-clothing-best"></div>
+        <div class="swatch-group-label" style="margin-top:1rem;">Colours to use sparingly</div>
+        <div class="swatch-row" id="result-clothing-avoid"></div>
+        <p class="clothing-occasion-note" id="result-clothing-note"></p>
       </div>
 
       <div class="result-section">
@@ -475,26 +497,46 @@
     warm: {
       label: 'Warm',
       hairColors: [ { name: 'Golden Honey Blonde', hex: '#d9a756' }, { name: 'Caramel Brown', hex: '#8b5a2b' }, { name: 'Copper Red', hex: '#b75433' } ],
-      makeup: { lip: ['Warm coral', 'Terracotta', 'Peachy nude'], blush: ['Peach', 'Warm apricot'], eye: ['Bronze', 'Gold', 'Warm brown'] }
+      makeup: { lip: ['Warm coral', 'Terracotta', 'Peachy nude'], blush: ['Peach', 'Warm apricot'], eye: ['Bronze', 'Gold', 'Warm brown'] },
+      clothing: {
+        best: [ { name: 'Warm Coral', hex: '#ff6f59' }, { name: 'Olive Green', hex: '#6b8e4e' }, { name: 'Camel', hex: '#c19a6b' }, { name: 'Tomato Red', hex: '#e2432a' }, { name: 'Golden Yellow', hex: '#f4b942' } ],
+        avoid: [ { name: 'Icy Pastel Blue', hex: '#cfe8f3' }, { name: 'Stark White', hex: '#ffffff' }, { name: 'Fuchsia', hex: '#ff2fa0' } ]
+      }
     },
     cool: {
       label: 'Cool',
       hairColors: [ { name: 'Ash Brown', hex: '#6b5b58' }, { name: 'Cool Chocolate', hex: '#3b2a26' }, { name: 'Platinum Blonde', hex: '#e8e3d3' } ],
-      makeup: { lip: ['Berry', 'Rosy mauve', 'Blue-red'], blush: ['Cool pink', 'Rose'], eye: ['Taupe', 'Plum', 'Silver'] }
+      makeup: { lip: ['Berry', 'Rosy mauve', 'Blue-red'], blush: ['Cool pink', 'Rose'], eye: ['Taupe', 'Plum', 'Silver'] },
+      clothing: {
+        best: [ { name: 'Royal Blue', hex: '#3457d5' }, { name: 'Emerald Green', hex: '#0f9960' }, { name: 'True Red', hex: '#c8102e' }, { name: 'Icy Pink', hex: '#f4c2c2' }, { name: 'Charcoal Grey', hex: '#3b3b3b' } ],
+        avoid: [ { name: 'Orange', hex: '#ff7f11' }, { name: 'Warm Gold-Yellow', hex: '#e8b923' }, { name: 'Camel/Tan', hex: '#c19a6b' } ]
+      }
     },
     neutral: {
       label: 'Neutral',
       hairColors: [ { name: 'Chestnut Brown', hex: '#5c3a28' }, { name: 'Soft Balayage', hex: '#a9793d' }, { name: 'Natural Black', hex: '#1c1b19' } ],
-      makeup: { lip: ['Rosy nude', 'Soft berry', 'Dusty rose'], blush: ['Soft pink', 'Mauve'], eye: ['Neutral brown', 'Champagne', 'Soft grey'] }
+      makeup: { lip: ['Rosy nude', 'Soft berry', 'Dusty rose'], blush: ['Soft pink', 'Mauve'], eye: ['Neutral brown', 'Champagne', 'Soft grey'] },
+      clothing: {
+        best: [ { name: 'Soft White', hex: '#f5f3ee' }, { name: 'Dusty Rose', hex: '#d5a6a6' }, { name: 'Teal', hex: '#317873' }, { name: 'Navy', hex: '#1b263b' }, { name: 'Mushroom Grey', hex: '#a8a196' } ],
+        avoid: [ { name: 'Neon Brights', hex: '#ccff00' }, { name: 'Overly Warm Orange', hex: '#ff7f11' } ]
+      }
     }
   };
 
   const OCCASIONS = {
-    'everyday':      { label: 'Everyday', note: 'Keep it fresh and low-effort: even skin, a light blush, mascara, and a tinted lip balm.' },
-    'interview':     { label: 'Job interview / work', note: 'Polished but understated: matte base, a neutral eye, groomed brows, and a muted lip so the focus stays on you.' },
-    'date':          { label: 'Date night', note: 'A little extra glow: soft shimmer on the lid, defined lashes, and a lip colour one shade bolder than your everyday go-to.' },
-    'wedding-guest': { label: 'Wedding guest', note: 'Photo-ready but not competing with the couple: soft glam with blended eyeshadow, lashes if you like, and a long-wear lip.' },
-    'party':         { label: 'Party / night out', note: 'Go bold: pick one statement — eye or lip, not both — highlight the high points, and set with spray for longevity.' }
+    'everyday':      { label: 'Everyday', note: 'Keep it fresh and low-effort: even skin, a light blush, mascara, and a tinted lip balm.', clothing: 'Reach for your best-colour basics — a well-fitted tee, knit, or dress in one of your palette colours instantly looks more put-together.' },
+    'interview':     { label: 'Job interview / work', note: 'Polished but understated: matte base, a neutral eye, groomed brows, and a muted lip so the focus stays on you.', clothing: 'Stick to structured, neutral pieces (navy, charcoal, soft white) from your palette — save bold colours for a single accessory.' },
+    'date':          { label: 'Date night', note: 'A little extra glow: soft shimmer on the lid, defined lashes, and a lip colour one shade bolder than your everyday go-to.', clothing: 'One statement colour from your "flattering" palette in a top or dress, paired with neutrals, makes the biggest impact without overdoing it.' },
+    'wedding-guest': { label: 'Wedding guest', note: 'Photo-ready but not competing with the couple: soft glam with blended eyeshadow, lashes if you like, and a long-wear lip.', clothing: 'Avoid white, ivory, and cream (reserved for the bride) — pick a rich colour from your palette instead, and check the dress code first.' },
+    'party':         { label: 'Party / night out', note: 'Go bold: pick one statement — eye or lip, not both — highlight the high points, and set with spray for longevity.', clothing: 'This is the place for your boldest palette colour, or metallics matched to your undertone (gold for warm, silver for cool, either for neutral).' }
+  };
+
+  const MAKEUP_STYLES = {
+    'natural':         { label: 'Natural / No-Makeup Makeup', note: 'Skin-like base (tinted moisturiser or light BB cream), cream blush blended into the skin, a swipe of brow gel, one coat of mascara, and a tinted lip balm — a "your skin but better" finish.' },
+    'soft-glam':       { label: 'Soft Glam', note: 'Medium-coverage base, a softly blended transition shade on the lid, subtle winged liner, lashes (optional), and a glossy or satin lip.' },
+    'kbeauty-dewy':    { label: 'K-Beauty Dewy', note: 'Hydrated, glass-skin base with a dewy finish, a gradient lip (colour concentrated at the centre), soft straight brows, and a peachy flush placed high on the cheeks.' },
+    'bold-glam':       { label: 'Bold Glam', note: 'Full-coverage matte or satin base, a defined smoky or cut-crease eye, sharp winged liner, and a statement lip — pick one focal point (eyes or lips), not both maxed out.' },
+    'classic-polish':  { label: 'Classic Polish', note: 'Even matte-to-satin base, a neutral eye with light definition, groomed brows, and a your-lips-but-better shade — clean, professional, camera-ready.' }
   };
 
   const CHOICE_GROUPS = {
@@ -510,10 +552,11 @@
       { value: 'warm', label: 'Warm', sub: 'Gold/peach jewellery looks best' },
       { value: 'cool', label: 'Cool', sub: 'Silver jewellery looks best' },
       { value: 'neutral', label: 'Neutral', sub: 'Both gold & silver work' }
-    ]}
+    ]},
+    makeupStyle: { el: 'makeup-style-grid', options: Object.entries(MAKEUP_STYLES).map(([v, d]) => ({ value: v, label: d.label })) }
   };
 
-  const state = { faceShape: null, hairType: null, lengthGoal: null, styleGoal: null, undertone: null, photo: null };
+  const state = { faceShape: null, hairType: null, lengthGoal: null, styleGoal: null, undertone: null, makeupStyle: null, photo: null };
   let currentResult = null;
 
   /* ---------------- Render choice grids ---------------- */
@@ -607,12 +650,20 @@
       why: [shape.tip, hairNote].filter(Boolean).join(' ')
     }));
 
+    const makeupStyle = state.makeupStyle ? MAKEUP_STYLES[state.makeupStyle] : null;
     const makeup = [
+      ...(makeupStyle ? [{ label: `Style: ${makeupStyle.label}`, value: makeupStyle.note }] : []),
       { label: 'Lips', value: undertone.makeup.lip.join(', ') },
       { label: 'Blush', value: undertone.makeup.blush.join(', ') },
       { label: 'Eyes', value: undertone.makeup.eye.join(', ') },
       { label: `For your occasion (${occasion.label})`, value: occasion.note }
     ];
+
+    const clothing = {
+      best: undertone.clothing.best,
+      avoid: undertone.clothing.avoid,
+      occasionNote: occasion.clothing
+    };
 
     const tips = [shape.tip];
     if (goal) tips.push(goal.note);
@@ -624,8 +675,10 @@
       undertoneLabel: undertone.label,
       occasionLabel: occasion.label,
       goalLabel: goal ? goal.label : null,
+      makeupStyleLabel: makeupStyle ? makeupStyle.label : null,
       styles,
       colors: undertone.hairColors,
+      clothing,
       makeup,
       tips,
       photo: state.photo
@@ -651,7 +704,7 @@
     if (rec.photo) { photoEl.src = rec.photo; photoEl.style.display = 'block'; } else { photoEl.style.display = 'none'; }
 
     document.getElementById('result-tags').innerHTML = [
-      rec.faceShapeLabel + ' face', rec.undertoneLabel + ' undertone', rec.goalLabel, rec.occasionLabel
+      rec.faceShapeLabel + ' face', rec.undertoneLabel + ' undertone', rec.goalLabel, rec.occasionLabel, rec.makeupStyleLabel
     ].filter(Boolean).map(t => `<span class="mini-tag">${t}</span>`).join('');
 
     const colorOptions = rec.colors.map(c => `<option value="${escapeHtml(c.name)}">${c.name}</option>`).join('');
@@ -674,6 +727,14 @@
     document.getElementById('result-colors').innerHTML = rec.colors.map(c =>
       `<div class="swatch"><div class="swatch-dot" style="background:${c.hex}"></div><div class="swatch-name">${c.name}</div></div>`
     ).join('');
+
+    document.getElementById('result-clothing-best').innerHTML = rec.clothing.best.map(c =>
+      `<div class="swatch"><div class="swatch-dot" style="background:${c.hex}"></div><div class="swatch-name">${c.name}</div></div>`
+    ).join('');
+    document.getElementById('result-clothing-avoid').innerHTML = rec.clothing.avoid.map(c =>
+      `<div class="swatch swatch-avoid"><div class="swatch-dot" style="background:${c.hex}"></div><div class="swatch-name">${c.name}</div></div>`
+    ).join('');
+    document.getElementById('result-clothing-note').textContent = rec.clothing.occasionNote;
 
     document.getElementById('result-makeup').innerHTML = rec.makeup.map(m =>
       `<li><b>${m.label}:</b> ${m.value}</li>`
@@ -829,12 +890,20 @@
           <div class="tag-row">
             ${l.goalLabel ? `<span class="mini-tag">${l.goalLabel}</span>` : ''}
             <span class="mini-tag">${l.occasionLabel}</span>
+            ${l.makeupStyleLabel ? `<span class="mini-tag">${l.makeupStyleLabel}</span>` : ''}
             <span class="mini-tag">${formatDate(l.date)}</span>
           </div>
         </div>
       </div>
       <div class="result-section"><h3>Recommended Hairstyles</h3><div class="style-cards">${l.styles.map(s => `<div class="style-card"><div class="s-name">${s.name}</div><div class="s-why">${s.why}</div>${s.previewImage ? `<img class="preview-img" src="${s.previewImage}" alt="AI preview of ${escapeHtml(s.name)}">` : ''}</div>`).join('')}</div></div>
       <div class="result-section"><h3>Hair Colour Palette</h3><div class="swatch-row">${l.colors.map(c => `<div class="swatch"><div class="swatch-dot" style="background:${c.hex}"></div><div class="swatch-name">${c.name}</div></div>`).join('')}</div></div>
+      ${l.clothing ? `<div class="result-section"><h3>Clothing Colour Palette</h3>
+        <div class="swatch-group-label">Colours that flatter you</div>
+        <div class="swatch-row">${l.clothing.best.map(c => `<div class="swatch"><div class="swatch-dot" style="background:${c.hex}"></div><div class="swatch-name">${c.name}</div></div>`).join('')}</div>
+        <div class="swatch-group-label" style="margin-top:1rem;">Colours to use sparingly</div>
+        <div class="swatch-row">${l.clothing.avoid.map(c => `<div class="swatch swatch-avoid"><div class="swatch-dot" style="background:${c.hex}"></div><div class="swatch-name">${c.name}</div></div>`).join('')}</div>
+        <p class="clothing-occasion-note">${l.clothing.occasionNote}</p>
+      </div>` : ''}
       <div class="result-section"><h3>Makeup Guide</h3><ul class="makeup-list">${l.makeup.map(m => `<li><b>${m.label}:</b> ${m.value}</li>`).join('')}</ul></div>
       ${l.note ? `<div class="result-section"><h3>Your Note</h3><p style="font-size:0.88rem;color:var(--muted);line-height:1.7;">${escapeHtml(l.note)}</p></div>` : ''}
       <div class="modal-actions">
@@ -858,6 +927,10 @@
       <ul>${l.styles.map(s => `<li><b>${s.name}</b> — ${s.why}${s.previewImage ? `<br><img src="${s.previewImage}" style="width:140px;border-radius:6px;margin-top:0.4rem;">` : ''}</li>`).join('')}</ul>
       <h2>Hair Colour</h2>
       <ul>${l.colors.map(c => `<li>${c.name} (${c.hex})</li>`).join('')}</ul>
+      ${l.clothing ? `<h2>Clothing Colours</h2>
+      <p><b>Wear:</b> ${l.clothing.best.map(c => c.name).join(', ')}</p>
+      <p><b>Use sparingly:</b> ${l.clothing.avoid.map(c => c.name).join(', ')}</p>
+      <p>${l.clothing.occasionNote}</p>` : ''}
       <h2>Makeup</h2>
       <ul>${l.makeup.map(m => `<li><b>${m.label}:</b> ${m.value}</li>`).join('')}</ul>
       ${l.note ? `<h2>Notes</h2><p>${escapeHtml(l.note)}</p>` : ''}
