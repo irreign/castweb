@@ -111,6 +111,14 @@
     cursor: pointer; color: var(--muted);
   }
   .btn-remove-photo:hover { color: var(--orange); border-color: var(--orange); }
+  .analyze-status { font-size: 0.8rem; color: var(--muted); margin-top: 0.7rem; }
+  .analyze-status.ok { color: var(--teal-d); font-weight: 700; }
+  .analyze-status.err { color: var(--orange); font-weight: 600; }
+  .auto-badge {
+    font-size: 0.66rem; font-weight: 800; letter-spacing: 0.03em; text-transform: uppercase;
+    background: rgba(0,196,160,0.12); color: var(--teal-d); border-radius: 100px;
+    padding: 0.15rem 0.55rem; margin-left: 0.5rem; vertical-align: middle;
+  }
 
   /* Choice chips */
   .choice-grid { display: flex; flex-wrap: wrap; gap: 0.6rem; }
@@ -324,11 +332,12 @@
           <img id="photo-preview" class="photo-preview" alt="Uploaded photo preview">
           <button class="btn-remove-photo" onclick="removePhoto()">Remove photo</button>
         </div>
+        <div class="analyze-status" id="analyze-status"></div>
       </div>
 
       <!-- Step 2: Face shape -->
       <div class="step">
-        <div class="step-label"><span class="step-num">2</span> Your face shape</div>
+        <div class="step-label"><span class="step-num">2</span> Your face shape <span class="auto-badge" id="face-shape-auto-badge" style="display:none;">🔍 Auto-detected</span></div>
         <div class="choice-grid" id="face-shape-grid" data-group="faceShape"></div>
       </div>
 
@@ -352,7 +361,7 @@
 
       <!-- Step 6: Skin undertone -->
       <div class="step">
-        <div class="step-label"><span class="step-num">6</span> Skin undertone (for colour & makeup matching)</div>
+        <div class="step-label"><span class="step-num">6</span> Skin undertone (for colour & makeup matching) <span class="auto-badge" id="undertone-auto-badge" style="display:none;">🔍 Auto-detected</span></div>
         <div class="choice-grid" id="undertone-grid" data-group="undertone"></div>
       </div>
 
@@ -568,11 +577,14 @@
       ).join('');
     });
   }
-  function selectChoice(group, value) {
+  const AUTO_BADGE_IDS = { faceShape: 'face-shape-auto-badge', undertone: 'undertone-auto-badge' };
+  function selectChoice(group, value, isAuto) {
     state[group] = value;
     document.querySelectorAll(`.choice-btn[data-group="${group}"]`).forEach(btn => {
       btn.classList.toggle('active', btn.dataset.value === value);
     });
+    const badge = document.getElementById(AUTO_BADGE_IDS[group]);
+    if (badge) badge.style.display = isAuto ? 'inline-block' : 'none';
   }
 
   /* ---------------- Photo upload ---------------- */
@@ -590,6 +602,7 @@
       document.getElementById('photo-preview').src = dataUrl;
       document.getElementById('photo-preview-wrap').style.display = 'flex';
       uploadZone.style.display = 'none';
+      analyzePhoto(dataUrl);
     });
   }
   function removePhoto() {
@@ -597,6 +610,46 @@
     fileInput.value = '';
     document.getElementById('photo-preview-wrap').style.display = 'none';
     uploadZone.style.display = 'block';
+    document.getElementById('analyze-status').textContent = '';
+    document.getElementById('analyze-status').className = 'analyze-status';
+    selectChoice('faceShape', null, false);
+    selectChoice('undertone', null, false);
+  }
+
+  async function analyzePhoto(dataUrl) {
+    const status = document.getElementById('analyze-status');
+    status.className = 'analyze-status';
+    status.innerHTML = '<span class="spinner"></span>Detecting your face shape and skin undertone from the photo...';
+
+    try {
+      let resp;
+      try {
+        resp = await fetch('/api/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ photo: dataUrl })
+        });
+      } catch (networkErr) {
+        throw new Error('Could not reach the StyleBook backend, so this couldn’t be auto-detected — please select your face shape and undertone manually below (see server/README.md to enable auto-detection).');
+      }
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.error || 'Detection failed — please select your face shape and undertone manually below.');
+
+      const detected = [];
+      if (data.faceShape) { selectChoice('faceShape', data.faceShape, true); detected.push(`${FACE_SHAPES[data.faceShape].label} face`); }
+      if (data.undertone) { selectChoice('undertone', data.undertone, true); detected.push(`${UNDERTONES[data.undertone].label} undertone`); }
+
+      if (detected.length) {
+        status.className = 'analyze-status ok';
+        status.textContent = `✓ Auto-detected: ${detected.join(', ')} — tap a different option below if this looks off.`;
+      } else {
+        status.className = 'analyze-status err';
+        status.textContent = 'Could not confidently detect from this photo — please select manually below.';
+      }
+    } catch (err) {
+      status.className = 'analyze-status err';
+      status.textContent = `⚠ ${err.message}`;
+    }
   }
   function resizeImage(file, maxDim, quality) {
     return new Promise((resolve, reject) => {

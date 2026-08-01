@@ -1,11 +1,12 @@
 # StyleBook server
 
-Backend for the "✨ Preview with AI" feature in `hairstyle-app.html`. It does two things:
+Backend for the AI features in `hairstyle-app.html`. It does three things:
 
 1. Serves the static site (`index.html`, `hairstyle-app.html`) from the repo root.
-2. Exposes `POST /api/preview`, which takes the user's uploaded photo + a chosen hairstyle/colour and calls the OpenAI Images API (`gpt-image-1`, edit endpoint) to generate a photorealistic preview — keeping your API key on the server, never in the browser.
+2. Exposes `POST /api/analyze`, which sends the uploaded photo to a vision model (`gpt-4o-mini`) to auto-detect face shape and skin undertone, so those two questionnaire steps pre-fill themselves instead of requiring manual selection (the user can still tap a different option to override).
+3. Exposes `POST /api/preview`, which takes the photo + a chosen hairstyle/colour and calls the OpenAI Images API (`gpt-image-1`, edit endpoint) to generate a photorealistic preview.
 
-Without this server running, the rest of the app (face-shape questionnaire, text/colour recommendations, Style Book history) still works fully client-side. Only the AI photo preview button needs the backend.
+Both endpoints keep the API key on the server, never in the browser. Without this server running, the rest of the app (manual questionnaire, text/colour recommendations, Style Book history) still works fully client-side — only auto-detection and the AI photo preview need the backend.
 
 ## Local setup
 
@@ -32,7 +33,11 @@ Then open `http://localhost:3001/hairstyle-app.html` (the server serves the fron
 
 ## Cost control
 
-Because each click of "Preview with AI" costs real money, the server includes a simple per-IP rate limit (default: 12 requests/hour), configurable via `RATE_LIMIT_MAX` and `RATE_LIMIT_WINDOW_MS` in `.env`. Tighten this before sharing the app publicly.
+Each API call costs money, so both endpoints have their own per-IP rate limit:
+- `/api/preview` (image generation, a few cents/call): `RATE_LIMIT_MAX` requests per `RATE_LIMIT_WINDOW_MS`, default 12/hour.
+- `/api/analyze` (vision classification, fractions of a cent/call, and fires automatically on every photo upload): `ANALYZE_RATE_LIMIT_MAX`, default 30/hour.
+
+Tighten these before sharing the app publicly.
 
 ## Deploying
 
