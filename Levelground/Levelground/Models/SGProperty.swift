@@ -130,6 +130,41 @@ enum SGDistrict {
     static func code(_ district: Int) -> String {
         info[district]?.code ?? "D\(district)"
     }
+
+    /// Approximate district-center coordinates, for the standalone School Priority Check
+    /// tool only (letting someone check a school without a specific address). These are
+    /// rough geographic centers of each district's named area, not a real or exact
+    /// address — never use them as a stand-in for property search accuracy.
+    static let centroid: [Int: GeoPoint] = [
+        1: GeoPoint(lat: 1.2839, lon: 103.8517),
+        2: GeoPoint(lat: 1.2762, lon: 103.8440),
+        3: GeoPoint(lat: 1.2900, lon: 103.8100),
+        4: GeoPoint(lat: 1.2653, lon: 103.8221),
+        5: GeoPoint(lat: 1.3140, lon: 103.7649),
+        6: GeoPoint(lat: 1.2930, lon: 103.8520),
+        7: GeoPoint(lat: 1.2990, lon: 103.8560),
+        8: GeoPoint(lat: 1.3123, lon: 103.8547),
+        9: GeoPoint(lat: 1.3040, lon: 103.8318),
+        10: GeoPoint(lat: 1.3225, lon: 103.7969),
+        11: GeoPoint(lat: 1.3255, lon: 103.8400),
+        12: GeoPoint(lat: 1.3345, lon: 103.8470),
+        13: GeoPoint(lat: 1.3390, lon: 103.8620),
+        14: GeoPoint(lat: 1.3180, lon: 103.8925),
+        15: GeoPoint(lat: 1.3020, lon: 103.9050),
+        16: GeoPoint(lat: 1.3300, lon: 103.9400),
+        17: GeoPoint(lat: 1.3600, lon: 103.9800),
+        18: GeoPoint(lat: 1.3470, lon: 103.9350),
+        19: GeoPoint(lat: 1.3700, lon: 103.8900),
+        20: GeoPoint(lat: 1.3555, lon: 103.8480),
+        21: GeoPoint(lat: 1.3411, lon: 103.7759),
+        22: GeoPoint(lat: 1.3400, lon: 103.7050),
+        23: GeoPoint(lat: 1.3496, lon: 103.7490),
+        24: GeoPoint(lat: 1.3800, lon: 103.7200),
+        25: GeoPoint(lat: 1.4360, lon: 103.7860),
+        26: GeoPoint(lat: 1.3800, lon: 103.8300),
+        27: GeoPoint(lat: 1.4295, lon: 103.8350),
+        28: GeoPoint(lat: 1.3950, lon: 103.8500),
+    ]
 }
 
 struct SGProperty: Identifiable, Codable, Equatable {

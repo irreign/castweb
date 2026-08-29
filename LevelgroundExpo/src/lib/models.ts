@@ -215,6 +215,43 @@ export function districtLabel(district: number): string {
   return info ? `${info.code} · ${info.name}` : `District ${district}`;
 }
 
+/**
+ * Approximate district-center coordinates, for the standalone School Priority Check tool
+ * only (letting someone check a school without a specific address). These are rough
+ * geographic centers of each district's named area, not a real or exact address — never
+ * use them as a stand-in for property search accuracy.
+ */
+export const DISTRICT_CENTROID: Record<number, GeoPoint> = {
+  1: { lat: 1.2839, lon: 103.8517 },
+  2: { lat: 1.2762, lon: 103.844 },
+  3: { lat: 1.29, lon: 103.81 },
+  4: { lat: 1.2653, lon: 103.8221 },
+  5: { lat: 1.314, lon: 103.7649 },
+  6: { lat: 1.293, lon: 103.852 },
+  7: { lat: 1.299, lon: 103.856 },
+  8: { lat: 1.3123, lon: 103.8547 },
+  9: { lat: 1.304, lon: 103.8318 },
+  10: { lat: 1.3225, lon: 103.7969 },
+  11: { lat: 1.3255, lon: 103.84 },
+  12: { lat: 1.3345, lon: 103.847 },
+  13: { lat: 1.339, lon: 103.862 },
+  14: { lat: 1.318, lon: 103.8925 },
+  15: { lat: 1.302, lon: 103.905 },
+  16: { lat: 1.33, lon: 103.94 },
+  17: { lat: 1.36, lon: 103.98 },
+  18: { lat: 1.347, lon: 103.935 },
+  19: { lat: 1.37, lon: 103.89 },
+  20: { lat: 1.3555, lon: 103.848 },
+  21: { lat: 1.3411, lon: 103.7759 },
+  22: { lat: 1.34, lon: 103.705 },
+  23: { lat: 1.3496, lon: 103.749 },
+  24: { lat: 1.38, lon: 103.72 },
+  25: { lat: 1.436, lon: 103.786 },
+  26: { lat: 1.38, lon: 103.83 },
+  27: { lat: 1.4295, lon: 103.835 },
+  28: { lat: 1.395, lon: 103.85 },
+};
+
 // ---------- Properties ----------
 
 export type PropertyType = 'hdb' | 'condo' | 'landed';

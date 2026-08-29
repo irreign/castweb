@@ -72,6 +72,10 @@ export default function PropertyReportScreen() {
         }}
       />
       <ScrollView style={{ backgroundColor: colors.bg }} contentContainerStyle={styles.content}>
+        <View style={[styles.sampleBanner, { backgroundColor: colors.brassWash, borderColor: colors.brass }]}>
+          <Ionicons name="flask-outline" size={15} color={colors.brass} />
+          <Text style={[styles.sampleBannerText, { color: colors.brass }]}>Sample data, not a real listing.</Text>
+        </View>
         <View style={styles.headerRow}>
           <View style={[styles.typeBadge, { backgroundColor: colors.accentWash }]}>
             <Text style={[styles.typeBadgeText, { color: colors.accentStrong }]}>{PROPERTY_TYPE_TITLE[property.type]}</Text>
@@ -161,7 +165,8 @@ export default function PropertyReportScreen() {
                 </Text>
                 <Text style={[styles.note, { color: colors.muted }]}>
                   Assumes {AFFORD_DOWN_PERCENT}% down payment, {AFFORD_RATE_PERCENT.toFixed(1)}% interest,{' '}
-                  {AFFORD_TERM_YEARS}-year term — adjust to your own numbers.
+                  {AFFORD_TERM_YEARS}-year term — adjust to your own numbers. An illustrative estimate, not a loan
+                  offer or financial advice.
                 </Text>
                 <Link href={{ pathname: '/tools/mortgage', params: { price: String(property.indicativePrice) } }} asChild>
                   <Pressable style={{ marginTop: 6, alignSelf: 'flex-start' }}>
@@ -292,6 +297,17 @@ function PsfCompare({ psf, avg, districtCode }: { psf: number; avg: number; dist
 const styles = StyleSheet.create({
   notFound: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   content: { padding: Spacing.lg, paddingBottom: Spacing.xl * 2, gap: Spacing.md },
+  sampleBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: Spacing.sm,
+  },
+  sampleBannerText: { fontSize: 12, fontWeight: '600' },
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   typeBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
   typeBadgeText: { fontSize: 11, fontWeight: '700' },

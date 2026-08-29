@@ -227,6 +227,13 @@ export default function PropertiesScreen() {
 
       {mode === 'search' ? (
         <ScrollView contentContainerStyle={styles.content}>
+          <View style={[styles.sampleBanner, { backgroundColor: colors.brassWash, borderColor: colors.brass }]}>
+            <Ionicons name="flask-outline" size={16} color={colors.brass} />
+            <Text style={[styles.sampleBannerText, { color: colors.brass }]}>
+              Sample data — these are illustrative properties, not real listings. Built to show how the tools work.
+            </Text>
+          </View>
+
           <View style={[styles.searchBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <Ionicons name="search" size={15} color={colors.muted} />
             <TextInput
@@ -574,6 +581,16 @@ const styles = StyleSheet.create({
     borderRadius: Radii.sm - 2,
   },
   content: { padding: Spacing.lg, paddingBottom: Spacing.xl * 2 },
+  sampleBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+  },
+  sampleBannerText: { flex: 1, fontSize: 12.5, lineHeight: 17, fontWeight: '600' },
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',

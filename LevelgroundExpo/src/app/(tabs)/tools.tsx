@@ -7,6 +7,12 @@ import { Radii, Spacing, useColors } from '@/constants/theme';
 
 const TOOLS = [
   {
+    href: '/tools/school-priority' as const,
+    icon: 'school-outline' as const,
+    title: 'School Priority Check',
+    subtitle: "See a school's P1 registration priority band for an area — no property search needed",
+  },
+  {
     href: '/tools/mortgage' as const,
     icon: 'cash-outline' as const,
     title: 'Affordability & Mortgage',
@@ -45,8 +51,9 @@ export default function ToolsScreen() {
         </Link>
       ))}
       <Text style={[styles.footer, { color: colors.muted }]}>
-        These tools give estimates to help you ask better questions. They aren't financial advice — always confirm
-        real numbers with a lender or advisor before committing.
+        These tools give estimates to help you ask better questions — they aren't financial, legal, or property
+        advice, and nothing here is a substitute for a licensed financial adviser, bank, or MOE's official guidance.
+        Always confirm real numbers before committing.
       </Text>
     </ScrollView>
   );

@@ -6,6 +6,12 @@ struct ToolsView: View {
             List {
                 Section {
                     NavigationLink {
+                        SchoolPriorityCheckView()
+                    } label: {
+                        ToolRow(title: "School Priority Check", subtitle: "See a school's P1 registration priority band for an area — no property search needed", icon: "graduationcap.fill")
+                    }
+
+                    NavigationLink {
                         MortgageCalculatorView()
                     } label: {
                         ToolRow(title: "Affordability & Mortgage", subtitle: "Estimate your monthly payment and total interest", icon: "banknote.fill")
@@ -23,7 +29,7 @@ struct ToolsView: View {
                         ToolRow(title: "Viewing Checklist", subtitle: "Questions to ask while you're at the property", icon: "checklist")
                     }
                 } footer: {
-                    Text("These tools give estimates to help you ask better questions. They aren't financial advice — always confirm real numbers with a lender or advisor before committing.")
+                    Text("These tools give estimates to help you ask better questions — they aren't financial, legal, or property advice, and nothing here is a substitute for a licensed financial adviser, bank, or MOE's official guidance. Always confirm real numbers before committing.")
                 }
             }
             .navigationTitle("Tools")

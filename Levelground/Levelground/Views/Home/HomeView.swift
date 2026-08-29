@@ -33,6 +33,13 @@ struct HomeView: View {
                 VStack(alignment: .leading, spacing: 24) {
                     header
 
+                    NavigationLink {
+                        SchoolPriorityCheckView()
+                    } label: {
+                        SchoolPriorityWedgeCard()
+                    }
+                    .buttonStyle(.plain)
+
                     if let term = termOfTheDay {
                         NavigationLink(value: term.id) {
                             TermOfTheDayCard(item: term)
@@ -133,6 +140,25 @@ struct HomeView: View {
                 .buttonStyle(.plain)
             }
         }
+    }
+}
+
+private struct SchoolPriorityWedgeCard: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("NO PROPERTY SEARCH NEEDED")
+                .font(.caption.bold())
+                .foregroundStyle(Color.accentColor)
+            Text("Check a school's P1 priority band")
+                .font(.headline)
+                .foregroundStyle(.primary)
+            Text("Pick a school and your area — see its registration priority band in seconds.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .background(RoundedRectangle(cornerRadius: 16).fill(Color.accentColor.opacity(0.10)))
     }
 }
 

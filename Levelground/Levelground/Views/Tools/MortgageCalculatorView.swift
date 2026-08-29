@@ -46,7 +46,7 @@ struct MortgageCalculatorView: View {
             }
 
             Section {
-                Text("This is a simplified estimate — it excludes taxes, insurance, and fees, and assumes a fixed rate for the full term.")
+                Text("This is a simplified estimate — it excludes taxes, insurance, and fees, and assumes a fixed rate for the full term. It's for your own reference, not financial advice or a loan offer — actual eligibility, rates and CPF usage depend on a bank's underwriting. Speak to a bank or a licensed financial adviser before committing.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

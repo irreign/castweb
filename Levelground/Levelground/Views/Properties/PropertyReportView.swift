@@ -34,6 +34,13 @@ struct PropertyReportView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
+                Label("Sample data, not a real listing.", systemImage: "flask")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.orange)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Capsule().fill(Color.orange.opacity(0.12)))
+
                 header
 
                 if property.type == .condo {
@@ -92,7 +99,7 @@ struct PropertyReportView: View {
                     Text("Loan amount (\(Int(100 - Self.affordDownPercent))% LTV): \(affordabilityEstimate.loan.currencyString)")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    Text("Assumes \(Int(Self.affordDownPercent))% down payment, \(String(format: "%.1f", Self.affordRate))% interest, \(Int(Self.affordTermYears))-year term — adjust to your own numbers.")
+                    Text("Assumes \(Int(Self.affordDownPercent))% down payment, \(String(format: "%.1f", Self.affordRate))% interest, \(Int(Self.affordTermYears))-year term — adjust to your own numbers. An illustrative estimate, not a loan offer or financial advice.")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                     NavigationLink {

@@ -155,6 +155,17 @@ struct PropertiesView: View {
 
     private var searchList: some View {
         List {
+            Section {
+                Label {
+                    Text("Sample data — these are illustrative properties, not real listings. Built to show how the tools work.")
+                        .font(.caption.weight(.semibold))
+                } icon: {
+                    Image(systemName: "flask")
+                }
+                .foregroundStyle(.orange)
+                .listRowBackground(Color.orange.opacity(0.12))
+            }
+
             Section("Saved searches") {
                 Button {
                     showSaveSearchAlert = true

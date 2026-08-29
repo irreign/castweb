@@ -52,10 +52,22 @@ export default function HomeScreen() {
       <Text style={[styles.greeting, { color: colors.ink }]}>{GREETINGS[profile.goal]}</Text>
       <Text style={[styles.subheading, { color: colors.muted }]}>{subheading}</Text>
 
+      <Link href="/tools/school-priority" asChild>
+        <Pressable>
+          <Card style={{ backgroundColor: colors.accentWash, borderColor: colors.border, marginTop: Spacing.lg }}>
+            <Text style={[styles.eyebrow, { color: colors.accentStrong }]}>NO PROPERTY SEARCH NEEDED</Text>
+            <Text style={[styles.cardTitle, { color: colors.ink }]}>Check a school's P1 priority band</Text>
+            <Text style={[styles.cardSummary, { color: colors.muted }]}>
+              Pick a school and your area — see its registration priority band in seconds.
+            </Text>
+          </Card>
+        </Pressable>
+      </Link>
+
       {termOfTheDay && (
         <Link href={`/article/${termOfTheDay.id}`} asChild>
           <Pressable>
-            <Card style={{ backgroundColor: colors.accentWash, borderColor: colors.border, marginTop: Spacing.lg }}>
+            <Card style={{ backgroundColor: colors.surface, borderColor: colors.border, marginTop: Spacing.md }}>
               <Text style={[styles.eyebrow, { color: colors.brass }]}>TODAY'S TOPIC</Text>
               <Text style={[styles.cardTitle, { color: colors.ink }]}>{termOfTheDay.title}</Text>
               <Text style={[styles.cardSummary, { color: colors.muted }]} numberOfLines={2}>

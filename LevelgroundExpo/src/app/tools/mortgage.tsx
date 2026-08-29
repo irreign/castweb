@@ -81,7 +81,9 @@ export default function MortgageScreen() {
       </View>
 
       <Text style={[styles.note, { color: colors.muted }]}>
-        Excludes taxes, insurance and fees. Assumes a fixed rate for the full term.
+        Excludes taxes, insurance and fees. Assumes a fixed rate for the full term. This is an illustrative estimate
+        for your own reference, not financial advice or a loan offer — actual eligibility, rates and CPF usage
+        depend on a bank's underwriting. Speak to a bank or a licensed financial adviser before committing.
       </Text>
     </ScrollView>
   );
