@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SFA Pest Control Contract Checklist | PestPass SG</title>
+<meta name="description" content="Free tool: check the minimum pest control coverage and inspection frequency your SFA food licence needs, by business type.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap">
+    <a href="index.html" class="brand">
+      <span class="brand-mark">PP</span>
+      <span class="brand-name">PestPass SG<small>Compliance-first pest referrals</small></span>
+    </a>
+    <nav class="primary" aria-label="Primary">
+      <a href="pest-control-for-restaurants.html">For Restaurants &amp; F&amp;B</a>
+      <a href="pest-control-for-mcst-condo.html">For MCST &amp; Condos</a>
+      <a href="sfa-checklist.html">SFA Checklist Tool</a>
+      <a href="choosing-nea-certified-operator.html">Choosing an Operator</a>
+    </nav>
+    <div class="topbar-actions">
+      <a href="index.html#quote" class="btn btn-primary btn-sm">Get a Quote</a>
+      <button class="nav-toggle" aria-label="Toggle menu" aria-expanded="false">☰</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="wrap">
+      <span class="eyebrow">Free tool</span>
+      <h1 class="page-title">SFA pest control contract checklist</h1>
+      <p class="lede">Pick your business type. We'll show the minimum coverage and inspection frequency the Singapore Food Agency expects to see in your pest control contract — the same thing an inspector checks for.</p>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="wrap">
+      <div class="grid-2" style="align-items:start;">
+        <div class="tool-panel">
+          <div class="field">
+            <label for="biz-type">Business type</label>
+            <select id="biz-type">
+              <option value="hawker">Hawker stall / coffeeshop unit</option>
+              <option value="restaurant">Restaurant / café / bar</option>
+              <option value="caterer">Food caterer</option>
+              <option value="factory">Food factory / central kitchen</option>
+              <option value="retail">Supermarket / food retail</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="biz-size">Approximate floor area</label>
+            <select id="biz-size">
+              <option value="small">Under 100 sqm</option>
+              <option value="medium">100–500 sqm</option>
+              <option value="large">Over 500 sqm</option>
+            </select>
+          </div>
+          <button class="btn btn-primary btn-block" id="run-checklist">Show my requirements</button>
+
+          <div class="tool-result" id="checklist-result">
+            <span class="result-badge">✓ Indicative requirement</span>
+            <div class="result-grid">
+              <div class="result-item"><div class="ri-label">Minimum pest coverage</div><div class="ri-value" id="r-coverage">—</div></div>
+              <div class="result-item"><div class="ri-label">Minimum visit frequency</div><div class="ri-value" id="r-frequency">—</div></div>
+              <div class="result-item"><div class="ri-label">Typical monthly cost</div><div class="ri-value" id="r-cost">—</div></div>
+              <div class="result-item"><div class="ri-label">Operator must hold</div><div class="ri-value">NEA Vector Control Cert.</div></div>
+            </div>
+            <p id="r-note" style="font-size:0.9rem;"></p>
+            <a href="index.html#quote" class="btn btn-primary">Get matched with a partner</a>
+          </div>
+        </div>
+
+        <div>
+          <div class="callout warn">
+            <span class="callout-label">This is guidance, not a licence ruling</span>
+            <p>SFA assesses each premises individually at inspection. Use this to understand the baseline before you talk to a vendor — always confirm final scope against your actual SFA licence conditions.</p>
+          </div>
+          <h3 style="margin-bottom:10px;">What SFA actually requires</h3>
+          <ul class="check">
+            <li>A valid pest control contract is a condition of an SFA food shop licence application — without one, the application isn't approved.</li>
+            <li>Minimum pest coverage: cockroaches, rodents and flies.</li>
+            <li>Minimum inspection frequency: monthly, sustained across a 12-month contract term.</li>
+            <li>The operator carrying out the work must be NEA-certified.</li>
+          </ul>
+          <p class="source-note">Based on published SFA food-shop-licence and NEA pest-control-industry requirements as summarised by licensed pest control operators; confirm current requirements directly with SFA/NEA or your appointed operator.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="wrap">
+      <div class="block-head"><span class="tag-eyebrow">Related</span><h2>Next steps</h2></div>
+      <div class="grid-3">
+        <div class="card"><h3>New licence application?</h3><p>See what an SFA-ready contract looks like end to end.</p><p><a href="pest-control-for-restaurants.html">Pest control for restaurants →</a></p></div>
+        <div class="card"><h3>Managing a condo instead?</h3><p>MCST common-area contracts work differently — see typical estate pricing.</p><p><a href="pest-control-for-mcst-condo.html">Pest control for MCST &amp; condos →</a></p></div>
+        <div class="card"><h3>Not sure who to trust?</h3><p>Learn what NEA certification actually means and how to verify it.</p><p><a href="choosing-nea-certified-operator.html">How to choose an operator →</a></p></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div><h5>PestPass SG</h5><p style="max-width:32ch;">A compliance-first referral network connecting Singapore F&amp;B outlets and MCSTs with NEA-certified pest control partners.</p></div>
+      <div><h5>By buyer</h5><ul><li><a href="pest-control-for-restaurants.html">Restaurants &amp; F&amp;B</a></li><li><a href="pest-control-for-mcst-condo.html">MCST &amp; condos</a></li><li><a href="index.html#quote">Homeowners</a></li></ul></div>
+      <div><h5>By pest</h5><ul><li><a href="cockroach-control.html">Cockroach</a></li><li><a href="rodent-control.html">Rodent</a></li><li><a href="termite-control.html">Termite</a></li><li><a href="bed-bug-treatment.html">Bed bug</a></li><li><a href="mosquito-control.html">Mosquito</a></li></ul></div>
+      <div><h5>Resources</h5><ul><li><a href="sfa-checklist.html">SFA checklist tool</a></li><li><a href="choosing-nea-certified-operator.html">Choosing an operator</a></li><li><a href="index.html#quote">Get a quote</a></li></ul></div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 PestPass SG — a referral service, not a licensed pest control operator.</span>
+      <span>Prototype build — lead form is not yet connected to a live intake system.</span>
+    </div>
+    <p class="disclosure">PestPass SG does not perform pest control treatments and holds no NEA Vector Control Operator certification itself. This checklist gives indicative guidance only and is not a substitute for confirming requirements with SFA, NEA, or your appointed operator.</p>
+  </div>
+</footer>
+
+<script src="assets/site.js"></script>
+<script>
+  var COVERAGE = {
+    hawker: "Cockroach, rodent, fly",
+    restaurant: "Cockroach, rodent, fly",
+    caterer: "Cockroach, rodent, fly + food-prep area focus",
+    factory: "Cockroach, rodent, fly, stored-product insects",
+    retail: "Cockroach, rodent, fly, stored-product insects"
+  };
+  var FREQUENCY = {
+    hawker: "Monthly (min. 12-month term)",
+    restaurant: "Monthly (min. 12-month term)",
+    caterer: "Monthly, plus event-linked visits",
+    factory: "Monthly, often bi-weekly for larger sites",
+    retail: "Monthly (min. 12-month term)"
+  };
+  var COST = {
+    small: "S$100–180/mo",
+    medium: "S$180–300/mo",
+    large: "S$300–600+/mo"
+  };
+
+  document.getElementById('run-checklist').addEventListener('click', function () {
+    var type = document.getElementById('biz-type').value;
+    var size = document.getElementById('biz-size').value;
+    document.getElementById('r-coverage').textContent = COVERAGE[type];
+    document.getElementById('r-frequency').textContent = FREQUENCY[type];
+    document.getElementById('r-cost').textContent = COST[size];
+    document.getElementById('r-note').textContent =
+      (type === 'factory' || type === 'retail')
+        ? "Larger and food-manufacturing premises are often assessed for additional stored-product-insect and bird-proofing measures beyond the baseline — confirm scope with your inspector."
+        : "This matches the baseline SFA expects at inspection. Some premises (near drains, ground floor, food prep-heavy) may need extra coverage — a partner can confirm on a site visit.";
+    var result = document.getElementById('checklist-result');
+    result.classList.add('show');
+    result.scrollIntoView({behavior:'smooth', block:'nearest'});
+  });
+</script>
+</body>
+</html>
