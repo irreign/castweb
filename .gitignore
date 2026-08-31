@@ -1,0 +1,22 @@
+# Node
+node_modules/
+npm-debug.log*
+
+# Supabase local dev / secrets
+supabase/.branches
+supabase/.temp
+supabase/.env.local
+.env
+.env.local
+
+# Xcode / XcodeGen (project.yml is checked in; the generated project is not)
+ios/Hearth/*.xcodeproj/
+ios/Hearth/*.xcworkspace/
+ios/Hearth/.build/
+ios/Hearth/DerivedData/
+ios/Hearth/.swiftpm/
+*.xcuserstate
+xcuserdata/
+
+# macOS
+.DS_Store

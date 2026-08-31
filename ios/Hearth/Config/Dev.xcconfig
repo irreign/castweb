@@ -1,0 +1,9 @@
+// Development build configuration.
+// The anon key is safe to ship in the client by design (docs/07-security-model.md
+// §7.1/§7.2) — it grants nothing without a valid user session and RLS.
+// Never put the Supabase service role key or CLAUDE_API_KEY here or anywhere
+// in the iOS app; those live only in Edge Function secrets.
+// xcconfig treats a bare "//" as a comment start even mid-line, so URLs
+// need the "$()" empty-macro trick below to keep the slashes intact.
+SUPABASE_URL = https:/$()/YOUR-DEV-PROJECT.supabase.co
+SUPABASE_ANON_KEY = replace-with-your-dev-anon-key

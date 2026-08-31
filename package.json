@@ -1,0 +1,8 @@
+{
+  "name": "hearth",
+  "private": true,
+  "description": "Hearth — Family Chat + AI Shared Calendar. See docs/ for architecture. Backend lives in supabase/, client in ios/Hearth/. This package.json exists only to run the extraction-logic test suite under Node.",
+  "scripts": {
+    "test": "node --experimental-strip-types --test tests/*.test.ts"
+  }
+}

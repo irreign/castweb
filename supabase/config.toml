@@ -1,0 +1,65 @@
+# Local Supabase CLI config for Hearth.
+# Run `supabase start` then `supabase db reset` to apply migrations/0001_init.sql,
+# and `supabase functions serve` to run the Edge Functions locally.
+# See docs/04-technical-architecture.md §4.4.
+
+project_id = "hearth"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public"]
+max_rows = 1000
+
+[db]
+port = 54322
+major_version = 15
+
+[studio]
+enabled = true
+port = 54323
+
+[auth]
+enabled = true
+site_url = "hearth://"
+additional_redirect_urls = ["hearth://invite", "hearth://auth-callback"]
+jwt_expiry = 3600
+enable_signup = true
+
+[realtime]
+enabled = true
+
+[storage]
+enabled = true
+# Reserved for future image attachments (brief §5/§30) — unused by any V1 path.
+
+[edge_runtime]
+enabled = true
+
+[functions.ai-extract]
+verify_jwt = false
+# Invoked by the messages-insert DB webhook, authenticated via
+# X-Webhook-Secret (see functions/_shared/webhook.ts), not a user JWT.
+
+[functions.ai-assistant]
+verify_jwt = true
+
+[functions.invite]
+verify_jwt = true
+
+[functions.push-dispatch]
+verify_jwt = false
+# Invoked by DB webhooks (messages/calendar_events/ai_extractions), same
+# webhook-secret auth as ai-extract.
+
+# ----------------------------------------------------------------------------
+# Database Webhooks (configure identically in the Supabase Dashboard for a
+# hosted project — the CLI's local webhook support mirrors this shape).
+# Each fires an HTTP POST to the named Edge Function on the given table
+# event, carrying the webhook secret configured in that function's env.
+# ----------------------------------------------------------------------------
+# messages       INSERT -> ai-extract
+# messages       INSERT -> push-dispatch   (new_message notifications)
+# calendar_events INSERT|UPDATE -> push-dispatch (event_added/event_changed)
+# ai_extractions INSERT (needs_clarification=true) -> push-dispatch
