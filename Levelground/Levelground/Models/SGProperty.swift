@@ -609,4 +609,12 @@ enum SGPropertyData {
         guard !psfs.isEmpty else { return nil }
         return psfs.reduce(0, +) / psfs.count
     }
+
+    /// Average indicative price for a property type in a district, for HDB/landed where
+    /// there's no psf figure to compare — same sample-data caveat as averagePsf.
+    static func averageIndicativePrice(type: PropertyType, district: Int) -> Int? {
+        let prices = all.filter { $0.type == type && $0.district == district }.map { $0.indicativePrice }
+        guard !prices.isEmpty else { return nil }
+        return prices.reduce(0, +) / prices.count
+    }
 }

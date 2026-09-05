@@ -12,6 +12,12 @@ struct ToolsView: View {
                     }
 
                     NavigationLink {
+                        PriceCheckView()
+                    } label: {
+                        ToolRow(title: "Price Check", subtitle: "Instant psf benchmark for a type and district — no listing needed", icon: "tag.fill")
+                    }
+
+                    NavigationLink {
                         MortgageCalculatorView()
                     } label: {
                         ToolRow(title: "Affordability & Mortgage", subtitle: "Estimate your monthly payment and total interest", icon: "banknote.fill")

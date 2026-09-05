@@ -380,3 +380,13 @@ export function averagePsf(district: number): number | undefined {
   if (psfs.length === 0) return undefined;
   return Math.round(psfs.reduce((a, b) => a + b, 0) / psfs.length);
 }
+
+/**
+ * Average indicative price for a property type in a district, for HDB/landed where there's
+ * no psf figure to compare — same sample-data caveat as averagePsf.
+ */
+export function averageIndicativePrice(type: SGProperty['type'], district: number): number | undefined {
+  const prices = PROPERTIES.filter((p) => p.type === type && p.district === district).map((p) => p.indicativePrice);
+  if (prices.length === 0) return undefined;
+  return Math.round(prices.reduce((a, b) => a + b, 0) / prices.length);
+}

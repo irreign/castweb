@@ -35,6 +35,7 @@ export default function RootLayout() {
               <Stack.Screen name="tools/yield" options={{ title: 'Rental Yield' }} />
               <Stack.Screen name="tools/checklist" options={{ title: 'Viewing Checklist' }} />
               <Stack.Screen name="tools/school-priority" options={{ title: 'School Priority Check' }} />
+              <Stack.Screen name="tools/price-check" options={{ title: 'Price Check' }} />
             </Stack>
           </ShortlistProvider>
         </ReadingProvider>

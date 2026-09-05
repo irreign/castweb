@@ -13,6 +13,12 @@ const TOOLS = [
     subtitle: "See a school's P1 registration priority band for an area — no property search needed",
   },
   {
+    href: '/tools/price-check' as const,
+    icon: 'pricetag-outline' as const,
+    title: 'Price Check',
+    subtitle: 'Instant psf benchmark for a type and district — no listing needed',
+  },
+  {
     href: '/tools/mortgage' as const,
     icon: 'cash-outline' as const,
     title: 'Affordability & Mortgage',
