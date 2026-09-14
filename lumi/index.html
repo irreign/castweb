@@ -1,0 +1,750 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Safe to Spend</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Work+Sans:wght@400;500;600;700&display=swap">
+<style>
+  :root{
+    --canvas:#F3F1EA;
+    --canvas-raised:#EAE5D6;
+    --ink:#1C1B17;
+    --ink-muted:#6B6759;
+    --ink-faint:#9B9686;
+    --accent:#2F5D46;
+    --accent-2:#3F7D58;
+    --accent-soft:#E3EADD;
+    --danger:#B5544A;
+    --danger-soft:#F1DDD8;
+    --warning:#A97A34;
+    --warning-soft:#F0E4CC;
+    --divider:#E2DDCE;
+    --page-bg:#E8E3D3;
+    --shadow: 0 1px 2px rgba(28,27,23,0.04), 0 8px 24px rgba(28,27,23,0.06);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --canvas:#171813;
+      --canvas-raised:#211F18;
+      --ink:#F1EEE3;
+      --ink-muted:#B5AF9C;
+      --ink-faint:#7D786A;
+      --accent:#6FAE8B;
+      --accent-2:#86C7A1;
+      --accent-soft:#23342B;
+      --danger:#E08578;
+      --danger-soft:#3A2420;
+      --warning:#D9A75B;
+      --warning-soft:#382C1B;
+      --divider:#33322A;
+      --page-bg:#0F100C;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 12px 32px rgba(0,0,0,0.45);
+    }
+  }
+  :root[data-theme="dark"]{
+    --canvas:#171813;
+    --canvas-raised:#211F18;
+    --ink:#F1EEE3;
+    --ink-muted:#B5AF9C;
+    --ink-faint:#7D786A;
+    --accent:#6FAE8B;
+    --accent-2:#86C7A1;
+    --accent-soft:#23342B;
+    --danger:#E08578;
+    --danger-soft:#3A2420;
+    --warning:#D9A75B;
+    --warning-soft:#382C1B;
+    --divider:#33322A;
+    --page-bg:#0F100C;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 12px 32px rgba(0,0,0,0.45);
+  }
+
+  *,*::before,*::after{ box-sizing:border-box; }
+  body{
+    margin:0;
+    background:var(--page-bg);
+    color:var(--ink);
+    font-family:'Work Sans', -apple-system, sans-serif;
+    padding-block: 40px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .stage{
+    max-width:1040px;
+    margin:0 auto;
+    padding:0 20px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:34px;
+  }
+  .intro{
+    max-width:560px;
+    text-align:center;
+  }
+  .intro .kicker{
+    font-size:12px; font-weight:600; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--accent-2); margin-bottom:10px;
+  }
+  .intro h1{
+    font-family:'Fraunces', serif;
+    font-weight:500;
+    font-size:clamp(28px,4vw,38px);
+    line-height:1.15;
+    margin:0 0 10px;
+    text-wrap:balance;
+    color:var(--ink);
+  }
+  .intro p{
+    font-size:15px; color:var(--ink-muted); line-height:1.55; margin:0 auto;
+    max-width:460px;
+  }
+  .principles{
+    display:flex; gap:8px; justify-content:center; margin-top:18px; flex-wrap:wrap;
+  }
+  .principles span{
+    font-size:12px; font-weight:600; letter-spacing:.03em;
+    padding:6px 12px; border-radius:100px;
+    background:var(--canvas-raised); color:var(--ink-muted);
+    border:1px solid var(--divider);
+  }
+
+  .device{
+    width:390px;
+    max-width:100%;
+    background:var(--canvas);
+    border-radius:44px;
+    border:1px solid var(--divider);
+    box-shadow:var(--shadow);
+    overflow:hidden;
+    position:relative;
+  }
+  .statusbar{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:18px 28px 4px;
+    font-size:14px; font-weight:600; color:var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .statusbar .icons{ display:flex; gap:5px; align-items:center; color:var(--ink-muted); }
+
+  .screens{ position:relative; min-height:660px; }
+  .screen{
+    position:absolute; inset:0;
+    padding:18px 24px 100px;
+    opacity:0; transform:translateY(6px);
+    pointer-events:none;
+    transition:opacity .32s ease, transform .32s ease;
+    overflow-y:auto;
+  }
+  .screen.active{
+    position:relative;
+    opacity:1; transform:translateY(0);
+    pointer-events:auto;
+  }
+
+  /* ---- shared ---- */
+  .eyebrow{
+    font-size:11px; font-weight:600; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--ink-faint); margin:0 0 12px;
+  }
+  .hairline{ height:1px; background:var(--divider); border:0; margin:22px 0; }
+  h2.screen-title{
+    font-family:'Fraunces', serif; font-weight:500; font-size:26px; margin:2px 0 20px; color:var(--ink);
+  }
+
+  /* ---- HOME ---- */
+  .greet-row{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom: 26px;}
+  .greet{ font-size:15px; color:var(--ink-muted); font-weight:500; }
+  .status-pill{ display:flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:var(--accent-2); }
+  .status-pill .dot{ width:7px;height:7px;border-radius:50%; background:var(--accent-2); }
+
+  .hero-num{
+    font-family:'Fraunces', serif; font-weight:500;
+    font-size:86px; line-height:0.92; letter-spacing:-0.02em;
+    font-variant-numeric: tabular-nums;
+    margin:0; color:var(--ink);
+    cursor:pointer;
+  }
+  .hero-label{
+    font-size:13px; font-weight:600; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--ink-faint); margin-top:6px;
+  }
+  .hero-sub{
+    margin-top:16px; font-size:14px; color:var(--ink-muted);
+    display:flex; align-items:center; gap:6px; cursor:pointer; user-select:none;
+  }
+  .hero-sub svg{ transition:transform .25s ease; }
+  .hero-sub.open svg{ transform:rotate(180deg); }
+  .hero-breakdown{
+    max-height:0; overflow:hidden; transition:max-height .3s ease;
+    font-size:13px; color:var(--ink-muted);
+  }
+  .hero-breakdown.open{ max-height:120px; padding-top:10px; }
+  .hero-breakdown .row{ display:flex; justify-content:space-between; padding:5px 0; }
+
+  .next-item{
+    display:flex; align-items:center; gap:12px; padding:11px 0;
+  }
+  .next-dot{ width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .next-item .label{ font-size:15px; font-weight:500; color:var(--ink); }
+  .next-item .sub{ font-size:12.5px; color:var(--ink-faint); margin-top:1px; }
+  .next-item .amt{ margin-left:auto; font-size:15px; font-weight:600; font-variant-numeric:tabular-nums; }
+
+  .position-row{ display:flex; justify-content:space-between; gap:10px; }
+  .position-item{ flex:1; }
+  .position-item .val{
+    font-family:'Fraunces', serif; font-weight:500; font-size:21px;
+    font-variant-numeric: tabular-nums; color:var(--ink);
+  }
+  .position-item .lbl{
+    font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase;
+    color:var(--ink-faint); margin-top:4px;
+  }
+
+  .insight-card{
+    background:var(--canvas-raised); border-radius:20px; padding:18px 20px;
+    margin-top:24px; cursor:pointer; transition:transform .15s ease;
+  }
+  .insight-card:active{ transform:scale(0.99); }
+  .insight-card h3{
+    font-family:'Fraunces', serif; font-weight:500; font-size:16.5px; margin:0 0 6px; line-height:1.3;
+  }
+  .insight-card p{ font-size:13.5px; color:var(--ink-muted); line-height:1.5; margin:0 0 10px; }
+  .insight-save{ font-size:13.5px; font-weight:600; color:var(--accent-2); }
+  .insight-link{ font-size:13px; font-weight:600; color:var(--ink); display:flex; align-items:center; gap:4px; margin-top:8px; }
+
+  /* ---- ADD ---- */
+  .segment{ display:flex; background:var(--canvas-raised); border-radius:14px; padding:4px; gap:4px; margin-bottom:22px; }
+  .segment button{
+    flex:1; border:0; background:transparent; padding:9px 0; border-radius:11px;
+    font-family:inherit; font-size:13.5px; font-weight:600; color:var(--ink-muted);
+    cursor:pointer; transition:background .2s,color .2s;
+  }
+  .segment button.active{ background:var(--canvas); color:var(--ink); box-shadow:var(--shadow); }
+
+  .add-input-wrap{ position:relative; }
+  .add-input{
+    width:100%; border:1.5px solid var(--divider); background:var(--canvas);
+    border-radius:16px; padding:16px 52px 16px 16px; font-size:15px; font-family:inherit;
+    color:var(--ink); outline:none;
+  }
+  .add-input:focus{ border-color:var(--accent-2); }
+  .add-go{
+    position:absolute; right:6px; top:6px; bottom:6px; width:40px; border-radius:12px;
+    background:var(--ink); color:var(--canvas); border:0; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .add-hint{ font-size:12.5px; color:var(--ink-faint); margin-top:10px; }
+
+  .capture-state{ text-align:center; padding:60px 10px; color:var(--ink-muted); font-size:14px; }
+  .capture-ring{
+    width:64px; height:64px; border-radius:50%; margin:0 auto 18px;
+    border:2px solid var(--accent-soft); position:relative;
+  }
+  .capture-ring::after{
+    content:''; position:absolute; inset:-2px; border-radius:50%;
+    border:2px solid var(--accent-2); border-top-color:transparent;
+    animation:spin 1s linear infinite;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+
+  .parsed{ margin-top:22px; opacity:0; transform:translateY(8px); transition:opacity .35s ease, transform .35s ease; }
+  .parsed.show{ opacity:1; transform:translateY(0); }
+  .field-row{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:13px 0; border-bottom:1px solid var(--divider);
+  }
+  .field-row .k{ font-size:12px; font-weight:600; letter-spacing:.05em; text-transform:uppercase; color:var(--ink-faint); }
+  .field-row .v{ font-size:14.5px; font-weight:500; color:var(--ink); text-align:right; }
+  .save-btn{
+    width:100%; margin-top:22px; padding:15px; border:0; border-radius:16px;
+    background:var(--accent); color:#fff; font-family:inherit; font-size:15px; font-weight:600;
+    cursor:pointer; transition:background .2s, transform .1s;
+  }
+  .save-btn:active{ transform:scale(0.98); }
+  .toast{
+    position:absolute; bottom:96px; left:24px; right:24px; text-align:center;
+    background:var(--ink); color:var(--canvas); padding:12px; border-radius:14px;
+    font-size:13.5px; font-weight:600; opacity:0; transform:translateY(8px);
+    transition:opacity .25s, transform .25s; pointer-events:none;
+  }
+  .toast.show{ opacity:1; transform:translateY(0); }
+
+  /* ---- COACH ---- */
+  .chip-grid{ display:flex; flex-wrap:wrap; gap:8px; }
+  .chip{
+    padding:10px 14px; border-radius:100px; background:var(--canvas-raised);
+    border:1px solid var(--divider); font-size:13.5px; font-weight:600; color:var(--ink);
+    cursor:pointer; transition:background .2s;
+  }
+  .chip:hover, .chip:active{ background:var(--accent-soft); border-color:var(--accent-soft); color:var(--accent); }
+
+  .coach-panel{ margin-top:24px; opacity:0; max-height:0; overflow:hidden; transition:opacity .3s, max-height .35s; }
+  .coach-panel.show{ opacity:1; max-height:900px; }
+
+  .impact-bar-row{ margin:14px 0; }
+  .impact-bar-row .top{ display:flex; justify-content:space-between; font-size:13px; margin-bottom:6px; }
+  .impact-bar-row .top .amt{ font-weight:600; font-variant-numeric:tabular-nums; }
+  .bar-track{ height:10px; border-radius:6px; background:var(--divider); overflow:hidden; }
+  .bar-fill{ height:100%; border-radius:6px; transition:width .6s ease; }
+
+  .goal-impact{
+    display:flex; align-items:center; gap:10px; margin-top:18px; padding:14px;
+    background:var(--warning-soft); border-radius:14px; font-size:13.5px; color:var(--ink);
+  }
+
+  .option-row{ display:flex; gap:8px; margin-top:18px; flex-wrap:wrap; }
+  .option-row button{
+    flex:1; min-width:110px; padding:11px 8px; border-radius:12px; font-size:12.5px; font-weight:600;
+    border:1px solid var(--divider); background:var(--canvas); color:var(--ink); cursor:pointer;
+  }
+  .option-row button.primary{ background:var(--accent); color:#fff; border-color:var(--accent); }
+
+  /* ---- GOALS ---- */
+  .toggle-row{ display:flex; gap:18px; margin-bottom:20px; }
+  .toggle-row span{ font-size:13.5px; font-weight:600; color:var(--ink-faint); cursor:pointer; padding-bottom:6px; border-bottom:2px solid transparent; }
+  .toggle-row span.active{ color:var(--ink); border-color:var(--accent); }
+
+  .goal-row{ display:flex; gap:14px; padding:14px 0; border-bottom:1px solid var(--divider); cursor:pointer; align-items:center; }
+  .goal-emoji{ font-size:26px; width:44px; height:44px; border-radius:12px; background:var(--canvas-raised); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .goal-main{ flex:1; }
+  .goal-main .name{ font-size:15px; font-weight:600; color:var(--ink); }
+  .goal-main .amt{ font-size:12.5px; color:var(--ink-muted); margin-top:2px; font-variant-numeric:tabular-nums; }
+  .goal-track{ height:5px; border-radius:4px; background:var(--divider); margin-top:8px; overflow:hidden; }
+  .goal-fill{ height:100%; background:var(--accent-2); border-radius:4px; }
+  .goal-pct{ font-size:13px; font-weight:600; color:var(--accent-2); font-variant-numeric:tabular-nums; }
+
+  .goal-detail-back{ font-size:13.5px; font-weight:600; color:var(--ink-muted); cursor:pointer; margin-bottom:16px; display:flex; align-items:center; gap:4px; }
+  .goal-hero{ text-align:left; margin-bottom:8px; }
+  .goal-hero .name{ font-family:'Fraunces', serif; font-size:22px; font-weight:500; }
+  .goal-hero .amt{ font-size:14px; color:var(--ink-muted); margin-top:4px; font-variant-numeric:tabular-nums; }
+  .goal-status{ display:inline-block; margin-top:10px; font-size:12px; font-weight:600; color:var(--accent-2); background:var(--accent-soft); padding:5px 11px; border-radius:100px; }
+
+  .sim-box{ margin-top:28px; padding:18px; background:var(--canvas-raised); border-radius:18px; }
+  .sim-box .sim-label{ font-size:12px; font-weight:600; letter-spacing:.05em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:10px; }
+  .sim-slider{ width:100%; margin:8px 0; accent-color: var(--accent); }
+  .sim-result{ display:flex; justify-content:space-between; align-items:baseline; margin-top:14px; }
+  .sim-result .date{ font-family:'Fraunces', serif; font-size:22px; font-weight:500; color:var(--accent-2); }
+  .sim-result .delta{ font-size:12.5px; font-weight:600; color:var(--accent-2); }
+
+  /* ---- NAV ---- */
+  .tabbar{
+    position:absolute; bottom:0; left:0; right:0;
+    display:flex; justify-content:space-around; align-items:center;
+    padding:10px 8px 22px; background:var(--canvas);
+    border-top:1px solid var(--divider);
+  }
+  .tab{
+    display:flex; flex-direction:column; align-items:center; gap:4px;
+    background:none; border:0; cursor:pointer; color:var(--ink-faint);
+    font-family:inherit; font-size:11px; font-weight:600; padding:4px 10px;
+  }
+  .tab.active{ color:var(--accent); }
+  .tab svg{ width:22px; height:22px; }
+
+  @media (max-width:430px){
+    .stage{ padding:0 14px; }
+    .device{ width:100%; border-radius:32px; }
+    .hero-num{ font-size:74px; }
+  }
+</style>
+</head>
+<body>
+
+
+<div class="stage">
+
+  <div class="intro">
+    <div class="kicker">Design direction · Lumi</div>
+    <h1>How much can I safely spend, right now?</h1>
+    <p>Not a ledger of the past. One calm number for today, the commitments already spoken for, and the moments that need a decision — nothing else fights for attention.</p>
+    <div class="principles"><span>Clarity</span><span>Calm</span><span>Momentum</span><span>Trust</span></div>
+  </div>
+
+  <div class="device" id="device">
+    <div class="statusbar">
+      <span>9:41</span>
+      <span class="icons">
+        <svg width="16" height="11" viewBox="0 0 16 11" fill="none"><rect x="0" y="7" width="3" height="4" rx="0.5" fill="currentColor"/><rect x="4.5" y="4.5" width="3" height="6.5" rx="0.5" fill="currentColor"/><rect x="9" y="2" width="3" height="9" rx="0.5" fill="currentColor"/><rect x="13.5" y="0" width="3" height="11" rx="0.5" fill="currentColor" opacity="0.4"/></svg>
+        <svg width="18" height="12" viewBox="0 0 24 12" fill="none"><rect x="1" y="1" width="19" height="10" rx="2.5" stroke="currentColor" stroke-width="1"/><rect x="21" y="4" width="1.5" height="4" fill="currentColor"/><rect x="2.5" y="2.5" width="15" height="7" rx="1.5" fill="currentColor"/></svg>
+      </span>
+    </div>
+
+    <div class="screens">
+
+      <!-- HOME -->
+      <section class="screen active" data-screen="home">
+        <div class="greet-row">
+          <span class="greet">Good morning, Sylvia</span>
+          <span class="status-pill"><span class="dot"></span>On track</span>
+        </div>
+
+        <div class="hero-num" id="heroNum">S$47</div>
+        <div class="hero-label">safe to spend today</div>
+        <div class="hero-sub" id="heroSubToggle">
+          <span>S$329 this week · S$1,420 this month</span>
+          <svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </div>
+        <div class="hero-breakdown" id="heroBreakdown">
+          <div class="row"><span>Discretionary this month</span><span>S$1,420</span></div>
+          <div class="row"><span>Spent so far</span><span>S$980</span></div>
+          <div class="row"><span>Days remaining</span><span>16</span></div>
+        </div>
+
+        <hr class="hairline">
+        <div class="eyebrow">Next</div>
+        <div class="next-item">
+          <span class="next-dot" style="background:var(--accent-2)"></span>
+          <div><div class="label">Salary</div><div class="sub">Tomorrow</div></div>
+          <span class="amt" style="color:var(--accent-2)">+S$7,800</span>
+        </div>
+        <div class="next-item">
+          <span class="next-dot" style="background:var(--danger)"></span>
+          <div><div class="label">DBS Credit Card</div><div class="sub">In 2 days</div></div>
+          <span class="amt" style="color:var(--danger)">−S$1,200</span>
+        </div>
+        <div class="next-item">
+          <span class="next-dot" style="background:var(--warning)"></span>
+          <div><div class="label">Insurance</div><div class="sub">In 6 days</div></div>
+          <span class="amt" style="color:var(--warning)">−S$280</span>
+        </div>
+
+        <hr class="hairline">
+        <div class="eyebrow">Your position</div>
+        <div class="position-row">
+          <div class="position-item"><div class="val">S$2,240</div><div class="lbl">Available</div></div>
+          <div class="position-item"><div class="val">S$1,920</div><div class="lbl">Committed</div></div>
+          <div class="position-item"><div class="val">S$1,500</div><div class="lbl">Goals</div></div>
+        </div>
+
+        <div class="insight-card" id="homeInsight">
+          <h3>Dining is running above your usual pace.</h3>
+          <p>Most of the increase is on weekday evenings — Tuesdays and Thursdays especially.</p>
+          <div class="insight-save">Potential saving: S$200/mo</div>
+          <div class="insight-link">See why <span>→</span></div>
+        </div>
+      </section>
+
+      <!-- ADD -->
+      <section class="screen" data-screen="add">
+        <h2 class="screen-title">Add</h2>
+        <div class="segment" id="addSegment">
+          <button class="active" data-mode="type">Type</button>
+          <button data-mode="speak">Speak</button>
+          <button data-mode="scan">Scan</button>
+        </div>
+
+        <div id="addTypeMode">
+          <div class="add-input-wrap">
+            <input class="add-input" id="addInput" value="Grab 18.50 dinner last night">
+            <button class="add-go" id="addGo" aria-label="Parse">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7H12M12 7L8 3M12 7L8 11" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+          <div class="add-hint">Just type it like you'd say it. Lumi figures out the rest.</div>
+
+          <div class="parsed" id="parsed">
+            <div class="field-row"><span class="k">Merchant</span><span class="v">Grab</span></div>
+            <div class="field-row"><span class="k">Amount</span><span class="v">S$18.50</span></div>
+            <div class="field-row"><span class="k">Category</span><span class="v">Dining Out</span></div>
+            <div class="field-row"><span class="k">Account</span><span class="v">OCBC •• 4821</span></div>
+            <div class="field-row" style="border-bottom:0;"><span class="k">Date</span><span class="v">Yesterday</span></div>
+            <button class="save-btn" id="saveBtn">Save</button>
+          </div>
+        </div>
+
+        <div id="addCaptureMode" style="display:none;">
+          <div class="capture-state">
+            <div class="capture-ring"></div>
+            <div id="captureLabel">Listening…</div>
+          </div>
+        </div>
+
+        <div class="toast" id="toast">Saved</div>
+      </section>
+
+      <!-- COACH -->
+      <section class="screen" data-screen="coach">
+        <h2 class="screen-title">Lumi</h2>
+        <div class="eyebrow">What would you like help with?</div>
+        <div class="chip-grid">
+          <span class="chip" data-chip="afford">Can I afford something?</span>
+          <span class="chip" data-chip="save">Help me save</span>
+          <span class="chip" data-chip="explain">Explain my spending</span>
+          <span class="chip" data-chip="goals">Reach my goals sooner</span>
+        </div>
+
+        <div class="coach-panel" id="affordPanel">
+          <div class="add-input-wrap" style="margin-top:6px;">
+            <input class="add-input" id="affordInput" value="iPad · S$1,200">
+            <button class="add-go" id="affordGo">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7H12M12 7L8 3M12 7L8 11" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+          <div class="coach-panel" id="affordResult" style="margin-top:0;">
+            <div class="impact-bar-row">
+              <div class="top"><span>Today</span><span class="amt">S$47/day</span></div>
+              <div class="bar-track"><div class="bar-fill" style="width:100%;background:var(--accent-2)"></div></div>
+            </div>
+            <div class="impact-bar-row">
+              <div class="top"><span>After purchase</span><span class="amt">S$21/day</span></div>
+              <div class="bar-track"><div class="bar-fill" style="width:45%;background:var(--warning)"></div></div>
+            </div>
+            <div class="goal-impact">🇯🇵 Delays your Japan Trip goal by ~18 days</div>
+            <div class="option-row">
+              <button class="primary" data-opt="buy">Buy anyway</button>
+              <button data-opt="wait">Wait 2 weeks</button>
+              <button data-opt="cheaper">See cheaper options</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="coach-panel" id="savePanel">
+          <div class="insight-card" style="margin-top:6px;">
+            <h3>Cook two more nights a week.</h3>
+            <p>You average S$24.60 per dining-out order. Two home-cooked dinners a week would free up roughly S$210 a month toward your goals.</p>
+            <div class="insight-save">Potential saving: S$210/mo</div>
+          </div>
+        </div>
+
+        <div class="coach-panel" id="explainPanel">
+          <div class="insight-card" style="margin-top:6px;">
+            <h3>Dining out is your fastest-growing category.</h3>
+            <p>Up 23% versus last month, mostly weekday evenings. Groceries and Transport both fell, so your total spend is roughly flat — the mix shifted, not the total.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- GOALS -->
+      <section class="screen" data-screen="goals">
+        <div id="goalsList">
+          <h2 class="screen-title">Goals</h2>
+          <div class="toggle-row">
+            <span class="active">Active</span>
+            <span>Completed</span>
+          </div>
+          <div class="goal-row" data-goal="japan">
+            <div class="goal-emoji">🇯🇵</div>
+            <div class="goal-main">
+              <div class="name">Japan Family Trip</div>
+              <div class="amt">S$7,820 / S$10,000</div>
+              <div class="goal-track"><div class="goal-fill" style="width:78%"></div></div>
+            </div>
+            <div class="goal-pct">78%</div>
+          </div>
+          <div class="goal-row" data-goal="emergency">
+            <div class="goal-emoji">🐷</div>
+            <div class="goal-main">
+              <div class="name">Emergency Fund</div>
+              <div class="amt">S$12,000 / S$20,000</div>
+              <div class="goal-track"><div class="goal-fill" style="width:60%"></div></div>
+            </div>
+            <div class="goal-pct">60%</div>
+          </div>
+          <div class="goal-row" data-goal="car" style="border-bottom:0;">
+            <div class="goal-emoji">🚗</div>
+            <div class="goal-main">
+              <div class="name">New Car</div>
+              <div class="amt">S$8,500 / S$80,000</div>
+              <div class="goal-track"><div class="goal-fill" style="width:11%"></div></div>
+            </div>
+            <div class="goal-pct">11%</div>
+          </div>
+        </div>
+
+        <div id="goalDetail" style="display:none;">
+          <div class="goal-detail-back" id="goalBack">
+            <svg width="8" height="12" viewBox="0 0 8 12" fill="none"><path d="M7 1L1 6L7 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Goals
+          </div>
+          <div class="goal-hero">
+            <div class="name" id="gdName">Japan Family Trip</div>
+            <div class="amt" id="gdAmt">S$7,820 / S$10,000</div>
+            <div class="goal-status">On track · March 2027</div>
+          </div>
+          <div class="goal-track" style="margin-top:18px;"><div class="goal-fill" style="width:78%"></div></div>
+
+          <div class="sim-box">
+            <div class="sim-label">If you cut dining out by</div>
+            <div style="display:flex;align-items:baseline;justify-content:space-between;">
+              <span style="font-family:'Fraunces',serif;font-size:28px;font-weight:500;" id="simPct">0%</span>
+            </div>
+            <input type="range" min="0" max="40" value="0" class="sim-slider" id="simSlider">
+            <div class="sim-result">
+              <div><div class="sim-label" style="margin-bottom:2px;">New target</div><div class="date" id="simDate">March 2027</div></div>
+              <div class="delta" id="simDelta">no change</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <div class="tabbar">
+      <button class="tab active" data-tab="home">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M4 11L12 4L20 11V19A1 1 0 0 1 19 20H14V14H10V20H5A1 1 0 0 1 4 19V11Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+        Home
+      </button>
+      <button class="tab" data-tab="add">
+        <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/><path d="M12 8V16M8 12H16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        Add
+      </button>
+      <button class="tab" data-tab="goals">
+        <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="12" r="4.5" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg>
+        Goals
+      </button>
+      <button class="tab" data-tab="coach">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 3C7 3 3 6.6 3 11C3 13.2 4 15.1 5.7 16.5C5.5 17.6 5 18.8 4.2 19.8C5.7 19.7 7.1 19.2 8.3 18.4C9.4 18.8 10.7 19 12 19C17 19 21 15.4 21 11C21 6.6 17 3 12 3Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+        Coach
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const device = document.getElementById('device');
+
+  // ---- tab navigation ----
+  const tabs = device.querySelectorAll('.tab');
+  const screens = device.querySelectorAll('.screen');
+  tabs.forEach(tab=>{
+    tab.addEventListener('click', ()=>{
+      tabs.forEach(t=>t.classList.remove('active'));
+      tab.classList.add('active');
+      const name = tab.dataset.tab;
+      screens.forEach(s=> s.classList.toggle('active', s.dataset.screen===name));
+    });
+  });
+  function goTo(name){
+    tabs.forEach(t=>t.classList.toggle('active', t.dataset.tab===name));
+    screens.forEach(s=> s.classList.toggle('active', s.dataset.screen===name));
+  }
+
+  // ---- home: breakdown + insight link ----
+  const heroSubToggle = document.getElementById('heroSubToggle');
+  const heroBreakdown = document.getElementById('heroBreakdown');
+  heroSubToggle.addEventListener('click', ()=>{
+    heroSubToggle.classList.toggle('open');
+    heroBreakdown.classList.toggle('open');
+  });
+  document.getElementById('homeInsight').addEventListener('click', ()=>{
+    goTo('coach');
+    document.querySelector('[data-chip="explain"]').click();
+  });
+
+  // ---- add screen ----
+  const addSegment = document.getElementById('addSegment');
+  const addTypeMode = document.getElementById('addTypeMode');
+  const addCaptureMode = document.getElementById('addCaptureMode');
+  const captureLabel = document.getElementById('captureLabel');
+  const parsed = document.getElementById('parsed');
+  const toast = document.getElementById('toast');
+
+  addSegment.querySelectorAll('button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      addSegment.querySelectorAll('button').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      const mode = btn.dataset.mode;
+      parsed.classList.remove('show');
+      if(mode==='type'){
+        addTypeMode.style.display='block';
+        addCaptureMode.style.display='none';
+      } else {
+        addTypeMode.style.display='none';
+        addCaptureMode.style.display='block';
+        captureLabel.textContent = mode==='speak' ? 'Listening…' : 'Scanning receipt…';
+        setTimeout(()=>{
+          addSegment.querySelectorAll('button').forEach(b=>b.classList.remove('active'));
+          addSegment.querySelector('[data-mode="type"]').classList.add('active');
+          addTypeMode.style.display='block';
+          addCaptureMode.style.display='none';
+          parsed.classList.add('show');
+        }, 1100);
+      }
+    });
+  });
+
+  document.getElementById('addGo').addEventListener('click', ()=> parsed.classList.add('show'));
+  document.getElementById('addInput').addEventListener('keydown', e=>{
+    if(e.key==='Enter') parsed.classList.add('show');
+  });
+  document.getElementById('saveBtn').addEventListener('click', ()=>{
+    toast.classList.add('show');
+    setTimeout(()=> toast.classList.remove('show'), 1600);
+  });
+
+  // ---- coach screen ----
+  const panels = { afford:'affordPanel', save:'savePanel', explain:'explainPanel' };
+  document.querySelectorAll('.chip').forEach(chip=>{
+    chip.addEventListener('click', ()=>{
+      const key = chip.dataset.chip;
+      if(key==='goals'){
+        goTo('goals');
+        document.getElementById('goalsList').style.display='none';
+        document.getElementById('goalDetail').style.display='block';
+        document.getElementById('simSlider').focus();
+        return;
+      }
+      Object.values(panels).forEach(id=> document.getElementById(id).classList.remove('show'));
+      document.getElementById('affordResult').classList.remove('show');
+      document.getElementById(panels[key]).classList.add('show');
+    });
+  });
+  document.getElementById('affordGo').addEventListener('click', ()=>{
+    document.getElementById('affordResult').classList.add('show');
+  });
+  document.querySelectorAll('#affordPanel .option-row button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('#affordPanel .option-row button').forEach(b=>b.classList.remove('primary'));
+      btn.classList.add('primary');
+    });
+  });
+
+  // ---- goals screen ----
+  const goalsList = document.getElementById('goalsList');
+  const goalDetail = document.getElementById('goalDetail');
+  const gdName = document.getElementById('gdName');
+  const gdAmt = document.getElementById('gdAmt');
+  const goalData = {
+    japan:{name:'Japan Family Trip', amt:'S$7,820 / S$10,000', base:new Date(2027,2,1)},
+    emergency:{name:'Emergency Fund', amt:'S$12,000 / S$20,000', base:new Date(2027,11,1)},
+    car:{name:'New Car', amt:'S$8,500 / S$80,000', base:new Date(2028,11,1)}
+  };
+  let currentGoal='japan';
+  document.querySelectorAll('.goal-row').forEach(row=>{
+    row.addEventListener('click', ()=>{
+      currentGoal = row.dataset.goal;
+      const g = goalData[currentGoal];
+      gdName.textContent = g.name;
+      gdAmt.textContent = g.amt;
+      document.getElementById('simSlider').value = 0;
+      updateSim(0);
+      goalsList.style.display='none';
+      goalDetail.style.display='block';
+    });
+  });
+  document.getElementById('goalBack').addEventListener('click', ()=>{
+    goalDetail.style.display='none';
+    goalsList.style.display='block';
+  });
+
+  const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  function updateSim(pct){
+    const base = goalData[currentGoal].base;
+    const monthsEarlier = Math.round(pct * 0.3); // up to ~12 months at 40%
+    const d = new Date(base.getFullYear(), base.getMonth()-monthsEarlier, 1);
+    document.getElementById('simDate').textContent = months[d.getMonth()]+' '+d.getFullYear();
+    document.getElementById('simPct').textContent = pct+'%';
+    const delta = document.getElementById('simDelta');
+    if(monthsEarlier<=0){ delta.textContent='no change'; }
+    else { delta.textContent = monthsEarlier+' month'+(monthsEarlier>1?'s':'')+' earlier'; }
+  }
+  document.getElementById('simSlider').addEventListener('input', e=> updateSim(+e.target.value));
+
+})();
+</script>
+
+</body>
+</html>
