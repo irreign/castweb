@@ -1,0 +1,11 @@
+{
+  "name": "sg-data-tools",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "geocode": "node onemap.mjs",
+    "schools": "node fetch-schools.mjs",
+    "hdb": "node fetch-hdb-resale.mjs",
+    "ura": "node fetch-ura-private.mjs"
+  }
+}
