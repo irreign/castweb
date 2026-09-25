@@ -1,50 +1,45 @@
 # Lumi — Safe to Spend
 
-An interactive redesign of Lumi's core screens, built around one idea: **the app answers "how much can I safely spend right now," not "where did my money go."**
+A real, single-user personal finance app centered on one number: **how much can I safely spend right now.** Not a demo anymore — your own income, bills, goals and transactions are entered once in Settings, stored in a Cloudflare KV database behind a passcode, and every screen computes live from that data.
 
-Open `index.html` directly in a browser (no build step, no dependencies) to try it — Home, Add, Coach and Goals are all live: type a transaction, ask "can I afford this," drag the goal-acceleration slider.
+## How it works
 
-## Critique of the current direction
+- **Frontend:** `index.html` — one static file, no build step, no framework. On load it asks for your passcode, fetches your data from `/api/state`, and renders everything from it.
+- **Backend:** `functions/api/state.js` — a Cloudflare Pages Function. `GET` returns your data (seeding sensible starter numbers the first time), `POST` overwrites it. Both require a passcode header.
+- **Storage:** one JSON document in a Cloudflare KV namespace. This is intentionally a single blob, not a relational schema — there's one person's data here, not a multi-tenant system, so read-modify-write on one document is simpler and has fewer moving parts than a database schema would be.
+- **Auth:** a single shared passcode, set as a Cloudflare secret (`LUMI_PIN`), checked on every request via an `x-lumi-pin` header. There's no account system — this is built for one person, and the passcode exists only to keep the public URL from being an open door to your numbers. It is not bank-grade security; don't put anything in here you wouldn't want visible to someone who both finds the URL and guesses the passcode.
 
-**Working well**
+## One-time Cloudflare setup
 
-- The Safe-to-Spend number already exists as a concept and sits at the top of Home — the right instinct.
-- Quick Add's premise (type a sentence, get a parsed transaction) is genuinely differentiated; most competitors still open a form first.
-- "Can I afford it?" as a named, first-class feature (not a generic chatbot) is the strongest idea in the brief — it turns a yes/no question into a decision with visible trade-offs.
-- Goals framed as trips/funds/cars with photos, not raw numbers, is the right emotional register.
+You already have a Pages project. Two things need to be added to it — both in the dashboard, no CLI required:
 
-**Weak points in the current screens**
+1. **KV namespace:** Workers & Pages → **KV** → Create a namespace (any name, e.g. `lumi-data`). Then, on your Pages project → **Settings → Functions → KV namespace bindings** → add a binding: variable name `LUMI_KV`, pointing at that namespace.
+2. **Passcode secret:** Pages project → **Settings → Environment variables** → add `LUMI_PIN`, value = whatever passcode you want to use, and mark it **Encrypt**. Do this for both Production and Preview if you use both.
 
-- Every screen is a stack of bordered cards (balance card, bills card, goals card, insights card). Card chrome is competing with the numbers for attention, so nothing is actually the hero — it reads as a dashboard, not an assistant.
-- The safe-to-spend number is roughly the same visual weight as "Cash on hand" and "Committed" beneath it. If it's the most important number in the product, it needs to be 4-5× the size of everything else on the screen, not just in a tinted box.
-- The AI screen looks like a chat transcript. A money coach that only talks is slower than one that shows a bar chart of the two futures ("today" vs "after this purchase") — the simulation is the answer, the text is a caption.
-- Categories ("Dining Out S$742, ↑23%") are presented as the payoff of Insights. Nobody changes behavior because a pie slice grew — they change behavior when told a category shift moves a *date* (their Japan trip, their emergency fund). The category breakdown should be evidence, not the headline.
-- Tone risk: "You spent S$173 more on dining" reads as a scold. Reworded throughout to "running above your usual pace" / "your fastest-growing category" — observational, not judgmental.
+Then redeploy with **the whole `lumi` folder this time** (not just `index.html`) — it needs `functions/api/state.js` alongside it for the API routes to exist. If your project is Git-connected, just push; if you're doing a direct upload, drag the entire `lumi` folder in.
 
-**What this redesign removes, on purpose**
+First load after that will ask for your passcode, then seed some example starter numbers (an example income, three example bills, three example goals, five example transactions) so the screens aren't empty — replace them in Settings and Add whenever you're ready; nothing about them is real.
 
-- No persistent balance-card grid on Home. Cash on hand / upcoming bills / committed / savings goals become one quiet typographic row ("Your position"), below the fold created by the hero number, not competing with it.
-- No chat-first AI. The Coach screen opens on four decisions, not a text box.
-- No category pie/bar chart on this pass. It's a legitimate future screen, but it wasn't the differentiator — the goal-acceleration slider ("cut dining by 20% → reach your trip 3 months sooner") does the same behavioral job with far less visual weight, so it's built here instead.
+## What's actually computed, not hardcoded
 
-## Design system
+- **Safe to spend today** = (this month's income − this month's bills − this month's goal contributions − what you've already spent this month) ÷ days left in the month.
+- **Next up** = your bills' due dates and your next payday, computed from the day-of-month you set in Settings, sorted and dated relative to today.
+- **Your position** = cash on hand minus spend-to-date (Available), this month's bills (Committed), this month's total goal contributions (Goals).
+- **Home insight** = a real comparison of your last 30 days of spending against the 30 days before that, by category — not a canned message, and it says plainly when there isn't enough data yet instead of making something up.
+- **Can I afford it** = recomputes your daily safe-to-spend as if the purchase already happened, and estimates how many days it eats into your top goal's typical monthly contribution.
+- **Goals slider** = frees up a percentage of your actual last-30-days dining spend and re-projects the goal's target date from its remaining amount and (contribution + freed amount).
+- **Quick Add parsing** = a small rule-based parser, not AI: it pulls the first number as the amount, matches merchant/category keywords (NTUC → Groceries, Grab + a food word → Dining Out, Grab alone → Transport, etc.), and title-cases the first likely merchant word. It's honest about being rules, not language understanding — it won't parse unusual phrasing well, and you can always fix the fields before saving.
 
-| Token | Light | Dark | Use |
-|---|---|---|---|
-| `--canvas` | `#F3F1EA` | `#171813` | App background — warm linen, not fintech white or cream-cliché |
-| `--canvas-raised` | `#EAE5D6` | `#211F18` | The *one* elevated surface: the AI insight card |
-| `--ink` / `--ink-muted` / `--ink-faint` | `#1C1B17` / `#6B6759` / `#9B9686` | inverted | Primary / secondary / meta text — three steps, no more |
-| `--accent` / `--accent-2` | `#2F5D46` / `#3F7D58` | `#6FAE8B` / `#86C7A1` | Moss green, not mint or fintech neon. `-2` is the brighter working tone for fills/links |
-| `--danger` | `#B5544A` | `#E08578` | Terracotta, not alarm red — a bill due, not an error |
-| `--warning` | `#A97A34` | `#D9A75B` | Ochre — a date worth noticing, not a threat |
-| `--divider` | `#E2DDCE` | `#33322A` | The only border weight in the system |
+## Editing your data
 
-**Type** — Fraunces (serif, optical-size axis) carries every number and headline that should feel considered: the hero figure, goal names, the AI insight's headline, simulated dates. Work Sans carries everything functional: labels, list rows, buttons, captions. The split does real work — it's how the hero number reads as *the* number rather than another UI label, without needing a bigger card or a bright color to say so.
+- **Settings** (gear icon, top-right of Home): your name, account label, cash on hand, monthly income and payday; add/remove bills and goals there too.
+- **Add screen:** type a transaction, check the parsed fields, save. A "Recent" list underneath lets you delete a mistake.
+- Everything writes through to the same KV document immediately — open the app on another device with the same passcode and you'll see the same numbers.
 
-**Layout rule** — exactly one card style exists (the AI insight surface, `--canvas-raised` + 20px radius). Everything else — the next-up timeline, the position row, goal rows — is flat typography separated by hairlines and spacing. Reserving elevation for a single surface is what makes that surface read as "look at this" instead of one box among many.
+## Known limits (by design, for now)
 
-**Motion** — deliberately restrained: screens cross-fade, a slider updates a number in place, a saved transaction gets one toast. Nothing animates on load; the page is legible at rest.
-
-## What's deliberately out of scope here
-
-This is a front-end prototype: static example data, no backend, no auth, no persistence. It's meant to settle the *product and visual* direction before the harder engineering work — a real data model (Users, Households, Accounts, Transactions, Cash-Flow Events, Goals, Budgets), an AI provider abstraction, and the parsing/forecasting logic behind Quick Add and "Can I afford it?" — starts.
+- One passcode, one dataset — this isn't a multi-user product.
+- No bank linking; all entry is manual (or parsed from what you type).
+- No transaction editing, only delete-and-re-add.
+- Quick Add's "Speak" and "Scan" modes are UI-only placeholders that resolve to a sample parsed entry — there's no real voice or OCR pipeline wired up.
+- The "Help me save" and "Explain my spending" coach panels look at your last 30 days only; there's no multi-month trend history yet.
