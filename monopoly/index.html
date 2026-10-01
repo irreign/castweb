@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Monopoly · Fund Watch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f6fa;
+    --card: #ffffff;
+    --ink: #0d1117;
+    --muted: #6b7280;
+    --border: rgba(13,17,23,0.09);
+    --up: #0a9f6e;
+    --down: #d9412b;
+    --accent: #6c47ff;
+    --accent-soft: rgba(108,71,255,0.10);
+    --line: #6c47ff;
+    --ref: #9aa3b2;
+    --radius: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0d1117; --card: #161b22; --ink: #e6edf3; --muted: #8b949e;
+      --border: rgba(230,237,243,0.10); --up: #3fb950; --down: #f85149;
+      --accent: #a58bff; --accent-soft: rgba(165,139,255,0.14); --line: #a58bff; --ref: #6e7681;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0d1117; --card: #161b22; --ink: #e6edf3; --muted: #8b949e;
+    --border: rgba(230,237,243,0.10); --up: #3fb950; --down: #f85149;
+    --accent: #a58bff; --accent-soft: rgba(165,139,255,0.14); --line: #a58bff; --ref: #6e7681;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    background: var(--bg); color: var(--ink);
+    padding: 28px 16px 60px; line-height: 1.45;
+  }
+  .wrap { max-width: 1040px; margin: 0 auto; }
+  .num { font-family: 'JetBrains Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+  .muted { color: var(--muted); }
+  .up { color: var(--up); } .down { color: var(--down); }
+
+  header { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; justify-content: space-between; margin-bottom: 20px; }
+  h1 { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em; }
+  h1 span { color: var(--accent); }
+  .sub { font-size: .85rem; }
+  button {
+    font: inherit; font-size: .85rem; font-weight: 600; cursor: pointer;
+    border: 1px solid var(--border); background: var(--card); color: var(--ink);
+    padding: 8px 14px; border-radius: 10px;
+  }
+  button:hover { border-color: var(--accent); color: var(--accent); }
+
+  .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 18px; }
+  .tile { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
+  .tile .k { font-size: .75rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
+  .tile .v { font-size: 1.25rem; font-weight: 700; margin-top: 4px; }
+  .tile .s { font-size: .78rem; margin-top: 2px; }
+
+  .fund { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 18px; }
+  .fund-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+  .fund h2 { font-size: 1.1rem; font-weight: 700; }
+  .badge { display: inline-block; font-size: .72rem; font-weight: 600; padding: 2px 8px; border-radius: 99px; background: var(--accent-soft); color: var(--accent); margin-top: 4px; }
+  a.src { font-size: .75rem; color: var(--accent); text-decoration: none; margin-left: 6px; font-weight: 600; }
+  a.src:hover { text-decoration: underline; }
+  .badge.warn { background: rgba(217,65,43,.12); color: var(--down); }
+  .price-big { text-align: right; }
+  .price-big .p { font-size: 1.6rem; font-weight: 700; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px 18px; margin: 10px 0 16px; }
+  .stat .k { font-size: .75rem; color: var(--muted); }
+  .stat .v { font-size: 1rem; font-weight: 600; }
+
+  .section-t { font-size: .8rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 16px 0 8px; }
+  .chart { width: 100%; height: 170px; display: block; }
+  .chart-wrap { position: relative; }
+  .tip { position: absolute; pointer-events: none; background: var(--ink); color: var(--card); font-size: .75rem; padding: 4px 8px; border-radius: 6px; white-space: nowrap; transform: translate(-50%, -120%); display: none; }
+
+  .cols { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; }
+  @media (max-width: 760px) { .cols { grid-template-columns: 1fr; } .price-big { text-align: left; } }
+
+  table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+  th, td { text-align: left; padding: 6px 4px; border-bottom: 1px solid var(--border); }
+  th { font-size: .72rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+  td.r, th.r { text-align: right; }
+  .tbl-scroll { max-height: 260px; overflow-y: auto; }
+
+  details { margin-top: 14px; border-top: 1px dashed var(--border); padding-top: 12px; }
+  summary { cursor: pointer; font-size: .85rem; font-weight: 600; color: var(--muted); }
+  .form { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; margin-top: 10px; }
+  label { font-size: .75rem; color: var(--muted); display: flex; flex-direction: column; gap: 4px; }
+  input {
+    font: inherit; font-size: .9rem; color: var(--ink); background: var(--bg);
+    border: 1px solid var(--border); border-radius: 8px; padding: 7px 9px; width: 100%;
+  }
+  input:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+  .hint { font-size: .75rem; color: var(--muted); margin-top: 8px; }
+  .add-div { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; align-items: flex-end; }
+  .add-div label { flex: 1 1 130px; }
+  .x { border: none; background: none; color: var(--muted); padding: 0 4px; font-size: .9rem; }
+  footer { font-size: .75rem; color: var(--muted); margin-top: 24px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1><span>Monopoly</span> · Fund Watch</h1>
+      <div class="sub muted" id="updated">Loading prices…</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button id="theme" title="Toggle theme">◐</button>
+      <button id="refresh">↻ Refresh</button>
+    </div>
+  </header>
+
+  <div class="summary" id="summary"></div>
+  <div id="funds"></div>
+
+  <footer>
+    Prices come from Morningstar, the data behind Great Eastern's ILP fund centre, or from Yahoo Finance when a fund has no fund-centre id. Both go through <code>/api/fund</code>, cached 1 hour. Holdings, units and
+    manual entries are saved in this browser only. Figures are indicative. Check them against your fund house or platform statement.
+  </footer>
+</div>
+
+<script>
+// ── Holdings. Purchase price is per unit in SGD. ─────────────────────────────
+const FUNDS = [
+  {
+    id: 'brandywine',
+    name: 'FTGF Brandywine Global Income Optimiser Fund (SGD Hedged)',
+    short: 'Brandywine Income Optimiser',
+    purchase: 0.733,
+    ge: 'F00000WKP7_F223',          // Great Eastern ILP fund centre id (Morningstar SecId _ GE code)
+    isin: 'IE00BLSP4122',           // Class A SGD Distributing (M) (Hedged) Plus
+    query: 'Brandywine Global Income Optimiser SGD',
+    freq: 12,
+  },
+  {
+    id: 'greatlink-msi',
+    name: 'GreatLink Multi-Sector Income Fund',
+    short: 'GreatLink Multi-Sector Income',
+    purchase: 0.880,
+    ge: 'F00001KWYJ_F226',          // Great Eastern ILP fund centre id (Morningstar SecId _ GE code)
+    query: 'GreatLink Multi-Sector Income',
+    freq: 12,
+  },
+];
+
+const GE_CENTRE = 'https://www.greateasternlife.com/sg/en/personal-insurance/our-products/wealth-accumulation/investment-linked-funds/ilp-fund-centre.html';
+const geLink = id => GE_CENTRE + '#/detail?id=' + encodeURIComponent(id);
+// Accepts a full fund-centre link or a bare id like F00000WKP7_F223.
+const parseGe = v => { const m = String(v || '').match(/(?:id=)?\b(F[0-9A-Z]{9}(?:_[0-9A-Z]+)?)\b/i); return m ? m[1].toUpperCase() : ''; };
+const geId = f => parseGe(cfg(f.id).ge) || f.ge;
+
+const STORE = 'monopoly.funds.v1';
+const load = () => { try { return JSON.parse(localStorage.getItem(STORE)) || {}; } catch { return {}; } };
+const save = s => { try { localStorage.setItem(STORE, JSON.stringify(s)); } catch {} };
+let state = load();
+const cfg = id => state[id] && state[id]._v ? state[id]
+  : (state[id] = Object.assign({ units: '', date: '', symbol: '', ge: '', manualPrice: '', manualDivs: [], _v: 1 }, state[id]));
+
+const data = {};   // id -> api payload or {error}
+
+// ── Formatting ───────────────────────────────────────────────────────────────
+const fx = (n, d = 4) => n == null || isNaN(n) ? '—' : n.toLocaleString('en-SG', { minimumFractionDigits: d, maximumFractionDigits: d });
+const money = n => n == null || isNaN(n) ? '—' : (n < 0 ? '-' : '') + '$' + Math.abs(n).toLocaleString('en-SG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const pct = n => n == null || isNaN(n) || !isFinite(n) ? '—' : (n > 0 ? '+' : '') + (n * 100).toFixed(2) + '%';
+const cls = n => n > 0 ? 'up' : n < 0 ? 'down' : '';
+const dstr = t => t ? new Date(t).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+// ── Data ─────────────────────────────────────────────────────────────────────
+async function fetchFund(f, bust) {
+  const c = cfg(f.id);
+  const ge = geId(f);
+  const qs = c.symbol ? 'symbol=' + encodeURIComponent(c.symbol)
+    : ge ? 'ms=' + encodeURIComponent(ge.split('_')[0]) + (f.isin ? '&isin=' + f.isin : '&q=' + encodeURIComponent(f.query))
+    : 'q=' + encodeURIComponent(f.query);
+  try {
+    const r = await fetch('/api/fund?' + qs + (bust ? '&t=' + Date.now() : ''));
+    const j = await r.json();
+    data[f.id] = r.ok ? j : { error: j.error || 'HTTP ' + r.status };
+  } catch (e) {
+    data[f.id] = { error: 'Price feed unreachable (' + e.message + ')' };
+  }
+}
+
+function compute(f) {
+  const c = cfg(f.id), d = data[f.id] || {};
+  const manual = parseFloat(c.manualPrice);
+  const price = !isNaN(manual) && manual > 0 ? manual : d.price;
+  const units = parseFloat(c.units) || 0;
+  const since = c.date ? new Date(c.date).getTime() : null;
+
+  // Feed dividends plus any manually logged ones (dedupe by same day).
+  const feed = (d.dividends || []).map(x => ({ ...x, src: 'feed' }));
+  const man = (c.manualDivs || []).map((x, i) => ({ date: new Date(x.date).getTime(), amount: +x.amount, src: 'manual', i }));
+  const seen = new Set(feed.map(x => new Date(x.date).toDateString()));
+  const divs = feed.concat(man.filter(x => !seen.has(new Date(x.date).toDateString()))).sort((a, b) => b.date - a.date);
+
+  const yearAgo = Date.now() - 365 * 864e5;
+  const ttm = divs.filter(x => x.date >= yearAgo).reduce((s, x) => s + x.amount, 0);
+  const last = divs[0];
+  const annualised = last ? last.amount * f.freq : null;
+  const divsSince = since ? divs.filter(x => x.date >= since).reduce((s, x) => s + x.amount, 0) : null;
+
+  const cost = units * f.purchase;
+  const value = price != null ? units * price : null;
+  const pl = value != null ? value - cost : null;
+  const received = divsSince != null ? divsSince * units : null;
+
+  return {
+    price, manual: !isNaN(manual) && manual > 0, units, divs, ttm, last, annualised,
+    chg: price != null ? price / f.purchase - 1 : null,
+    yieldNow: price && annualised ? annualised / price : null,
+    yieldCost: annualised ? annualised / f.purchase : null,
+    ttmYield: price && ttm ? ttm / price : null,
+    monthly: last ? last.amount * units : null,
+    cost, value, pl, received, divsSince,
+    total: pl != null ? pl + (received || 0) : null,
+  };
+}
+
+// ── Chart ────────────────────────────────────────────────────────────────────
+function chart(f, hist, purchase) {
+  if (!hist || hist.length < 2) return '<div class="muted" style="font-size:.85rem">No price history available.</div>';
+  const cut = Date.now() - 365 * 864e5;
+  let pts = hist.filter(p => p[0] >= cut);
+  if (pts.length < 2) pts = hist;
+  const W = 600, H = 170, P = { l: 44, r: 8, t: 10, b: 20 };
+  const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]).concat([purchase]);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs);
+  let y0 = Math.min(...ys), y1 = Math.max(...ys);
+  const pad = (y1 - y0) * 0.1 || 0.01; y0 -= pad; y1 += pad;
+  const X = t => P.l + (t - x0) / (x1 - x0) * (W - P.l - P.r);
+  const Y = v => P.t + (1 - (v - y0) / (y1 - y0)) * (H - P.t - P.b);
+  const d = pts.map((p, i) => (i ? 'L' : 'M') + X(p[0]).toFixed(1) + ' ' + Y(p[1]).toFixed(1)).join('');
+  const area = d + `L${X(x1).toFixed(1)} ${H - P.b}L${X(x0).toFixed(1)} ${H - P.b}Z`;
+  const ticks = [y0 + pad, (y0 + y1) / 2, y1 - pad];
+  const gid = 'g-' + f.id;
+  return `<div class="chart-wrap" data-id="${f.id}">
+    <svg class="chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="${esc(f.short)} price, last 12 months">
+      <defs><linearGradient id="${gid}" x1="0" x2="0" y1="0" y2="1">
+        <stop offset="0" stop-color="var(--line)" stop-opacity=".18"/><stop offset="1" stop-color="var(--line)" stop-opacity="0"/></linearGradient></defs>
+      ${ticks.map(v => `<text x="${P.l - 6}" y="${Y(v) + 3}" text-anchor="end" font-size="10" fill="var(--muted)" font-family="JetBrains Mono">${v.toFixed(3)}</text>`).join('')}
+      <path d="${area}" fill="url(#${gid})"/>
+      <line x1="${P.l}" x2="${W - P.r}" y1="${Y(purchase)}" y2="${Y(purchase)}" stroke="var(--ref)" stroke-dasharray="4 4" vector-effect="non-scaling-stroke"/>
+      <text x="${W - P.r}" y="${Y(purchase) - 4}" text-anchor="end" font-size="10" fill="var(--muted)">bought ${purchase.toFixed(3)}</text>
+      <path d="${d}" fill="none" stroke="var(--line)" stroke-width="2" vector-effect="non-scaling-stroke"/>
+      <text x="${P.l}" y="${H - 4}" font-size="10" fill="var(--muted)">${dstr(x0)}</text>
+      <text x="${W - P.r}" y="${H - 4}" font-size="10" fill="var(--muted)" text-anchor="end">${dstr(x1)}</text>
+      <circle class="dot" r="4" fill="var(--line)" style="display:none"/>
+    </svg><div class="tip"></div></div>`;
+}
+
+function wireChart(el, f, hist) {
+  const wrap = el.querySelector('.chart-wrap'); if (!wrap) return;
+  const svg = wrap.querySelector('svg'), tip = wrap.querySelector('.tip'), dot = svg.querySelector('.dot');
+  const cut = Date.now() - 365 * 864e5;
+  let pts = hist.filter(p => p[0] >= cut); if (pts.length < 2) pts = hist;
+  const vb = svg.viewBox.baseVal;
+  svg.addEventListener('pointermove', e => {
+    const r = svg.getBoundingClientRect();
+    const fx0 = 44 / vb.width, fx1 = (vb.width - 8) / vb.width;
+    const t = Math.min(1, Math.max(0, ((e.clientX - r.left) / r.width - fx0) / (fx1 - fx0)));
+    const p = pts[Math.round(t * (pts.length - 1))];
+    const ys = pts.map(q => q[1]).concat([f.purchase]);
+    let y0 = Math.min(...ys), y1 = Math.max(...ys); const pad = (y1 - y0) * 0.1 || 0.01; y0 -= pad; y1 += pad;
+    const cx = 44 + (p[0] - pts[0][0]) / (pts[pts.length - 1][0] - pts[0][0]) * (vb.width - 52);
+    const cy = 10 + (1 - (p[1] - y0) / (y1 - y0)) * (vb.height - 30);
+    dot.setAttribute('cx', cx); dot.setAttribute('cy', cy); dot.style.display = '';
+    tip.style.display = 'block';
+    tip.style.left = (cx / vb.width * r.width) + 'px';
+    tip.style.top = (cy / vb.height * r.height) + 'px';
+    tip.textContent = dstr(p[0]) + ' · ' + p[1].toFixed(4);
+  });
+  svg.addEventListener('pointerleave', () => { tip.style.display = 'none'; dot.style.display = 'none'; });
+}
+
+// ── Render ───────────────────────────────────────────────────────────────────
+function renderSummary(rows) {
+  const has = rows.some(r => r.m.units > 0);
+  const sum = k => rows.reduce((s, r) => s + (r.m[k] || 0), 0);
+  const cost = sum('cost'), value = sum('value'), pl = sum('pl'), rec = sum('received'), monthly = sum('monthly');
+  const tiles = has ? [
+    ['Invested', money(cost), ''],
+    ['Market value', money(value), `<span class="${cls(pl)}">${pct(cost ? pl / cost : null)}</span>`],
+    ['Unrealised P/L', `<span class="${cls(pl)}">${money(pl)}</span>`, 'price only'],
+    ['Dividends received', money(rec), 'since purchase date'],
+    ['Total return', `<span class="${cls(pl + rec)}">${money(pl + rec)}</span>`, `<span class="${cls(pl + rec)}">${pct(cost ? (pl + rec) / cost : null)}</span>`],
+    ['Est. monthly income', money(monthly), 'from latest payout'],
+  ] : rows.map(r => [r.f.short, `<span class="${cls(r.m.chg)}">${pct(r.m.chg)}</span>`, 'vs purchase ' + r.f.purchase.toFixed(3)])
+      .concat([['Tip', '<span style="font-size:.9rem">Add your units</span>', 'under “Holding & settings” to see $ totals']]);
+  document.getElementById('summary').innerHTML = tiles.map(([k, v, s]) =>
+    `<div class="tile"><div class="k">${k}</div><div class="v num">${v}</div><div class="s muted">${s}</div></div>`).join('');
+}
+
+function renderFund(f) {
+  const c = cfg(f.id), d = data[f.id] || {}, m = compute(f);
+  const src = d.error
+    ? `<span class="badge warn" title="${esc(d.error)}">Feed error${m.manual ? ' · using manual price' : ''}</span>`
+    : `<span class="badge">${esc(d.source || '')} ${esc(d.symbol || '')}${d.currency ? ' · ' + esc(d.currency) : ''}${m.manual ? ' · manual price' : ''}</span>`;
+  const ge = geId(f);
+  const srcLink = ge ? ` <a class="src" href="${esc(geLink(ge))}" target="_blank" rel="noopener">Great Eastern fund centre ↗</a>` : '';
+  const el = document.createElement('section');
+  el.className = 'fund';
+  el.innerHTML = `
+    <div class="fund-head">
+      <div>
+        <h2>${esc(f.name)}</h2>
+        ${d.name && !d.error ? `<div class="muted" style="font-size:.78rem">Feed: ${esc(d.name)}</div>` : ''}
+        ${src}${srcLink}
+      </div>
+      <div class="price-big">
+        <div class="p num">${fx(m.price)}</div>
+        <div class="num ${cls(m.chg)}" style="font-weight:600">${pct(m.chg)} vs ${f.purchase.toFixed(3)}</div>
+        <div class="muted" style="font-size:.75rem">${m.manual ? 'manual entry' : 'as of ' + dstr(d.priceDate)}</div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="stat"><div class="k">Purchase price</div><div class="v num">${fx(f.purchase, 3)}</div></div>
+      <div class="stat"><div class="k">Change / unit</div><div class="v num ${cls(m.chg)}">${m.price != null ? (m.price - f.purchase >= 0 ? '+' : '') + fx(m.price - f.purchase) : '—'}</div></div>
+      <div class="stat"><div class="k">Last dividend / unit</div><div class="v num">${m.last ? fx(m.last.amount, 5) : '—'}</div><div class="muted" style="font-size:.72rem">${m.last ? 'ex ' + dstr(m.last.date) : ''}</div></div>
+      <div class="stat"><div class="k">Dividends, last 12m / unit</div><div class="v num">${m.ttm ? fx(m.ttm, 4) : '—'}</div></div>
+      <div class="stat"><div class="k">Yield at current price</div><div class="v num">${m.yieldNow ? (m.yieldNow * 100).toFixed(2) + '%' : '—'}</div><div class="muted" style="font-size:.72rem">latest × ${f.freq}</div></div>
+      <div class="stat"><div class="k">Yield on your cost</div><div class="v num">${m.yieldCost ? (m.yieldCost * 100).toFixed(2) + '%' : '—'}</div></div>
+      ${m.units ? `
+      <div class="stat"><div class="k">Units</div><div class="v num">${m.units.toLocaleString('en-SG')}</div></div>
+      <div class="stat"><div class="k">Value (cost)</div><div class="v num">${money(m.value)}</div><div class="muted num" style="font-size:.72rem">${money(m.cost)}</div></div>
+      <div class="stat"><div class="k">Unrealised P/L</div><div class="v num ${cls(m.pl)}">${money(m.pl)}</div></div>
+      <div class="stat"><div class="k">Est. next payout</div><div class="v num">${money(m.monthly)}</div></div>
+      ${m.received != null ? `<div class="stat"><div class="k">Dividends received</div><div class="v num">${money(m.received)}</div></div>
+      <div class="stat"><div class="k">Total return</div><div class="v num ${cls(m.total)}">${money(m.total)}</div><div class="num ${cls(m.total)}" style="font-size:.72rem">${pct(m.cost ? m.total / m.cost : null)}</div></div>` : ''}
+      ` : ''}
+    </div>
+
+    <div class="cols">
+      <div>
+        <div class="section-t">Price, last 12 months</div>
+        ${chart(f, d.history, f.purchase)}
+      </div>
+      <div>
+        <div class="section-t">Dividend history (per unit)${d.divSource ? ` <span style="text-transform:none;letter-spacing:0;font-weight:500">· ${esc(d.divSource)}</span>` : ''}</div>
+        ${m.divs.length ? `<div class="tbl-scroll"><table>
+          <thead><tr><th>Ex-date</th><th class="r">Amount</th><th class="r">Ann. yield</th>${m.units ? '<th class="r">You get</th>' : ''}<th></th></tr></thead>
+          <tbody>${m.divs.slice(0, 24).map(x => {
+            const px = nearest(d.history, x.date) || m.price;
+            return `<tr><td>${dstr(x.date)}</td><td class="r num">${fx(x.amount, 5)}</td>
+              <td class="r num muted">${px ? (x.amount * f.freq / px * 100).toFixed(2) + '%' : '—'}</td>
+              ${m.units ? `<td class="r num">${money(x.amount * m.units)}</td>` : ''}
+              <td>${x.src === 'manual' ? `<button class="x" data-del="${x.i}" title="Remove manual entry">×</button>` : ''}</td></tr>`;
+          }).join('')}</tbody></table></div>`
+          : '<div class="muted" style="font-size:.85rem">No distributions in the feed. Log them below from your statement.</div>'}
+      </div>
+    </div>
+
+    <details>
+      <summary>Holding &amp; settings</summary>
+      <div class="form">
+        <label>Units held<input type="number" step="any" min="0" data-k="units" value="${esc(c.units)}" placeholder="e.g. 10000"></label>
+        <label>Purchase date<input type="date" data-k="date" value="${esc(c.date)}"></label>
+        <label>Price override (optional)<input type="number" step="any" min="0" data-k="manualPrice" value="${esc(c.manualPrice)}" placeholder="use if feed is wrong"></label>
+        <label>Great Eastern fund link or id<input type="text" data-k="ge" value="${esc(c.ge)}" placeholder="${esc(f.ge || 'paste ilp-fund-centre link')}"></label>
+        <label>Yahoo symbol (overrides)<input type="text" data-k="symbol" value="${esc(c.symbol)}" placeholder="optional"></label>
+      </div>
+      <div class="add-div">
+        <label>Log a dividend: ex-date<input type="date" class="nd-date"></label>
+        <label>Amount per unit<input type="number" step="any" min="0" class="nd-amt" placeholder="0.00xx"></label>
+        <button class="nd-add">Add</button>
+      </div>
+      <div class="hint">Prices come from Morningstar using the id in the fund's Great Eastern ILP fund centre link. Paste that link above to switch source. If there isn't one, the page searches Yahoo Finance by fund name. Check the price against your statement.</div>
+    </details>`;
+
+  el.querySelectorAll('input[data-k]').forEach(inp => inp.addEventListener('change', () => {
+    const k = inp.dataset.k; c[k] = inp.value.trim(); save(state);
+    if (k === 'symbol' || k === 'ge') { fetchFund(f, true).then(render); } else render();
+  }));
+  el.querySelector('.nd-add').addEventListener('click', () => {
+    const dt = el.querySelector('.nd-date').value, amt = parseFloat(el.querySelector('.nd-amt').value);
+    if (!dt || !(amt > 0)) return;
+    c.manualDivs.push({ date: dt, amount: amt }); save(state); render();
+  });
+  el.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => {
+    c.manualDivs.splice(+b.dataset.del, 1); save(state); render();
+  }));
+  if (d.history) wireChart(el, f, d.history);
+  return { el, m };
+}
+
+function nearest(hist, t) {
+  if (!hist || !hist.length) return null;
+  let best = hist[0];
+  for (const p of hist) { if (p[0] <= t) best = p; else break; }
+  return best[1];
+}
+
+function render() {
+  const box = document.getElementById('funds');
+  const open = [...box.querySelectorAll('details')].map(d => d.open);
+  box.innerHTML = '';
+  const rows = FUNDS.map((f, i) => {
+    const r = renderFund(f);
+    if (open[i]) r.el.querySelector('details').open = true;
+    box.appendChild(r.el);
+    return { f, m: r.m };
+  });
+  renderSummary(rows);
+  const times = FUNDS.map(f => data[f.id] && data[f.id].fetchedAt).filter(Boolean);
+  document.getElementById('updated').textContent = times.length
+    ? 'Feed updated ' + new Date(Math.min(...times)).toLocaleString('en-SG', { dateStyle: 'medium', timeStyle: 'short' })
+    : 'Price feed unavailable. Showing manual entries only.';
+}
+
+async function refresh(bust) {
+  document.getElementById('updated').textContent = 'Loading prices…';
+  await Promise.all(FUNDS.map(f => fetchFund(f, bust)));
+  render();
+}
+
+// Theme toggle (remembered per browser)
+const THEME = 'monopoly.theme';
+try { const t = localStorage.getItem(THEME); if (t) document.documentElement.dataset.theme = t; } catch {}
+document.getElementById('theme').addEventListener('click', () => {
+  const dark = document.documentElement.dataset.theme
+    ? document.documentElement.dataset.theme === 'dark'
+    : matchMedia('(prefers-color-scheme: dark)').matches;
+  const next = dark ? 'light' : 'dark';
+  document.documentElement.dataset.theme = next;
+  try { localStorage.setItem(THEME, next); } catch {}
+});
+document.getElementById('refresh').addEventListener('click', () => refresh(true));
+
+refresh(false);
+</script>
+</body>
+</html>
