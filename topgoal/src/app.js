@@ -1,14 +1,33 @@
 'use strict';
 
-const path = require('node:path');
 const express = require('express');
 const { sessionMiddleware, csrfProtection } = require('./auth');
 const { html, layout } = require('./render');
 
-function createApp(db, { trustProxy = false } = {}) {
+const ROUTES = [
+  require('./routes/home'),
+  require('./routes/auth'),
+  require('./routes/forum'),
+  require('./routes/wiki'),
+  require('./routes/season'),
+  require('./routes/fas'),
+  require('./routes/profile'),
+  require('./routes/verify'),
+  require('./routes/admin'),
+];
+
+// Options:
+//   staticDir   folder to serve /static/* from (Node only; Cloudflare serves it as Worker assets)
+//   trustProxy  trust X-Forwarded-* from one reverse proxy
+//   cloudflare  running on Cloudflare Workers (HTTPS-only cookies, CF-Connecting-IP)
+function createApp(db, { staticDir, trustProxy = false, cloudflare = false } = {}) {
   const app = express();
   app.disable('x-powered-by');
   if (trustProxy) app.set('trust proxy', 1);
+  if (cloudflare) {
+    app.set('cloudflare', true);
+    app.set('secure cookies', true);
+  }
 
   app.use((req, res, next) => {
     res.set({
@@ -21,7 +40,11 @@ function createApp(db, { trustProxy = false } = {}) {
     next();
   });
 
-  app.use('/static', express.static(path.join(__dirname, '..', 'public'), { maxAge: '1h' }));
+  if (staticDir) app.use('/static', express.static(staticDir, { maxAge: '1h' }));
+  app.use(async (req, res, next) => {
+    await db.ready();
+    next();
+  });
   app.use(express.urlencoded({ extended: false, limit: '200kb' }));
   app.use(sessionMiddleware(db));
 
@@ -34,9 +57,7 @@ function createApp(db, { trustProxy = false } = {}) {
   app.use(csrfProtection);
 
   const ctx = { db };
-  for (const name of ['home', 'auth', 'forum', 'wiki', 'season', 'fas', 'profile', 'verify', 'admin']) {
-    app.use(require(`./routes/${name}`)(ctx));
-  }
+  for (const routes of ROUTES) app.use(routes(ctx));
 
   app.use((req, res) => {
     res.status(404).page({

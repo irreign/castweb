@@ -45,7 +45,7 @@ function cookieOptions(req, extra = {}) {
   return {
     httpOnly: true,
     sameSite: 'lax',
-    secure: req.secure,
+    secure: req.secure || req.app.get('secure cookies') === true,
     path: '/',
     ...extra,
   };
@@ -55,10 +55,11 @@ function cookieOptions(req, extra = {}) {
 
 const sha256 = (s) => crypto.createHash('sha256').update(s).digest('hex');
 
-function createSession(db, req, res, userId) {
+async function createSession(db, req, res, userId) {
   const token = crypto.randomBytes(32).toString('base64url');
   const now = Date.now();
-  db.prepare('INSERT INTO sessions (token_hash, user_id, expires_at, created_at) VALUES (?, ?, ?, ?)').run(
+  await db.run(
+    'INSERT INTO sessions (token_hash, user_id, expires_at, created_at) VALUES (?, ?, ?, ?)',
     sha256(token),
     userId,
     now + SESSION_TTL_MS,
@@ -67,14 +68,15 @@ function createSession(db, req, res, userId) {
   res.cookie(SESSION_COOKIE, token, cookieOptions(req, { maxAge: SESSION_TTL_MS }));
 }
 
-function destroySession(db, req, res) {
+async function destroySession(db, req, res) {
   const token = req.cookies[SESSION_COOKIE];
-  if (token) db.prepare('DELETE FROM sessions WHERE token_hash = ?').run(sha256(token));
+  if (token) await db.run('DELETE FROM sessions WHERE token_hash = ?', sha256(token));
   res.clearCookie(SESSION_COOKIE, cookieOptions(req));
 }
 
 function revokeOtherSessions(db, req, userId) {
-  db.prepare('DELETE FROM sessions WHERE user_id = ? AND token_hash != ?').run(
+  return db.run(
+    'DELETE FROM sessions WHERE user_id = ? AND token_hash != ?',
     userId,
     sha256(req.cookies[SESSION_COOKIE] || '')
   );
@@ -82,20 +84,18 @@ function revokeOtherSessions(db, req, userId) {
 
 // Loads cookies, the signed-in user, a CSRF token and any flash message.
 function sessionMiddleware(db) {
-  const findSession = db.prepare(
-    `SELECT u.id, u.username, u.role, u.verified, u.banned, u.fa_id, u.ign
+  const FIND_SESSION = `SELECT u.id, u.username, u.role, u.verified, u.banned, u.fa_id, u.ign
        FROM sessions s JOIN users u ON u.id = s.user_id
-      WHERE s.token_hash = ? AND s.expires_at > ?`
-  );
-  return (req, res, next) => {
+      WHERE s.token_hash = ? AND s.expires_at > ?`;
+  return async (req, res, next) => {
     req.cookies = parseCookies(req.headers.cookie);
 
     req.user = null;
     const token = req.cookies[SESSION_COOKIE];
     if (token) {
-      const user = findSession.get(sha256(token), Date.now());
+      const user = await db.get(FIND_SESSION, sha256(token), Date.now());
       if (user && !user.banned) req.user = { ...user };
-      else if (user && user.banned) destroySession(db, req, res);
+      else if (user && user.banned) await destroySession(db, req, res);
     }
 
     // Double-submit CSRF token: random value in a cookie that must be echoed in every form.
@@ -182,6 +182,12 @@ function rateLimiter({ windowMs, max }) {
   };
 }
 
+// Visitor IP for rate limits. On Cloudflare Workers the real address is in CF-Connecting-IP;
+// elsewhere that header could be forged, so it is only trusted when running on Workers.
+function clientIp(req) {
+  return (req.app.get('cloudflare') && req.get('cf-connecting-ip')) || req.ip;
+}
+
 function safeNext(value) {
   return typeof value === 'string' && value.startsWith('/') && !value.startsWith('//') && !value.startsWith('/\\')
     ? value
@@ -200,5 +206,6 @@ module.exports = {
   requireUser,
   requireRole,
   rateLimiter,
+  clientIp,
   safeNext,
 };

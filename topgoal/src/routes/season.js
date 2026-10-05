@@ -1,7 +1,6 @@
 'use strict';
 
 const express = require('express');
-const { transaction } = require('../db');
 const { requireUser, requireRole, hasRole } = require('../auth');
 const { html, csrfField, userLink, utcDate, toDateTimeLocal, daysLeft, markup } = require('../render');
 const { notFound, intParam, text } = require('./util');
@@ -10,10 +9,10 @@ const { notFound, intParam, text } = require('./util');
 const RARITIES = ['Common', 'Rare', 'Epic', 'Legendary', 'Icon'];
 const POSITIONS = ['GK', 'LB', 'CB', 'RB', 'LWB', 'RWB', 'CDM', 'CM', 'CAM', 'LM', 'RM', 'LW', 'RW', 'CF', 'ST'];
 
-function currentSeason(db) {
+async function currentSeason(db) {
   return (
-    db.prepare('SELECT * FROM seasons WHERE is_current = 1 ORDER BY ends_at DESC LIMIT 1').get() ||
-    db.prepare('SELECT * FROM seasons WHERE starts_at <= ? ORDER BY ends_at DESC LIMIT 1').get(Date.now()) ||
+    (await db.get('SELECT * FROM seasons WHERE is_current = 1 ORDER BY ends_at DESC LIMIT 1')) ||
+    (await db.get('SELECT * FROM seasons WHERE starts_at <= ? ORDER BY ends_at DESC LIMIT 1', Date.now())) ||
     null
   );
 }
@@ -85,34 +84,28 @@ function readSeason(body) {
 module.exports = ({ db }) => {
   const router = express.Router();
 
-  const saveSeason = (s, id) =>
-    transaction(db, () => {
-      if (s.is_current) db.prepare('UPDATE seasons SET is_current = 0').run();
-      if (id) {
-        db.prepare('UPDATE seasons SET name = ?, starts_at = ?, ends_at = ?, notes = ?, is_current = ? WHERE id = ?').run(
-          s.name, s.starts_at, s.ends_at, s.notes, s.is_current, id
-        );
-        return id;
-      }
-      return db
-        .prepare('INSERT INTO seasons (name, starts_at, ends_at, notes, is_current) VALUES (?, ?, ?, ?, ?)')
-        .run(s.name, s.starts_at, s.ends_at, s.notes, s.is_current).lastInsertRowid;
-    });
+  // Saves a season (new when no id) and returns its id. Only one season can be current.
+  const saveSeason = async (s, id) => {
+    const statements = s.is_current ? [['UPDATE seasons SET is_current = 0']] : [];
+    statements.push(
+      id
+        ? ['UPDATE seasons SET name = ?, starts_at = ?, ends_at = ?, notes = ?, is_current = ? WHERE id = ?', s.name, s.starts_at, s.ends_at, s.notes, s.is_current, id]
+        : ['INSERT INTO seasons (name, starts_at, ends_at, notes, is_current) VALUES (?, ?, ?, ?, ?)', s.name, s.starts_at, s.ends_at, s.notes, s.is_current]
+    );
+    const results = await db.batch(statements);
+    return id || results[results.length - 1].lastInsertRowid;
+  };
 
-  const renderSeason = (req, res, season, { error = '' } = {}) => {
-    const seasons = db.prepare('SELECT id, name, starts_at, ends_at, is_current FROM seasons ORDER BY starts_at DESC').all();
+  const renderSeason = async (req, res, season, { error = '' } = {}) => {
+    const seasons = await db.all('SELECT id, name, starts_at, ends_at, is_current FROM seasons ORDER BY starts_at DESC');
     const isMod = hasRole(req.user, 'mod');
     const canAdd = req.user && (isMod || req.user.verified);
 
     let players = [];
     if (season) {
-      players = db
-        .prepare(
-          `SELECT p.*, u.username, u.role, u.verified FROM pack_players p
+      players = await db.all(`SELECT p.*, u.username, u.role, u.verified FROM pack_players p
              LEFT JOIN users u ON u.id = p.added_by
-            WHERE p.season_id = ? ORDER BY p.pack_name, p.rating IS NULL, p.rating DESC, p.player_name`
-        )
-        .all(season.id);
+            WHERE p.season_id = ? ORDER BY p.pack_name, p.rating IS NULL, p.rating DESC, p.player_name`, season.id);
     }
     const packs = new Map();
     for (const p of players) {
@@ -217,30 +210,30 @@ module.exports = ({ db }) => {
     });
   };
 
-  router.get('/season', (req, res) => renderSeason(req, res, currentSeason(db)));
+  router.get('/season', async (req, res) => renderSeason(req, res, await currentSeason(db)));
 
-  router.post('/season', requireRole('mod'), (req, res) => {
+  router.post('/season', requireRole('mod'), async (req, res) => {
     const { s, error } = readSeason(req.body);
     if (error) {
       res.status(400);
       return res.page({ title: 'New season', body: html`<h1>New season</h1>${seasonForm(res, '/season', s, error)}` });
     }
-    const id = saveSeason(s);
+    const id = await saveSeason(s);
     res.flash('success', 'Season saved.');
     res.redirect(`/season/${id}`);
   });
 
-  const loadSeason = (req) => {
+  const loadSeason = async (req) => {
     const id = intParam(req.params.id);
-    const season = id && db.prepare('SELECT * FROM seasons WHERE id = ?').get(id);
+    const season = id && await db.get('SELECT * FROM seasons WHERE id = ?', id);
     if (!season) throw notFound('Season not found.');
     return season;
   };
 
-  router.get('/season/:id', (req, res) => renderSeason(req, res, loadSeason(req)));
+  router.get('/season/:id', async (req, res) => renderSeason(req, res, await loadSeason(req)));
 
-  router.get('/season/:id/edit', requireRole('mod'), (req, res) => {
-    const season = loadSeason(req);
+  router.get('/season/:id/edit', requireRole('mod'), async (req, res) => {
+    const season = await loadSeason(req);
     res.page({
       title: `Edit ${season.name}`,
       active: '/season',
@@ -252,27 +245,27 @@ module.exports = ({ db }) => {
     });
   });
 
-  router.post('/season/:id/edit', requireRole('mod'), (req, res) => {
-    const season = loadSeason(req);
+  router.post('/season/:id/edit', requireRole('mod'), async (req, res) => {
+    const season = await loadSeason(req);
     const { s, error } = readSeason(req.body);
     if (error) {
       res.status(400);
       return res.page({ title: 'Edit season', body: html`<h1>Edit season</h1>${seasonForm(res, `/season/${season.id}/edit`, s, error)}` });
     }
-    saveSeason(s, season.id);
+    await saveSeason(s, season.id);
     res.flash('success', 'Season updated.');
     res.redirect(`/season/${season.id}`);
   });
 
-  router.post('/season/:id/delete', requireRole('mod'), (req, res) => {
-    const season = loadSeason(req);
-    db.prepare('DELETE FROM seasons WHERE id = ?').run(season.id);
+  router.post('/season/:id/delete', requireRole('mod'), async (req, res) => {
+    const season = await loadSeason(req);
+    await db.run('DELETE FROM seasons WHERE id = ?', season.id);
     res.flash('success', `Deleted ${season.name}.`);
     res.redirect('/season');
   });
 
-  router.post('/season/:id/players', requireUser, (req, res) => {
-    const season = loadSeason(req);
+  router.post('/season/:id/players', requireUser, async (req, res) => {
+    const season = await loadSeason(req);
     if (!hasRole(req.user, 'mod') && !req.user.verified) {
       throw Object.assign(new Error('Only verified managers can add pack players.'), { status: 403 });
     }
@@ -292,24 +285,20 @@ module.exports = ({ db }) => {
       res.status(400);
       return renderSeason(req, res, season, { error });
     }
-    db.prepare(
-      `INSERT INTO pack_players (season_id, pack_name, player_name, position, rating, rarity, club, notes, added_by, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).run(season.id, p.pack_name, p.player_name, p.position, p.rating, p.rarity, p.club, p.notes, req.user.id, Date.now());
+    await db.run(`INSERT INTO pack_players (season_id, pack_name, player_name, position, rating, rarity, club, notes, added_by, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, season.id, p.pack_name, p.player_name, p.position, p.rating, p.rarity, p.club, p.notes, req.user.id, Date.now());
     res.flash('success', `Added ${p.player_name}.`);
     res.redirect(`/season/${season.id}`);
   });
 
-  router.post('/season/:id/players/:pid/delete', requireUser, (req, res) => {
-    const season = loadSeason(req);
-    const player = db
-      .prepare('SELECT * FROM pack_players WHERE id = ? AND season_id = ?')
-      .get(intParam(req.params.pid) || 0, season.id);
+  router.post('/season/:id/players/:pid/delete', requireUser, async (req, res) => {
+    const season = await loadSeason(req);
+    const player = await db.get('SELECT * FROM pack_players WHERE id = ? AND season_id = ?', intParam(req.params.pid) || 0, season.id);
     if (!player) throw notFound('Player not found.');
     if (!hasRole(req.user, 'mod') && player.added_by !== req.user.id) {
       throw Object.assign(new Error('You can only remove players you added.'), { status: 403 });
     }
-    db.prepare('DELETE FROM pack_players WHERE id = ?').run(player.id);
+    await db.run('DELETE FROM pack_players WHERE id = ?', player.id);
     res.flash('success', `Removed ${player.player_name}.`);
     res.redirect(`/season/${season.id}`);
   });

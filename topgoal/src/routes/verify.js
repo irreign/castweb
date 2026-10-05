@@ -8,9 +8,8 @@ const { text } = require('./util');
 module.exports = ({ db }) => {
   const router = express.Router();
 
-  const latestRequest = db.prepare(
-    'SELECT * FROM verification_requests WHERE user_id = ? ORDER BY id DESC LIMIT 1'
-  );
+  const latestRequest = (userId) =>
+    db.get('SELECT * FROM verification_requests WHERE user_id = ? ORDER BY id DESC LIMIT 1', userId);
 
   const howItWorks = html`
     <section class="panel">
@@ -24,7 +23,7 @@ module.exports = ({ db }) => {
       <p class="muted small">Verified managers can post in the Verified Lounge, list and manage their FA, and add pack players. Never share your game password, and no moderator will ever ask for it.</p>
     </section>`;
 
-  const page = (req, res, { error = '', form = {} } = {}) => {
+  const page = async (req, res, { error = '', form = {} } = {}) => {
     if (!req.user) {
       return res.page({
         title: 'Get verified',
@@ -34,9 +33,9 @@ module.exports = ({ db }) => {
           <p><a class="btn" href="/register">Create an account</a> <a class="btn btn-ghost" href="/login?next=/verify">Log in</a></p>`,
       });
     }
-    const me = db.prepare('SELECT verified, verified_at, verify_code, ign FROM users WHERE id = ?').get(req.user.id);
-    const last = latestRequest.get(req.user.id);
-    const fa = req.user.fa_id ? db.prepare('SELECT name FROM fas WHERE id = ?').get(req.user.fa_id) : null;
+    const me = await db.get('SELECT verified, verified_at, verify_code, ign FROM users WHERE id = ?', req.user.id);
+    const last = await latestRequest(req.user.id);
+    const fa = req.user.fa_id ? await db.get('SELECT name FROM fas WHERE id = ?', req.user.fa_id) : null;
 
     let status;
     if (me.verified) {
@@ -70,11 +69,11 @@ module.exports = ({ db }) => {
     });
   };
 
-  router.get('/verify', (req, res) => page(req, res));
+  router.get('/verify', async (req, res) => page(req, res));
 
-  router.post('/verify', requireUser, (req, res) => {
-    const me = db.prepare('SELECT verified, verify_code FROM users WHERE id = ?').get(req.user.id);
-    const last = latestRequest.get(req.user.id);
+  router.post('/verify', requireUser, async (req, res) => {
+    const me = await db.get('SELECT verified, verify_code FROM users WHERE id = ?', req.user.id);
+    const last = await latestRequest(req.user.id);
     if (me.verified || (last && last.status === 'pending')) return res.redirect('/verify');
 
     const form = {
@@ -86,9 +85,7 @@ module.exports = ({ db }) => {
       res.status(400);
       return page(req, res, { form, error: 'Your in-game name and a screenshot link are both required.' });
     }
-    db.prepare(
-      'INSERT INTO verification_requests (user_id, code, ign, fa_name, evidence, created_at) VALUES (?, ?, ?, ?, ?, ?)'
-    ).run(req.user.id, me.verify_code, form.ign, form.fa_name, form.evidence, Date.now());
+    await db.run('INSERT INTO verification_requests (user_id, code, ign, fa_name, evidence, created_at) VALUES (?, ?, ?, ?, ?, ?)', req.user.id, me.verify_code, form.ign, form.fa_name, form.evidence, Date.now());
     res.flash('success', 'Request sent. A moderator will review it soon.');
     res.redirect('/verify');
   });

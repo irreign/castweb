@@ -1,10 +1,9 @@
 'use strict';
 
 const express = require('express');
-const { transaction } = require('../db');
 const { requireUser, requireRole, hasRole, rateLimiter } = require('../auth');
 const { html, csrfField, userLink, dateTime, markup, slugify } = require('../render');
-const { notFound, forbidden, intParam, text } = require('./util');
+const { notFound, forbidden, intParam, text, wikiLinkChecker } = require('./util');
 
 const MAX_BODY = 100000;
 
@@ -20,12 +19,12 @@ module.exports = ({ db }) => {
   const router = express.Router();
   const editLimiter = rateLimiter({ windowMs: 10 * 60 * 1000, max: 30 });
 
-  const getPage = db.prepare('SELECT * FROM wiki_pages WHERE slug = ?');
-  const latestRevision = db.prepare('SELECT id FROM wiki_revisions WHERE page_id = ? ORDER BY id DESC LIMIT 1');
-  const wikiExists = (slug) => Boolean(getPage.get(slug));
+  const getPage = (slug) => db.get('SELECT * FROM wiki_pages WHERE slug = ?', String(slug));
+  const latestRevisionId = async (pageId) =>
+    (await db.get('SELECT MAX(id) AS id FROM wiki_revisions WHERE page_id = ?', pageId))?.id ?? null;
 
-  const loadPage = (slug) => {
-    const page = getPage.get(String(slug));
+  const loadPage = async (slug) => {
+    const page = await getPage(slug);
     if (!page) throw notFound('Wiki page not found.');
     return page;
   };
@@ -34,24 +33,16 @@ module.exports = ({ db }) => {
 
   // ─── Index & search ──────────────────────────────────────────────────────
 
-  router.get('/wiki', (req, res) => {
+  router.get('/wiki', async (req, res) => {
     const q = text(req.query.q, 80);
     const pages = q
-      ? db
-          .prepare(
-            `SELECT slug, title, updated_at FROM wiki_pages
+      ? await db.all(`SELECT slug, title, updated_at FROM wiki_pages
               WHERE title LIKE ? ESCAPE '\\' OR body LIKE ? ESCAPE '\\'
-              ORDER BY (title LIKE ? ESCAPE '\\') DESC, updated_at DESC LIMIT 100`
-          )
-          .all(...Array(3).fill(`%${q.replace(/[\\%_]/g, (c) => `\\${c}`)}%`))
-      : db.prepare('SELECT slug, title, updated_at FROM wiki_pages ORDER BY title COLLATE NOCASE').all();
-    const recent = db
-      .prepare(
-        `SELECT r.id, r.summary, r.created_at, p.slug, p.title, u.username, u.role, u.verified
+              ORDER BY (title LIKE ? ESCAPE '\\') DESC, updated_at DESC LIMIT 100`, ...Array(3).fill(`%${q.replace(/[\\%_]/g, (c) => `\\${c}`)}%`))
+      : await db.all('SELECT slug, title, updated_at FROM wiki_pages ORDER BY title COLLATE NOCASE');
+    const recent = await db.all(`SELECT r.id, r.summary, r.created_at, p.slug, p.title, u.username, u.role, u.verified
            FROM wiki_revisions r JOIN wiki_pages p ON p.id = r.page_id JOIN users u ON u.id = r.user_id
-          ORDER BY r.id DESC LIMIT 10`
-      )
-      .all();
+          ORDER BY r.id DESC LIMIT 10`);
 
     res.page({
       title: 'Wiki',
@@ -78,7 +69,7 @@ module.exports = ({ db }) => {
               ${req.user
                 ? html`<form method="post" action="/wiki/new" class="stack">
                     ${csrfField(res)}
-                    <label>Page title <input name="title" required maxlength="80" value="${q && !wikiExists(slugify(q)) ? q : ''}" placeholder="e.g. Best Formations"></label>
+                    <label>Page title <input name="title" required maxlength="80" value="${q && !(await getPage(slugify(q))) ? q : ''}" placeholder="e.g. Best Formations"></label>
                     <button class="btn btn-small">Start writing</button>
                   </form>`
                 : html`<p class="muted"><a href="/login?next=/wiki">Log in</a> to create and edit pages.</p>`}
@@ -94,21 +85,21 @@ module.exports = ({ db }) => {
     });
   });
 
-  router.post('/wiki/new', requireUser, (req, res) => {
+  router.post('/wiki/new', requireUser, async (req, res) => {
     const title = text(req.body.title, 80);
     const slug = slugify(title);
     if (!slug) {
       res.flash('error', 'Give the page a title with at least one letter or number.');
       return res.redirect('/wiki');
     }
-    res.redirect(getPage.get(slug) ? `/wiki/${slug}` : `/wiki/${slug}/edit?title=${encodeURIComponent(title)}`);
+    res.redirect((await getPage(slug)) ? `/wiki/${slug}` : `/wiki/${slug}/edit?title=${encodeURIComponent(title)}`);
   });
 
   // ─── View ────────────────────────────────────────────────────────────────
 
-  router.get('/wiki/:slug', (req, res) => {
+  router.get('/wiki/:slug', async (req, res) => {
     const slug = String(req.params.slug);
-    const page = getPage.get(slug);
+    const page = await getPage(slug);
     if (!page) {
       res.status(404);
       return res.page({
@@ -125,12 +116,8 @@ module.exports = ({ db }) => {
           </section>`,
       });
     }
-    const last = db
-      .prepare(
-        `SELECT r.created_at, u.username, u.role, u.verified FROM wiki_revisions r JOIN users u ON u.id = r.user_id
-          WHERE r.page_id = ? ORDER BY r.id DESC LIMIT 1`
-      )
-      .get(page.id);
+    const last = await db.get(`SELECT r.created_at, u.username, u.role, u.verified FROM wiki_revisions r JOIN users u ON u.id = r.user_id
+          WHERE r.page_id = ? ORDER BY r.id DESC LIMIT 1`, page.id);
     const isMod = hasRole(req.user, 'mod');
 
     res.page({
@@ -148,7 +135,7 @@ module.exports = ({ db }) => {
               : ''}
           </div>
         </div>
-        <article class="prose wiki-body">${markup(page.body, { wikiExists })}</article>
+        <article class="prose wiki-body">${markup(page.body, { wikiExists: await wikiLinkChecker(db, [page.body]) })}</article>
         <p class="muted small page-foot">Last edited ${dateTime(page.updated_at)}${last ? html` by ${userLink(last)}` : ''}.</p>`,
     });
   });
@@ -177,24 +164,24 @@ module.exports = ({ db }) => {
         </form>`,
     });
 
-  router.get('/wiki/:slug/edit', requireUser, (req, res) => {
+  router.get('/wiki/:slug/edit', requireUser, async (req, res) => {
     const slug = String(req.params.slug);
     if (slugify(slug) !== slug) throw notFound('Wiki page not found.');
-    const page = getPage.get(slug);
+    const page = await getPage(slug);
     if (!canEdit(req.user, page)) throw forbidden('This page is locked. Only moderators can edit it.');
     editPage(req, res, {
       slug,
       page,
       title: page ? page.title : text(req.query.title, 80) || titleFromSlug(slug),
       body: page ? page.body : '',
-      baseRevision: page ? latestRevision.get(page.id)?.id : '',
+      baseRevision: page ? await latestRevisionId(page.id) : '',
     });
   });
 
-  router.post('/wiki/:slug/edit', requireUser, (req, res) => {
+  router.post('/wiki/:slug/edit', requireUser, async (req, res) => {
     const slug = String(req.params.slug);
     if (slugify(slug) !== slug) throw notFound('Wiki page not found.');
-    const page = getPage.get(slug);
+    const page = await getPage(slug);
     if (!canEdit(req.user, page)) throw forbidden('This page is locked. Only moderators can edit it.');
 
     const title = text(req.body.title, 80);
@@ -208,7 +195,7 @@ module.exports = ({ db }) => {
       return editPage(req, res, { ...form, error: 'Title and content are both required.' });
     }
     if (page) {
-      const latest = latestRevision.get(page.id)?.id;
+      const latest = await latestRevisionId(page.id);
       if (latest && base !== latest) {
         res.status(409);
         return editPage(req, res, {
@@ -225,34 +212,42 @@ module.exports = ({ db }) => {
       throw Object.assign(new Error('You are editing too fast. Wait a few minutes and try again.'), { status: 429 });
     }
 
-    transaction(db, () => {
-      const now = Date.now();
-      let pageId = page && page.id;
-      if (page) {
-        db.prepare('UPDATE wiki_pages SET title = ?, body = ?, updated_at = ? WHERE id = ?').run(title, body, now, page.id);
-      } else {
-        pageId = db
-          .prepare('INSERT INTO wiki_pages (slug, title, body, created_at, updated_at) VALUES (?, ?, ?, ?, ?)')
-          .run(slug, title, body, now, now).lastInsertRowid;
-      }
-      db.prepare(
-        'INSERT INTO wiki_revisions (page_id, user_id, title, body, summary, created_at) VALUES (?, ?, ?, ?, ?, ?)'
-      ).run(pageId, req.user.id, title, body, summary || (page ? '' : 'Created page'), now);
-    });
+    // The page row only changes if nobody saved since this edit started (for a new page:
+    // if nobody created it meanwhile). The revision is written only when the page row was.
+    const now = Date.now();
+    const [saved] = await db.batch([
+      page
+        ? [
+            `UPDATE wiki_pages SET title = ?, body = ?, updated_at = ?
+              WHERE id = ? AND (SELECT MAX(id) FROM wiki_revisions WHERE page_id = ?) IS ?`,
+            title, body, now, page.id, page.id, base,
+          ]
+        : ['INSERT OR IGNORE INTO wiki_pages (slug, title, body, created_at, updated_at) VALUES (?, ?, ?, ?, ?)', slug, title, body, now, now],
+      [
+        `INSERT INTO wiki_revisions (page_id, user_id, title, body, summary, created_at)
+         SELECT id, ?, ?, ?, ?, ? FROM wiki_pages WHERE slug = ? AND changes() = 1`,
+        req.user.id, title, body, summary || (page ? '' : 'Created page'), now, slug,
+      ],
+    ]);
+    if (saved.changes !== 1) {
+      res.status(409);
+      return editPage(req, res, {
+        ...form,
+        page: page || (await getPage(slug)),
+        baseRevision: base,
+        error: 'Someone else saved this page while you were editing. Open the page in a new tab, merge your changes into its latest version, then save again.',
+      });
+    }
     res.flash('success', page ? 'Page saved.' : 'Page created. Thanks for contributing!');
     res.redirect(`/wiki/${slug}`);
   });
 
   // ─── History ─────────────────────────────────────────────────────────────
 
-  router.get('/wiki/:slug/history', (req, res) => {
-    const page = loadPage(req.params.slug);
-    const revisions = db
-      .prepare(
-        `SELECT r.id, r.summary, r.created_at, length(r.body) AS size, u.username, u.role, u.verified
-           FROM wiki_revisions r JOIN users u ON u.id = r.user_id WHERE r.page_id = ? ORDER BY r.id DESC LIMIT 200`
-      )
-      .all(page.id);
+  router.get('/wiki/:slug/history', async (req, res) => {
+    const page = await loadPage(req.params.slug);
+    const revisions = await db.all(`SELECT r.id, r.summary, r.created_at, length(r.body) AS size, u.username, u.role, u.verified
+           FROM wiki_revisions r JOIN users u ON u.id = r.user_id WHERE r.page_id = ? ORDER BY r.id DESC LIMIT 200`, page.id);
     res.page({
       title: `History of ${page.title}`,
       active: '/wiki',
@@ -274,14 +269,10 @@ module.exports = ({ db }) => {
     });
   });
 
-  router.get('/wiki/:slug/rev/:id', (req, res) => {
-    const page = loadPage(req.params.slug);
-    const rev = db
-      .prepare(
-        `SELECT r.*, u.username, u.role, u.verified FROM wiki_revisions r JOIN users u ON u.id = r.user_id
-          WHERE r.id = ? AND r.page_id = ?`
-      )
-      .get(intParam(req.params.id) || 0, page.id);
+  router.get('/wiki/:slug/rev/:id', async (req, res) => {
+    const page = await loadPage(req.params.slug);
+    const rev = await db.get(`SELECT r.*, u.username, u.role, u.verified FROM wiki_revisions r JOIN users u ON u.id = r.user_id
+          WHERE r.id = ? AND r.page_id = ?`, intParam(req.params.id) || 0, page.id);
     if (!rev) throw notFound('Revision not found.');
     res.page({
       title: `${page.title} (old version)`,
@@ -294,30 +285,26 @@ module.exports = ({ db }) => {
             : ''}
         </div>
         <h1>${rev.title}</h1>
-        <article class="prose wiki-body">${markup(rev.body, { wikiExists })}</article>`,
+        <article class="prose wiki-body">${markup(rev.body, { wikiExists: await wikiLinkChecker(db, [rev.body]) })}</article>`,
     });
   });
 
-  router.post('/wiki/:slug/revert/:id', requireRole('mod'), (req, res) => {
-    const page = loadPage(req.params.slug);
-    const rev = db
-      .prepare('SELECT * FROM wiki_revisions WHERE id = ? AND page_id = ?')
-      .get(intParam(req.params.id) || 0, page.id);
+  router.post('/wiki/:slug/revert/:id', requireRole('mod'), async (req, res) => {
+    const page = await loadPage(req.params.slug);
+    const rev = await db.get('SELECT * FROM wiki_revisions WHERE id = ? AND page_id = ?', intParam(req.params.id) || 0, page.id);
     if (!rev) throw notFound('Revision not found.');
-    transaction(db, () => {
-      const now = Date.now();
-      db.prepare('UPDATE wiki_pages SET title = ?, body = ?, updated_at = ? WHERE id = ?').run(rev.title, rev.body, now, page.id);
-      db.prepare(
-        'INSERT INTO wiki_revisions (page_id, user_id, title, body, summary, created_at) VALUES (?, ?, ?, ?, ?, ?)'
-      ).run(page.id, req.user.id, rev.title, rev.body, `Restored revision #${rev.id}`, now);
-    });
+    const now = Date.now();
+    await db.batch([
+      ['UPDATE wiki_pages SET title = ?, body = ?, updated_at = ? WHERE id = ?', rev.title, rev.body, now, page.id],
+      ['INSERT INTO wiki_revisions (page_id, user_id, title, body, summary, created_at) VALUES (?, ?, ?, ?, ?, ?)', page.id, req.user.id, rev.title, rev.body, `Restored revision #${rev.id}`, now],
+    ]);
     res.flash('success', 'Version restored.');
     res.redirect(`/wiki/${page.slug}`);
   });
 
-  router.post('/wiki/:slug/lock', requireRole('mod'), (req, res) => {
-    const page = loadPage(req.params.slug);
-    db.prepare('UPDATE wiki_pages SET locked = ? WHERE id = ?').run(page.locked ? 0 : 1, page.id);
+  router.post('/wiki/:slug/lock', requireRole('mod'), async (req, res) => {
+    const page = await loadPage(req.params.slug);
+    await db.run('UPDATE wiki_pages SET locked = ? WHERE id = ?', page.locked ? 0 : 1, page.id);
     res.flash('success', page.locked ? 'Page unlocked.' : 'Page locked. Only moderators can edit it now.');
     res.redirect(`/wiki/${page.slug}`);
   });

@@ -5,11 +5,13 @@
 
 const crypto = require('node:crypto');
 const path = require('node:path');
-const { open, transaction, ensureMainWikiPage } = require('../src/db');
+const { ensureMainWikiPage } = require('../src/db');
+const { open } = require('../src/sqlite-node');
 const { hashPassword } = require('../src/auth');
 
 const dbFile = process.env.DATABASE_FILE || path.join(__dirname, '..', 'data', 'topgoal.db');
-const db = open(dbFile);
+const hub = open(dbFile);
+const db = hub.sqlite;
 
 if (db.prepare('SELECT COUNT(*) AS n FROM users').get().n > 0) {
   console.error('This database already has users. The demo seed only runs on an empty database.');
@@ -21,7 +23,9 @@ const now = Date.now();
 const day = 86400000;
 const code = () => 'TG-' + crypto.randomBytes(3).toString('hex').toUpperCase().slice(0, 5);
 
-transaction(db, () => {
+let adminId;
+db.exec('BEGIN');
+{
   const addUser = db.prepare(
     'INSERT INTO users (username, password_hash, role, verified, verified_at, verify_code, ign, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
   );
@@ -35,7 +39,7 @@ transaction(db, () => {
   ]) {
     users[name] = addUser.run(name, hash, role, verified, verified ? now - 20 * day : null, code(), ign, now - 30 * day).lastInsertRowid;
   }
-  ensureMainWikiPage(db, users['demo-admin']);
+  adminId = users['demo-admin'];
 
   const addFa = db.prepare(
     `INSERT INTO fas (name, tag, region, description, recruiting, points, members_count, leader_user_id, created_at, updated_at)
@@ -98,7 +102,10 @@ transaction(db, () => {
     const id = addThread.run(cat(slug), users[author], title, pinned, posts.length, created, created + posts.length * 3600000).lastInsertRowid;
     posts.forEach(([who, body], i) => addPost.run(id, users[who], body, created + i * 3600000));
   }
-});
+  db.exec('COMMIT');
+}
 
-console.log(`Demo data added to ${dbFile}`);
-console.log(`Demo accounts: demo-admin, demo-mod, striker_sam, keeper_kim — password: ${password}`);
+ensureMainWikiPage(hub, adminId).then(() => {
+  console.log(`Demo data added to ${dbFile}`);
+  console.log(`Demo accounts: demo-admin, demo-mod, striker_sam, keeper_kim — password: ${password}`);
+});

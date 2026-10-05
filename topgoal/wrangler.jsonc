@@ -1,0 +1,15 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "topgoal-hub",
+  "main": "worker.mjs",
+  "compatibility_date": "2025-09-20",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": { "directory": "./public" },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "topgoal-hub"
+    }
+  ],
+  "observability": { "enabled": true }
+}

@@ -1,10 +1,9 @@
 'use strict';
 
 const express = require('express');
-const { transaction } = require('../db');
 const { requireUser, requireRole, hasRole, rateLimiter } = require('../auth');
 const { html, csrfField, userLink, dateTime, markup, BLUE_TICK } = require('../render');
-const { notFound, forbidden, intParam, text, paging } = require('./util');
+const { notFound, forbidden, intParam, text, paging, wikiLinkChecker } = require('./util');
 
 const THREADS_PER_PAGE = 30;
 const POSTS_PER_PAGE = 25;
@@ -45,40 +44,32 @@ module.exports = ({ db }) => {
     }
   };
 
-  const loadCategory = (slug) => {
-    const category = db.prepare('SELECT * FROM forum_categories WHERE slug = ?').get(String(slug));
+  const loadCategory = async (slug) => {
+    const category = await db.get('SELECT * FROM forum_categories WHERE slug = ?', String(slug));
     if (!category) throw notFound('Forum not found.');
     return category;
   };
 
-  const loadThread = (idParam) => {
+  const loadThread = async (idParam) => {
     const id = intParam(idParam);
     const thread =
       id &&
-      db
-        .prepare(
-          `SELECT t.*, c.slug AS category_slug, c.name AS category_name, c.verified_only
-             FROM threads t JOIN forum_categories c ON c.id = t.category_id WHERE t.id = ?`
-        )
-        .get(id);
+      await db.get(`SELECT t.*, c.slug AS category_slug, c.name AS category_name, c.verified_only
+             FROM threads t JOIN forum_categories c ON c.id = t.category_id WHERE t.id = ?`, id);
     if (!thread) throw notFound('Thread not found.');
     return thread;
   };
 
   // ─── Index ───────────────────────────────────────────────────────────────
 
-  router.get('/forum', (req, res) => {
-    const categories = db
-      .prepare(
-        `SELECT c.*,
+  router.get('/forum', async (req, res) => {
+    const categories = await db.all(`SELECT c.*,
                 (SELECT COUNT(*) FROM threads t WHERE t.category_id = c.id) AS thread_count,
                 (SELECT COALESCE(SUM(post_count), 0) FROM threads t WHERE t.category_id = c.id) AS post_count,
                 (SELECT t.id FROM threads t WHERE t.category_id = c.id ORDER BY t.last_post_at DESC LIMIT 1) AS last_thread_id,
                 (SELECT t.title FROM threads t WHERE t.category_id = c.id ORDER BY t.last_post_at DESC LIMIT 1) AS last_thread_title,
                 (SELECT t.last_post_at FROM threads t WHERE t.category_id = c.id ORDER BY t.last_post_at DESC LIMIT 1) AS last_post_at
-           FROM forum_categories c ORDER BY c.position, c.name`
-      )
-      .all();
+           FROM forum_categories c ORDER BY c.position, c.name`);
 
     res.page({
       title: 'Forums',
@@ -103,16 +94,12 @@ module.exports = ({ db }) => {
 
   // ─── Category ────────────────────────────────────────────────────────────
 
-  router.get('/forum/:slug', (req, res) => {
-    const category = loadCategory(req.params.slug);
+  router.get('/forum/:slug', async (req, res) => {
+    const category = await loadCategory(req.params.slug);
     const { page, perPage, offset } = paging(req, THREADS_PER_PAGE);
-    const { n: total } = db.prepare('SELECT COUNT(*) AS n FROM threads WHERE category_id = ?').get(category.id);
-    const threads = db
-      .prepare(
-        `SELECT t.*, u.username, u.role, u.verified FROM threads t JOIN users u ON u.id = t.user_id
-          WHERE t.category_id = ? ORDER BY t.pinned DESC, t.last_post_at DESC LIMIT ? OFFSET ?`
-      )
-      .all(category.id, perPage, offset);
+    const { n: total } = await db.get('SELECT COUNT(*) AS n FROM threads WHERE category_id = ?', category.id);
+    const threads = await db.all(`SELECT t.*, u.username, u.role, u.verified FROM threads t JOIN users u ON u.id = t.user_id
+          WHERE t.category_id = ? ORDER BY t.pinned DESC, t.last_post_at DESC LIMIT ? OFFSET ?`, category.id, perPage, offset);
 
     res.page({
       title: category.name,
@@ -165,14 +152,14 @@ module.exports = ({ db }) => {
         </form>`,
     });
 
-  router.get('/forum/:slug/new', requireUser, (req, res) => {
-    const category = loadCategory(req.params.slug);
+  router.get('/forum/:slug/new', requireUser, async (req, res) => {
+    const category = await loadCategory(req.params.slug);
     if (!canStartThread(req.user, category)) throw forbidden('You cannot start threads in this forum.');
     newThreadPage(req, res, category);
   });
 
-  router.post('/forum/:slug/new', requireUser, (req, res) => {
-    const category = loadCategory(req.params.slug);
+  router.post('/forum/:slug/new', requireUser, async (req, res) => {
+    const category = await loadCategory(req.params.slug);
     if (!canStartThread(req.user, category)) throw forbidden('You cannot start threads in this forum.');
     const title = text(req.body.title, 120);
     const body = text(req.body.body, MAX_BODY);
@@ -181,37 +168,24 @@ module.exports = ({ db }) => {
       return newThreadPage(req, res, category, { title, body, error: 'A title and a message are both required.' });
     }
     checkPostRate(req);
-    const threadId = transaction(db, () => {
-      const now = Date.now();
-      const id = db
-        .prepare(
-          'INSERT INTO threads (category_id, user_id, title, post_count, created_at, last_post_at) VALUES (?, ?, ?, 1, ?, ?)'
-        )
-        .run(category.id, req.user.id, title, now, now).lastInsertRowid;
-      db.prepare('INSERT INTO posts (thread_id, user_id, body, created_at) VALUES (?, ?, ?, ?)').run(id, req.user.id, body, now);
-      return id;
-    });
+    const now = Date.now();
+    const [{ lastInsertRowid: threadId }] = await db.batch([
+      ['INSERT INTO threads (category_id, user_id, title, post_count, created_at, last_post_at) VALUES (?, ?, ?, 1, ?, ?)', category.id, req.user.id, title, now, now],
+      ['INSERT INTO posts (thread_id, user_id, body, created_at) VALUES (last_insert_rowid(), ?, ?, ?)', req.user.id, body, now],
+    ]);
     res.redirect(`/t/${threadId}`);
   });
 
   // ─── Thread ──────────────────────────────────────────────────────────────
 
-  const wikiExists = (() => {
-    const stmt = db.prepare('SELECT 1 FROM wiki_pages WHERE slug = ?');
-    return (slug) => Boolean(stmt.get(slug));
-  })();
-
-  router.get('/t/:id', (req, res) => {
-    const thread = loadThread(req.params.id);
+  router.get('/t/:id', async (req, res) => {
+    const thread = await loadThread(req.params.id);
     const { page, perPage, offset } = paging(req, POSTS_PER_PAGE);
-    const posts = db
-      .prepare(
-        `SELECT p.*, u.username, u.role, u.verified, u.ign, f.name AS fa_name, f.id AS fa_id
+    const posts = await db.all(`SELECT p.*, u.username, u.role, u.verified, u.ign, f.name AS fa_name, f.id AS fa_id
            FROM posts p JOIN users u ON u.id = p.user_id LEFT JOIN fas f ON f.id = u.fa_id
-          WHERE p.thread_id = ? ORDER BY p.id LIMIT ? OFFSET ?`
-      )
-      .all(thread.id, perPage, offset);
-    const { n: total } = db.prepare('SELECT COUNT(*) AS n FROM posts WHERE thread_id = ?').get(thread.id);
+          WHERE p.thread_id = ? ORDER BY p.id LIMIT ? OFFSET ?`, thread.id, perPage, offset);
+    const { n: total } = await db.get('SELECT COUNT(*) AS n FROM posts WHERE thread_id = ?', thread.id);
+    const wikiExists = await wikiLinkChecker(db, posts.filter((p) => !p.deleted).map((p) => p.body));
     const isMod = hasRole(req.user, 'mod');
     const canReply = canPostIn(req.user, thread) && (!thread.locked || isMod);
 
@@ -273,8 +247,8 @@ module.exports = ({ db }) => {
     });
   });
 
-  router.post('/t/:id/reply', requireUser, (req, res) => {
-    const thread = loadThread(req.params.id);
+  router.post('/t/:id/reply', requireUser, async (req, res) => {
+    const thread = await loadThread(req.params.id);
     if (!canPostIn(req.user, thread)) throw forbidden('Only verified managers can post in this forum.');
     if (thread.locked && !hasRole(req.user, 'mod')) throw forbidden('This thread is locked.');
     const body = text(req.body.body, MAX_BODY);
@@ -283,20 +257,17 @@ module.exports = ({ db }) => {
       return res.redirect(`/t/${thread.id}#reply`);
     }
     checkPostRate(req);
-    const postId = transaction(db, () => {
-      const now = Date.now();
-      const id = db
-        .prepare('INSERT INTO posts (thread_id, user_id, body, created_at) VALUES (?, ?, ?, ?)')
-        .run(thread.id, req.user.id, body, now).lastInsertRowid;
-      db.prepare('UPDATE threads SET post_count = post_count + 1, last_post_at = ? WHERE id = ?').run(now, thread.id);
-      return id;
-    });
+    const now = Date.now();
+    const [{ lastInsertRowid: postId }] = await db.batch([
+      ['INSERT INTO posts (thread_id, user_id, body, created_at) VALUES (?, ?, ?, ?)', thread.id, req.user.id, body, now],
+      ['UPDATE threads SET post_count = post_count + 1, last_post_at = ? WHERE id = ?', now, thread.id],
+    ]);
     const lastPage = Math.ceil((thread.post_count + 1) / POSTS_PER_PAGE);
     res.redirect(`/t/${thread.id}?page=${lastPage}#p${postId}`);
   });
 
-  router.post('/t/:id/moderate', requireRole('mod'), (req, res) => {
-    const thread = loadThread(req.params.id);
+  router.post('/t/:id/moderate', requireRole('mod'), async (req, res) => {
+    const thread = await loadThread(req.params.id);
     const actions = {
       pin: 'UPDATE threads SET pinned = 1 WHERE id = ?',
       unpin: 'UPDATE threads SET pinned = 0 WHERE id = ?',
@@ -306,7 +277,7 @@ module.exports = ({ db }) => {
     };
     const sql = actions[req.body.action];
     if (!sql) throw Object.assign(new Error('Unknown action.'), { status: 400 });
-    db.prepare(sql).run(thread.id);
+    await db.run(sql, thread.id);
     if (req.body.action === 'delete') {
       res.flash('success', 'Thread deleted.');
       return res.redirect(`/forum/${thread.category_slug}`);
@@ -316,17 +287,17 @@ module.exports = ({ db }) => {
 
   // ─── Posts ───────────────────────────────────────────────────────────────
 
-  const loadOwnPost = (req) => {
+  const loadOwnPost = async (req) => {
     const id = intParam(req.params.id);
-    const post = id && db.prepare('SELECT * FROM posts WHERE id = ? AND deleted = 0').get(id);
+    const post = id && await db.get('SELECT * FROM posts WHERE id = ? AND deleted = 0', id);
     if (!post) throw notFound('Post not found.');
     if (post.user_id !== req.user.id && !hasRole(req.user, 'mod')) throw forbidden('You can only change your own posts.');
     return post;
   };
 
-  router.get('/p/:id/edit', requireUser, (req, res) => {
-    const post = loadOwnPost(req);
-    const thread = loadThread(String(post.thread_id));
+  router.get('/p/:id/edit', requireUser, async (req, res) => {
+    const post = await loadOwnPost(req);
+    const thread = await loadThread(String(post.thread_id));
     res.page({
       title: 'Edit post',
       active: '/forum',
@@ -342,17 +313,17 @@ module.exports = ({ db }) => {
     });
   });
 
-  router.post('/p/:id/edit', requireUser, (req, res) => {
-    const post = loadOwnPost(req);
+  router.post('/p/:id/edit', requireUser, async (req, res) => {
+    const post = await loadOwnPost(req);
     const body = text(req.body.body, MAX_BODY);
     if (!body) throw Object.assign(new Error('A post cannot be empty.'), { status: 400 });
-    db.prepare('UPDATE posts SET body = ?, edited_at = ? WHERE id = ?').run(body, Date.now(), post.id);
+    await db.run('UPDATE posts SET body = ?, edited_at = ? WHERE id = ?', body, Date.now(), post.id);
     res.redirect(`/t/${post.thread_id}#p${post.id}`);
   });
 
-  router.post('/p/:id/delete', requireUser, (req, res) => {
-    const post = loadOwnPost(req);
-    db.prepare('UPDATE posts SET deleted = 1 WHERE id = ?').run(post.id);
+  router.post('/p/:id/delete', requireUser, async (req, res) => {
+    const post = await loadOwnPost(req);
+    await db.run('UPDATE posts SET deleted = 1 WHERE id = ?', post.id);
     res.flash('success', 'Post removed.');
     res.redirect(`/t/${post.thread_id}`);
   });

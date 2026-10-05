@@ -112,6 +112,16 @@ function inline(text, wikiExists) {
   return s;
 }
 
+// Slugs of every [[Wiki Link]] in a piece of text, so callers can look them up before rendering.
+function wikiLinkSlugs(source) {
+  const slugs = new Set();
+  for (const m of String(source).matchAll(/\[\[([^\]|]{1,80})\]\]/g)) {
+    const slug = slugify(m[1]);
+    if (slug) slugs.add(slug);
+  }
+  return slugs;
+}
+
 function markup(source, { wikiExists } = {}) {
   const lines = String(source).replace(/\r\n?/g, '\n').split('\n');
   const out = [];
@@ -269,6 +279,7 @@ module.exports = {
   toDateTimeLocal,
   daysLeft,
   markup,
+  wikiLinkSlugs,
   userLink,
   csrfField,
   layout,

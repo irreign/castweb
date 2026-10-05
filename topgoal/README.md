@@ -50,7 +50,30 @@ npm test
 | `DATABASE_FILE` | `data/topgoal.db` | Location of the SQLite database file |
 | `TRUST_PROXY` | unset | Set to `1` behind a reverse proxy or host that ends HTTPS (Render, Railway, Fly.io, nginx). This gives secure cookies and the correct client IP for rate limits. |
 
-## Deploying
+## Deploying to Cloudflare (Workers + D1)
+
+The same app runs on Cloudflare Workers. There, the database is Cloudflare D1 and the files in `public/` are served as static assets. The tables and default forums are created automatically on the first request, so there is no migration step.
+
+1. Create a Cloudflare API token with **Workers Scripts: Edit** and **D1: Edit** permissions. Also note your account ID.
+2. Deploy:
+
+   ```bash
+   cd topgoal
+   npm install
+   export CLOUDFLARE_API_TOKEN=…   CLOUDFLARE_ACCOUNT_ID=…
+   npm run deploy
+   ```
+
+   On the first deploy, Wrangler creates the `topgoal-hub` D1 database and links it to the Worker. The site goes live at `https://topgoal-hub.<your-subdomain>.workers.dev`. You can add your own domain in the Cloudflare dashboard (Workers → topgoal-hub → Domains & Routes).
+3. Open the site and **register your own account first**, so that it becomes the admin.
+
+To try it on Cloudflare's runtime locally, with a local D1 database: `npm run cf:dev`.
+
+**Plan note:** Logging in and signing up hash the password with scrypt. That takes about 25 ms of CPU time. The Workers **Free** plan allows 10 ms of CPU per request, so logins can fail there. The **Workers Paid** plan ($5/month) has much higher limits and is recommended. Browsing the site uses far less CPU.
+
+**Rate limits** (login attempts, posting speed) are kept in memory. On Workers, each instance keeps its own counts, so the limits are looser than on a single Node server.
+
+## Deploying to a Node host
 
 The site is one Node process with one database file. Any host that runs Node and has a **persistent disk** works, for example Render, Railway, Fly.io or a small VPS:
 
@@ -63,13 +86,16 @@ The site is one Node process with one database file. Any host that runs Node and
 ## Project layout
 
 ```
-server.js            start-up
+server.js            Node start-up (built-in SQLite)
+worker.mjs           Cloudflare Workers start-up (D1)
+wrangler.jsonc       Cloudflare configuration
 src/app.js           Express app, security headers, error pages
-src/db.js            SQLite schema and default forums
+src/db.js            schema, default forums, async database interface, D1 driver
+src/sqlite-node.js   Node driver (node:sqlite)
 src/auth.js          passwords, sessions, CSRF, roles, rate limiting
 src/render.js        auto-escaping HTML templates, layout, post/wiki formatting
 src/routes/*.js      home, auth, forum, wiki, season, fas, profile, verify, admin
-public/              CSS, small client script (countdown, mobile menu)
+public/static/       CSS, small client script (countdown, mobile menu)
 scripts/seed-demo.js sample content for previews
 test/                end-to-end tests (node:test)
 ```

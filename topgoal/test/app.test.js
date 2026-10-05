@@ -2,7 +2,7 @@
 
 const { test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
-const { open } = require('../src/db');
+const { open } = require('../src/sqlite-node');
 const { createApp } = require('../src/app');
 const { markup } = require('../src/render');
 
@@ -11,8 +11,9 @@ let base;
 let db;
 
 before(async () => {
-  db = open(':memory:');
-  server = createApp(db).listen(0);
+  const hub = open(':memory:');
+  db = hub.sqlite; // synchronous handle for assertions
+  server = createApp(hub).listen(0);
   await new Promise((resolve) => server.once('listening', resolve));
   base = `http://127.0.0.1:${server.address().port}`;
 });

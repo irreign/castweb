@@ -1,7 +1,6 @@
 'use strict';
 
 const express = require('express');
-const { transaction } = require('../db');
 const { requireUser, requireRole, hasRole } = require('../auth');
 const { html, csrfField, userLink, dateTime, markup } = require('../render');
 const { notFound, forbidden, intParam, text } = require('./util');
@@ -9,9 +8,9 @@ const { notFound, forbidden, intParam, text } = require('./util');
 module.exports = ({ db }) => {
   const router = express.Router();
 
-  const loadFa = (idParam) => {
+  const loadFa = async (idParam) => {
     const id = intParam(idParam);
-    const fa = id && db.prepare('SELECT * FROM fas WHERE id = ?').get(id);
+    const fa = id && await db.get('SELECT * FROM fas WHERE id = ?', id);
     if (!fa) throw notFound('FA not found.');
     return fa;
   };
@@ -63,7 +62,7 @@ module.exports = ({ db }) => {
 
   // ─── Directory ───────────────────────────────────────────────────────────
 
-  router.get('/fas', (req, res) => {
+  router.get('/fas', async (req, res) => {
     const q = text(req.query.q, 40);
     const recruiting = req.query.recruiting === '1';
     const where = [];
@@ -74,15 +73,11 @@ module.exports = ({ db }) => {
       params.push(like, like, like);
     }
     if (recruiting) where.push('f.recruiting = 1');
-    const fas = db
-      .prepare(
-        `SELECT f.*, u.username AS leader_name, u.role AS leader_role, u.verified AS leader_verified,
+    const fas = await db.all(`SELECT f.*, u.username AS leader_name, u.role AS leader_role, u.verified AS leader_verified,
                 (SELECT COUNT(*) FROM users m WHERE m.fa_id = f.id) AS site_members
            FROM fas f LEFT JOIN users u ON u.id = f.leader_user_id
           ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
-          ORDER BY f.points DESC, f.name LIMIT 200`
-      )
-      .all(...params);
+          ORDER BY f.points DESC, f.name LIMIT 200`, ...params);
 
     res.page({
       title: 'FA directory',
@@ -119,7 +114,7 @@ module.exports = ({ db }) => {
     });
   });
 
-  router.get('/fas/new', requireUser, (req, res) => {
+  router.get('/fas/new', requireUser, async (req, res) => {
     if (!canCreate(req.user)) throw forbidden('Only verified managers can list an FA. Get your blue tick first.');
     res.page({
       title: 'List your FA',
@@ -130,42 +125,38 @@ module.exports = ({ db }) => {
     });
   });
 
-  router.post('/fas', requireUser, (req, res) => {
+  router.post('/fas', requireUser, async (req, res) => {
     if (!canCreate(req.user)) throw forbidden('Only verified managers can list an FA.');
     const fa = readFa(req.body, false);
     let error = '';
     if (!fa.name) error = 'Give your FA a name.';
-    else if (db.prepare('SELECT 1 FROM fas WHERE name = ?').get(fa.name)) error = 'An FA with that name is already listed. Ask a moderator if it is yours.';
+    else if (await db.get('SELECT 1 FROM fas WHERE name = ?', fa.name)) error = 'An FA with that name is already listed. Ask a moderator if it is yours.';
     if (error) {
       res.status(400);
       return res.page({ title: 'List your FA', body: html`<h1>List your FA</h1>${faForm(res, '/fas', fa, { error })}` });
     }
-    const id = transaction(db, () => {
-      const now = Date.now();
-      const newId = db
-        .prepare(
-          `INSERT INTO fas (name, tag, region, description, recruiting, members_count, leader_user_id, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-        )
-        .run(fa.name, fa.tag, fa.region, fa.description, fa.recruiting, fa.members_count, req.user.id, now, now).lastInsertRowid;
-      db.prepare('UPDATE users SET fa_id = ? WHERE id = ?').run(newId, req.user.id);
-      return newId;
-    });
+    const now = Date.now();
+    const [{ lastInsertRowid: id }] = await db.batch([
+      [
+        `INSERT INTO fas (name, tag, region, description, recruiting, members_count, leader_user_id, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        fa.name, fa.tag, fa.region, fa.description, fa.recruiting, fa.members_count, req.user.id, now, now,
+      ],
+      ['UPDATE users SET fa_id = last_insert_rowid() WHERE id = ?', req.user.id],
+    ]);
     res.flash('success', `${fa.name} is now listed.`);
     res.redirect(`/fas/${id}`);
   });
 
   // ─── FA page ─────────────────────────────────────────────────────────────
 
-  router.get('/fas/:id', (req, res) => {
-    const fa = loadFa(req.params.id);
+  router.get('/fas/:id', async (req, res) => {
+    const fa = await loadFa(req.params.id);
     const leader = fa.leader_user_id
-      ? db.prepare('SELECT username, role, verified FROM users WHERE id = ?').get(fa.leader_user_id)
+      ? await db.get('SELECT username, role, verified FROM users WHERE id = ?', fa.leader_user_id)
       : null;
-    const members = db
-      .prepare('SELECT username, role, verified, ign FROM users WHERE fa_id = ? AND banned = 0 ORDER BY verified DESC, username')
-      .all(fa.id);
-    const { n: rankAbove } = db.prepare('SELECT COUNT(*) AS n FROM fas WHERE points > ?').get(fa.points);
+    const members = await db.all('SELECT username, role, verified, ign FROM users WHERE fa_id = ? AND banned = 0 ORDER BY verified DESC, username', fa.id);
+    const { n: rankAbove } = await db.get('SELECT COUNT(*) AS n FROM fas WHERE points > ?', fa.points);
     const inThisFa = req.user && req.user.fa_id === fa.id;
 
     res.page({
@@ -216,10 +207,10 @@ module.exports = ({ db }) => {
     });
   });
 
-  router.get('/fas/:id/edit', requireUser, (req, res) => {
-    const fa = loadFa(req.params.id);
+  router.get('/fas/:id/edit', requireUser, async (req, res) => {
+    const fa = await loadFa(req.params.id);
     if (!canManage(req.user, fa)) throw forbidden('Only the FA leader or a moderator can edit this FA.');
-    const leader = fa.leader_user_id && db.prepare('SELECT username FROM users WHERE id = ?').get(fa.leader_user_id);
+    const leader = fa.leader_user_id && await db.get('SELECT username FROM users WHERE id = ?', fa.leader_user_id);
     res.page({
       title: `Edit ${fa.name}`,
       active: '/fas',
@@ -228,19 +219,19 @@ module.exports = ({ db }) => {
     });
   });
 
-  router.post('/fas/:id/edit', requireUser, (req, res) => {
-    const fa = loadFa(req.params.id);
+  router.post('/fas/:id/edit', requireUser, async (req, res) => {
+    const fa = await loadFa(req.params.id);
     if (!canManage(req.user, fa)) throw forbidden('Only the FA leader or a moderator can edit this FA.');
     const isMod = hasRole(req.user, 'mod');
     const next = readFa(req.body, isMod);
     let error = '';
     let leaderId = fa.leader_user_id;
     if (!next.name) error = 'The FA needs a name.';
-    else if (db.prepare('SELECT 1 FROM fas WHERE name = ? AND id != ?').get(next.name, fa.id)) error = 'Another FA already uses that name.';
+    else if (await db.get('SELECT 1 FROM fas WHERE name = ? AND id != ?', next.name, fa.id)) error = 'Another FA already uses that name.';
     else if (isMod) {
       if (!next.leader) leaderId = null;
       else {
-        const leader = db.prepare('SELECT id FROM users WHERE username = ?').get(next.leader);
+        const leader = await db.get('SELECT id FROM users WHERE username = ?', next.leader);
         if (!leader) error = `No user called ${next.leader}.`;
         else leaderId = leader.id;
       }
@@ -252,11 +243,8 @@ module.exports = ({ db }) => {
         body: html`<h1>Edit ${fa.name}</h1>${faForm(res, `/fas/${fa.id}/edit`, next, { isMod, error, leaderName: next.leader || '' })}`,
       });
     }
-    db.prepare(
-      `UPDATE fas SET name = ?, tag = ?, region = ?, description = ?, recruiting = ?, members_count = ?,
-              points = ?, leader_user_id = ?, updated_at = ? WHERE id = ?`
-    ).run(
-      next.name,
+    await db.run(`UPDATE fas SET name = ?, tag = ?, region = ?, description = ?, recruiting = ?, members_count = ?,
+              points = ?, leader_user_id = ?, updated_at = ? WHERE id = ?`, next.name,
       next.tag,
       next.region,
       next.description,
@@ -265,28 +253,27 @@ module.exports = ({ db }) => {
       isMod ? next.points : fa.points,
       leaderId,
       Date.now(),
-      fa.id
-    );
+      fa.id);
     res.flash('success', 'FA updated.');
     res.redirect(`/fas/${fa.id}`);
   });
 
-  router.post('/fas/:id/join', requireUser, (req, res) => {
-    const fa = loadFa(req.params.id);
-    db.prepare('UPDATE users SET fa_id = ? WHERE id = ?').run(fa.id, req.user.id);
+  router.post('/fas/:id/join', requireUser, async (req, res) => {
+    const fa = await loadFa(req.params.id);
+    await db.run('UPDATE users SET fa_id = ? WHERE id = ?', fa.id, req.user.id);
     res.flash('success', `Your profile now shows ${fa.name}.`);
     res.redirect(`/fas/${fa.id}`);
   });
 
-  router.post('/fas/leave', requireUser, (req, res) => {
-    db.prepare('UPDATE users SET fa_id = NULL WHERE id = ?').run(req.user.id);
+  router.post('/fas/leave', requireUser, async (req, res) => {
+    await db.run('UPDATE users SET fa_id = NULL WHERE id = ?', req.user.id);
     res.flash('success', 'Your FA has been removed from your profile.');
     res.redirect('/fas');
   });
 
-  router.post('/fas/:id/delete', requireRole('mod'), (req, res) => {
-    const fa = loadFa(req.params.id);
-    db.prepare('DELETE FROM fas WHERE id = ?').run(fa.id);
+  router.post('/fas/:id/delete', requireRole('mod'), async (req, res) => {
+    const fa = await loadFa(req.params.id);
+    await db.run('DELETE FROM fas WHERE id = ?', fa.id);
     res.flash('success', `${fa.name} removed.`);
     res.redirect('/fas');
   });

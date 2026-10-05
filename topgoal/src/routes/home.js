@@ -7,35 +7,23 @@ const { currentSeason, seasonCountdown } = require('./season');
 module.exports = ({ db }) => {
   const router = express.Router();
 
-  router.get('/', (req, res) => {
-    const season = currentSeason(db);
+  router.get('/', async (req, res) => {
+    const season = await currentSeason(db);
     const packPlayers = season
-      ? db
-          .prepare(
-            'SELECT * FROM pack_players WHERE season_id = ? ORDER BY rating IS NULL, rating DESC, player_name LIMIT 6'
-          )
-          .all(season.id)
+      ? await db.all('SELECT * FROM pack_players WHERE season_id = ? ORDER BY rating IS NULL, rating DESC, player_name LIMIT 6', season.id)
       : [];
-    const threads = db
-      .prepare(
-        `SELECT t.id, t.title, t.post_count, t.last_post_at, c.name AS category, c.slug AS category_slug,
+    const threads = await db.all(`SELECT t.id, t.title, t.post_count, t.last_post_at, c.name AS category, c.slug AS category_slug,
                 u.username, u.role, u.verified
            FROM threads t
            JOIN forum_categories c ON c.id = t.category_id
            JOIN users u ON u.id = t.user_id
-          ORDER BY t.last_post_at DESC LIMIT 8`
-      )
-      .all();
-    const wiki = db.prepare('SELECT slug, title, updated_at FROM wiki_pages ORDER BY updated_at DESC LIMIT 6').all();
-    const topFas = db.prepare('SELECT id, name, tag, points, recruiting FROM fas ORDER BY points DESC, name LIMIT 5').all();
-    const stats = db
-      .prepare(
-        `SELECT (SELECT COUNT(*) FROM users) AS users,
+          ORDER BY t.last_post_at DESC LIMIT 8`);
+    const wiki = await db.all('SELECT slug, title, updated_at FROM wiki_pages ORDER BY updated_at DESC LIMIT 6');
+    const topFas = await db.all('SELECT id, name, tag, points, recruiting FROM fas ORDER BY points DESC, name LIMIT 5');
+    const stats = await db.get(`SELECT (SELECT COUNT(*) FROM users) AS users,
                 (SELECT COUNT(*) FROM users WHERE verified = 1) AS verified,
                 (SELECT COUNT(*) FROM posts WHERE deleted = 0) AS posts,
-                (SELECT COUNT(*) FROM wiki_pages) AS pages`
-      )
-      .get();
+                (SELECT COUNT(*) FROM wiki_pages) AS pages`);
 
     res.page({
       active: '/',
@@ -106,24 +94,16 @@ module.exports = ({ db }) => {
     });
   });
 
-  router.get('/rankings', (req, res) => {
-    const fas = db
-      .prepare(
-        `SELECT f.*, (SELECT COUNT(*) FROM users u WHERE u.fa_id = f.id) AS site_members
-           FROM fas f ORDER BY f.points DESC, f.name LIMIT 100`
-      )
-      .all();
-    const contributors = db
-      .prepare(
-        `SELECT u.username, u.role, u.verified,
+  router.get('/rankings', async (req, res) => {
+    const fas = await db.all(`SELECT f.*, (SELECT COUNT(*) FROM users u WHERE u.fa_id = f.id) AS site_members
+           FROM fas f ORDER BY f.points DESC, f.name LIMIT 100`);
+    const contributors = (await db.all(`SELECT u.username, u.role, u.verified,
                 (SELECT COUNT(*) FROM posts p WHERE p.user_id = u.id AND p.deleted = 0) AS posts,
                 (SELECT COUNT(*) FROM wiki_revisions r WHERE r.user_id = u.id) AS edits
            FROM users u WHERE u.banned = 0
           ORDER BY posts + edits * 2 DESC, u.created_at
-          LIMIT 20`
-      )
-      .all()
-      .filter((u) => u.posts + u.edits > 0);
+          LIMIT 20`)
+    ).filter((u) => u.posts + u.edits > 0);
 
     res.page({
       title: 'Rankings',
@@ -162,7 +142,7 @@ module.exports = ({ db }) => {
     });
   });
 
-  router.get('/rules', (req, res) => {
+  router.get('/rules', async (req, res) => {
     res.page({
       title: 'Community rules',
       body: html`

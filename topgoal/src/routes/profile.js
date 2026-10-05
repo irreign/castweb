@@ -8,24 +8,14 @@ const { notFound, text } = require('./util');
 module.exports = ({ db }) => {
   const router = express.Router();
 
-  router.get('/u/:username', (req, res) => {
-    const user = db
-      .prepare(
-        `SELECT u.id, u.username, u.role, u.verified, u.verified_at, u.ign, u.bio, u.banned, u.created_at,
+  router.get('/u/:username', async (req, res) => {
+    const user = await db.get(`SELECT u.id, u.username, u.role, u.verified, u.verified_at, u.ign, u.bio, u.banned, u.created_at,
                 f.id AS fa_id, f.name AS fa_name
-           FROM users u LEFT JOIN fas f ON f.id = u.fa_id WHERE u.username = ?`
-      )
-      .get(String(req.params.username));
+           FROM users u LEFT JOIN fas f ON f.id = u.fa_id WHERE u.username = ?`, String(req.params.username));
     if (!user) throw notFound('No manager with that name.');
-    const threads = db
-      .prepare('SELECT id, title, created_at FROM threads WHERE user_id = ? ORDER BY id DESC LIMIT 10')
-      .all(user.id);
-    const counts = db
-      .prepare(
-        `SELECT (SELECT COUNT(*) FROM posts WHERE user_id = ? AND deleted = 0) AS posts,
-                (SELECT COUNT(*) FROM wiki_revisions WHERE user_id = ?) AS edits`
-      )
-      .get(user.id, user.id);
+    const threads = await db.all('SELECT id, title, created_at FROM threads WHERE user_id = ? ORDER BY id DESC LIMIT 10', user.id);
+    const counts = await db.get(`SELECT (SELECT COUNT(*) FROM posts WHERE user_id = ? AND deleted = 0) AS posts,
+                (SELECT COUNT(*) FROM wiki_revisions WHERE user_id = ?) AS edits`, user.id, user.id);
 
     res.page({
       title: user.username,
@@ -96,24 +86,20 @@ module.exports = ({ db }) => {
     });
 
   const loadMe = (req) =>
-    db
-      .prepare(
-        `SELECT u.*, f.name AS fa_name FROM users u LEFT JOIN fas f ON f.id = u.fa_id WHERE u.id = ?`
-      )
-      .get(req.user.id);
+    db.get(`SELECT u.*, f.name AS fa_name FROM users u LEFT JOIN fas f ON f.id = u.fa_id WHERE u.id = ?`, req.user.id);
 
-  router.get('/settings', requireUser, (req, res) => settingsPage(req, res, loadMe(req)));
+  router.get('/settings', requireUser, async (req, res) => settingsPage(req, res, await loadMe(req)));
 
-  router.post('/settings', requireUser, (req, res) => {
-    const me = loadMe(req);
+  router.post('/settings', requireUser, async (req, res) => {
+    const me = await loadMe(req);
     const ign = me.verified ? me.ign : text(req.body.ign, 40) || null;
-    db.prepare('UPDATE users SET ign = ?, bio = ? WHERE id = ?').run(ign, text(req.body.bio, 2000), me.id);
+    await db.run('UPDATE users SET ign = ?, bio = ? WHERE id = ?', ign, text(req.body.bio, 2000), me.id);
     res.flash('success', 'Profile saved.');
     res.redirect('/settings');
   });
 
-  router.post('/settings/password', requireUser, (req, res) => {
-    const me = loadMe(req);
+  router.post('/settings/password', requireUser, async (req, res) => {
+    const me = await loadMe(req);
     const current = String(req.body.current || '');
     const password = String(req.body.password || '');
     if (!verifyPassword(current, me.password_hash)) {
@@ -124,9 +110,9 @@ module.exports = ({ db }) => {
       res.status(400);
       return settingsPage(req, res, me, { error: 'New passwords must be at least 8 characters.' });
     }
-    db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hashPassword(password), me.id);
+    await db.run('UPDATE users SET password_hash = ? WHERE id = ?', hashPassword(password), me.id);
     // Sign out every other device.
-    revokeOtherSessions(db, req, me.id);
+    await revokeOtherSessions(db, req, me.id);
     res.flash('success', 'Password changed. Other devices have been signed out.');
     res.redirect('/settings');
   });

@@ -2,8 +2,8 @@
 
 const crypto = require('node:crypto');
 const express = require('express');
-const { ensureMainWikiPage, transaction } = require('../db');
-const { hashPassword, verifyPassword, createSession, destroySession, rateLimiter, safeNext } = require('../auth');
+const { ensureMainWikiPage } = require('../db');
+const { hashPassword, verifyPassword, createSession, destroySession, rateLimiter, clientIp, safeNext } = require('../auth');
 const { html, csrfField } = require('../render');
 
 const USERNAME_RE = /^[A-Za-z0-9_.-]{3,24}$/;
@@ -47,13 +47,13 @@ module.exports = ({ db }) => {
     registerForm(res);
   });
 
-  router.post('/register', (req, res) => {
+  router.post('/register', async (req, res) => {
     const username = String(req.body.username || '').trim();
     const ign = String(req.body.ign || '').trim().slice(0, 40);
     const password = String(req.body.password || '');
     const confirm = String(req.body.confirm || '');
 
-    if (registerLimiter.hit(req.ip)) {
+    if (registerLimiter.hit(clientIp(req))) {
       res.status(429);
       return registerForm(res, { username, ign, error: 'Too many sign-ups from your network. Try again later.' });
     }
@@ -61,26 +61,28 @@ module.exports = ({ db }) => {
     if (!USERNAME_RE.test(username)) error = 'Usernames must be 3–24 letters, numbers, dots, dashes or underscores.';
     else if (password.length < 8) error = 'Passwords must be at least 8 characters.';
     else if (password !== confirm) error = 'The two passwords do not match.';
-    else if (db.prepare('SELECT 1 FROM users WHERE username = ?').get(username)) error = 'That username is taken.';
+    else if (await db.get('SELECT 1 FROM users WHERE username = ?', username)) error = 'That username is taken.';
     if (error) {
       res.status(400);
       return registerForm(res, { username, ign, error });
     }
 
-    const userId = transaction(db, () => {
-      // The very first account becomes the site admin.
-      const { n } = db.prepare('SELECT COUNT(*) AS n FROM users').get();
-      const role = n === 0 ? 'admin' : 'user';
-      const { lastInsertRowid } = db
-        .prepare(
-          'INSERT INTO users (username, password_hash, role, verify_code, ign, created_at) VALUES (?, ?, ?, ?, ?, ?)'
-        )
-        .run(username, hashPassword(password), role, newVerifyCode(), ign || null, Date.now());
-      ensureMainWikiPage(db, lastInsertRowid);
-      return lastInsertRowid;
-    });
-
-    createSession(db, req, res, userId);
+    // The very first account becomes the site admin (decided inside the INSERT so two
+    // simultaneous sign-ups cannot both become admin).
+    let userId;
+    try {
+      ({ lastInsertRowid: userId } = await db.run(
+        `INSERT INTO users (username, password_hash, role, verify_code, ign, created_at)
+         VALUES (?, ?, CASE WHEN EXISTS (SELECT 1 FROM users) THEN 'user' ELSE 'admin' END, ?, ?, ?)`,
+        username, hashPassword(password), newVerifyCode(), ign || null, Date.now()
+      ));
+    } catch (err) {
+      if (!/UNIQUE/i.test(String(err && err.message))) throw err;
+      res.status(400);
+      return registerForm(res, { username, ign, error: 'That username is taken.' });
+    }
+    await ensureMainWikiPage(db, userId);
+    await createSession(db, req, res, userId);
     res.flash('success', `Welcome, ${username}! Get your blue tick from the Verify page.`);
     res.redirect('/');
   });
@@ -108,17 +110,17 @@ module.exports = ({ db }) => {
     loginForm(res, { next: safeNext(req.query.next) });
   });
 
-  router.post('/login', (req, res) => {
+  router.post('/login', async (req, res) => {
     const username = String(req.body.username || '').trim();
     const password = String(req.body.password || '');
     const next = safeNext(req.body.next);
-    const key = `${req.ip}|${username.toLowerCase()}`;
+    const key = `${clientIp(req)}|${username.toLowerCase()}`;
 
     if (loginLimiter.hit(key)) {
       res.status(429);
       return loginForm(res, { username, next, error: 'Too many attempts. Wait 15 minutes and try again.' });
     }
-    const user = db.prepare('SELECT id, password_hash, banned FROM users WHERE username = ?').get(username);
+    const user = await db.get('SELECT id, password_hash, banned FROM users WHERE username = ?', username);
     if (!user || !verifyPassword(password, user.password_hash)) {
       res.status(401);
       return loginForm(res, { username, next, error: 'Wrong username or password.' });
@@ -128,12 +130,12 @@ module.exports = ({ db }) => {
       return loginForm(res, { username, next, error: 'This account has been suspended.' });
     }
     loginLimiter.reset(key);
-    createSession(db, req, res, user.id);
+    await createSession(db, req, res, user.id);
     res.redirect(next);
   });
 
-  router.post('/logout', (req, res) => {
-    destroySession(db, req, res);
+  router.post('/logout', async (req, res) => {
+    await destroySession(db, req, res);
     res.redirect('/');
   });
 

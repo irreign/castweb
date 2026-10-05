@@ -1,7 +1,6 @@
 'use strict';
 
 const express = require('express');
-const { transaction } = require('../db');
 const { requireRole, hasRole } = require('../auth');
 const { html, csrfField, userLink, dateTime, markup } = require('../render');
 const { notFound, forbidden, intParam, text } = require('./util');
@@ -10,22 +9,14 @@ module.exports = ({ db }) => {
   const router = express.Router();
   router.use('/admin', requireRole('mod'));
 
-  router.get('/admin', (req, res) => {
-    const pending = db
-      .prepare(
-        `SELECT r.*, u.username, u.role, u.verified, u.created_at AS joined
+  router.get('/admin', async (req, res) => {
+    const pending = await db.all(`SELECT r.*, u.username, u.role, u.verified, u.created_at AS joined
            FROM verification_requests r JOIN users u ON u.id = r.user_id
-          WHERE r.status = 'pending' ORDER BY r.id`
-      )
-      .all();
+          WHERE r.status = 'pending' ORDER BY r.id`);
     const q = text(req.query.q, 24);
-    const users = db
-      .prepare(
-        `SELECT id, username, role, verified, banned, ign, created_at FROM users
+    const users = await db.all(`SELECT id, username, role, verified, banned, ign, created_at FROM users
           ${q ? "WHERE username LIKE ? ESCAPE '\\' OR ign LIKE ? ESCAPE '\\'" : ''}
-          ORDER BY id DESC LIMIT 50`
-      )
-      .all(...(q ? Array(2).fill(`%${q.replace(/[\\%_]/g, (c) => `\\${c}`)}%`) : []));
+          ORDER BY id DESC LIMIT 50`, ...(q ? Array(2).fill(`%${q.replace(/[\\%_]/g, (c) => `\\${c}`)}%`) : []));
     const isAdmin = hasRole(req.user, 'admin');
 
     res.page({
@@ -91,9 +82,9 @@ module.exports = ({ db }) => {
     });
   });
 
-  router.post('/admin/requests/:id', (req, res) => {
+  router.post('/admin/requests/:id', async (req, res) => {
     const id = intParam(req.params.id);
-    const request = id && db.prepare("SELECT * FROM verification_requests WHERE id = ? AND status = 'pending'").get(id);
+    const request = id && await db.get("SELECT * FROM verification_requests WHERE id = ? AND status = 'pending'", id);
     if (!request) throw notFound('That request was already handled or does not exist.');
     const note = text(req.body.note, 300);
     const approve = req.body.decision === 'approve';
@@ -101,22 +92,24 @@ module.exports = ({ db }) => {
       res.flash('error', 'Add a short note explaining why the request was rejected.');
       return res.redirect('/admin');
     }
-    transaction(db, () => {
-      const now = Date.now();
-      db.prepare(
-        'UPDATE verification_requests SET status = ?, reviewer_id = ?, review_note = ?, reviewed_at = ? WHERE id = ?'
-      ).run(approve ? 'approved' : 'rejected', req.user.id, note, now, request.id);
-      if (approve) {
-        db.prepare('UPDATE users SET verified = 1, verified_at = ?, ign = ? WHERE id = ?').run(now, request.ign, request.user_id);
-      }
-    });
+    const now = Date.now();
+    const statements = [
+      [
+        'UPDATE verification_requests SET status = ?, reviewer_id = ?, review_note = ?, reviewed_at = ? WHERE id = ?',
+        approve ? 'approved' : 'rejected', req.user.id, note, now, request.id,
+      ],
+    ];
+    if (approve) {
+      statements.push(['UPDATE users SET verified = 1, verified_at = ?, ign = ? WHERE id = ?', now, request.ign, request.user_id]);
+    }
+    await db.batch(statements);
     res.flash('success', approve ? 'Approved. The blue tick is live.' : 'Request rejected.');
     res.redirect('/admin');
   });
 
-  router.post('/admin/users/:id', (req, res) => {
+  router.post('/admin/users/:id', async (req, res) => {
     const id = intParam(req.params.id);
-    const target = id && db.prepare('SELECT * FROM users WHERE id = ?').get(id);
+    const target = id && await db.get('SELECT * FROM users WHERE id = ?', id);
     if (!target) throw notFound('User not found.');
     const isAdmin = hasRole(req.user, 'admin');
     const isSelf = target.id === req.user.id;
@@ -127,13 +120,15 @@ module.exports = ({ db }) => {
     const verified = req.body.verified === '1' ? 1 : 0;
     const banned = isSelf ? 0 : req.body.banned === '1' ? 1 : 0;
 
-    transaction(db, () => {
-      db.prepare(
+    const statements = [
+      [
         `UPDATE users SET role = ?, verified = ?, verified_at = CASE WHEN ? = 1 THEN COALESCE(verified_at, ?) ELSE NULL END,
-                banned = ? WHERE id = ?`
-      ).run(role, verified, verified, Date.now(), banned, target.id);
-      if (banned) db.prepare('DELETE FROM sessions WHERE user_id = ?').run(target.id);
-    });
+                banned = ? WHERE id = ?`,
+        role, verified, verified, Date.now(), banned, target.id,
+      ],
+    ];
+    if (banned) statements.push(['DELETE FROM sessions WHERE user_id = ?', target.id]);
+    await db.batch(statements);
     res.flash('success', `Saved ${target.username}.`);
     res.redirect('/admin');
   });
