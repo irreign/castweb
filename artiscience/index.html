@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Artiscience | New Wave</title>
+  <!-- Inter font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,600;14..32,700;14..32,800&display=swap">
+  <!-- Font Awesome 6 (free) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      background-color: #f5f7fc;
+      font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+      color: #1b1e2b;
+      line-height: 1.5;
+    }
+
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* header + navigation */
+    .navbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 24px 0;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+
+    .logo {
+      font-size: 1.9rem;
+      font-weight: 800;
+      letter-spacing: -1px;
+      background: linear-gradient(135deg, #1e2b5e, #8b5cf6, #2dd4bf);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .logo i {
+      background: linear-gradient(145deg, #2dd4bf, #8b5cf6);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      font-size: 2rem;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 36px;
+      font-weight: 500;
+      align-items: center;
+    }
+
+    .nav-links a {
+      text-decoration: none;
+      color: #2d3142;
+      font-size: 1rem;
+      transition: color 0.2s ease;
+      position: relative;
+    }
+
+    .nav-links a:not(.btn)::after {
+      content: '';
+      position: absolute;
+      bottom: -6px;
+      left: 0;
+      width: 0;
+      height: 2px;
+      background: linear-gradient(90deg, #8b5cf6, #2dd4bf);
+      transition: width 0.25s ease;
+    }
+
+    .nav-links a:not(.btn):hover {
+      color: #1e2b5e;
+    }
+
+    .nav-links a:not(.btn):hover::after {
+      width: 100%;
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 12px 28px;
+      border-radius: 60px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.25s ease;
+      border: 1.5px solid transparent;
+      font-size: 0.95rem;
+      font-family: inherit;
+      cursor: pointer;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #1e2b5e, #3b3f8c);
+      color: white;
+      box-shadow: 0 8px 18px -6px rgba(30, 43, 94, 0.3);
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #16204a, #2f3276);
+      transform: translateY(-2px);
+      box-shadow: 0 14px 22px -8px rgba(30, 43, 94, 0.4);
+    }
+
+    .btn-outline {
+      border: 1.5px solid #1e2b5e;
+      color: #1e2b5e;
+      background: transparent;
+    }
+
+    .btn-outline:hover,
+    .nav-links .btn-outline:hover {
+      background: #1e2b5e;
+      color: white;
+      transform: translateY(-2px);
+    }
+
+    .btn-sm {
+      padding: 8px 22px;
+    }
+
+    /* hero */
+    .hero {
+      display: flex;
+      align-items: center;
+      gap: 50px;
+      padding: 40px 0 70px;
+      flex-wrap: wrap;
+    }
+
+    .hero-content {
+      flex: 1 1 480px;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: rgba(139, 92, 246, 0.12);
+      color: #5b21b6;
+      font-weight: 600;
+      font-size: 0.85rem;
+      letter-spacing: 0.5px;
+      padding: 6px 16px;
+      border-radius: 40px;
+      margin-bottom: 24px;
+      border: 1px solid rgba(139, 92, 246, 0.25);
+    }
+
+    .hero-badge i {
+      margin-right: 6px;
+    }
+
+    .hero h1 {
+      font-size: clamp(2.4rem, 6vw, 3.8rem);
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -1.5px;
+      margin-bottom: 24px;
+      color: #0d1220;
+    }
+
+    .hero h1 span {
+      background: linear-gradient(135deg, #8b5cf6, #2dd4bf);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .hero p {
+      font-size: 1.18rem;
+      color: #3b3f5c;
+      max-width: 550px;
+      margin-bottom: 36px;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 18px;
+      flex-wrap: wrap;
+    }
+
+    .hero-actions .fa-arrow-right {
+      margin-left: 8px;
+    }
+
+    .hero-actions .fa-play {
+      margin-right: 8px;
+    }
+
+    .hero-visual {
+      flex: 1 1 360px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .orb-container {
+      position: relative;
+      width: 100%;
+      max-width: 420px;
+      aspect-ratio: 1/1;
+      background: radial-gradient(circle at 30% 30%, rgba(139, 92, 246, 0.25), transparent 70%),
+                  radial-gradient(circle at 70% 70%, rgba(45, 212, 191, 0.25), transparent 70%);
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-shadow: 0 30px 50px -20px rgba(30, 43, 94, 0.3);
+    }
+
+    .orb {
+      width: 70%;
+      height: 70%;
+      background: linear-gradient(145deg, #1e2b5e, #3b3f8c);
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-shadow: inset 0 0 40px rgba(45, 212, 191, 0.5), 0 0 60px #8b5cf670;
+      animation: float 6s ease-in-out infinite;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .orb i {
+      font-size: 5rem;
+      color: #e0e7ff;
+      opacity: 0.9;
+      text-shadow: 0 0 30px #2dd4bf;
+    }
+
+    .orb::before {
+      content: '';
+      position: absolute;
+      top: -20%;
+      left: -20%;
+      width: 140%;
+      height: 140%;
+      background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 60%);
+      animation: rotate 12s linear infinite;
+    }
+
+    @keyframes float {
+      0% { transform: translateY(0px) scale(1); }
+      50% { transform: translateY(-14px) scale(1.02); }
+      100% { transform: translateY(0px) scale(1); }
+    }
+
+    @keyframes rotate {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .orb,
+      .orb::before {
+        animation: none;
+      }
+    }
+
+    /* featured section / collection */
+    .section-title {
+      font-size: 2.2rem;
+      font-weight: 700;
+      letter-spacing: -1px;
+      margin-bottom: 16px;
+      color: #0d1220;
+    }
+
+    .section-sub {
+      color: #4b4f6b;
+      font-size: 1.1rem;
+      max-width: 650px;
+      margin-bottom: 56px;
+    }
+
+    .featured {
+      padding: 80px 0 40px;
+    }
+
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 30px;
+    }
+
+    .card {
+      background: #ffffff;
+      border-radius: 32px;
+      padding: 32px 26px;
+      box-shadow: 0 20px 35px -12px rgba(0, 0, 0, 0.08);
+      transition: all 0.3s ease;
+      border: 1px solid #eef1f9;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 32px 45px -16px rgba(30, 43, 94, 0.2);
+      border-color: #cdd9ff;
+    }
+
+    .card-icon {
+      width: 58px;
+      height: 58px;
+      background: linear-gradient(145deg, #eef1ff, #ffffff);
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 28px;
+      color: #3b3f8c;
+      font-size: 1.8rem;
+      border: 1px solid #d9e2ff;
+    }
+
+    .card h3 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 14px;
+      letter-spacing: -0.5px;
+    }
+
+    .card p {
+      color: #4f5473;
+      margin-bottom: 26px;
+      flex: 1;
+    }
+
+    .card-link {
+      text-decoration: none;
+      font-weight: 600;
+      color: #1e2b5e;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: gap 0.2s ease;
+      font-size: 0.95rem;
+      margin-top: auto;
+    }
+
+    .card-link i {
+      transition: transform 0.2s ease;
+    }
+
+    .card-link:hover {
+      gap: 12px;
+      color: #2d3276;
+    }
+
+    .card-link:hover i {
+      transform: translateX(4px);
+    }
+
+    /* about / mission */
+    .about {
+      padding: 70px 0 80px;
+    }
+
+    .about-panel {
+      background: linear-gradient(135deg, #0d1220, #1a1f3a);
+      border-radius: 48px;
+      padding: 64px 48px;
+      color: #eef1ff;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 40px;
+      align-items: center;
+      box-shadow: 0 35px 50px -25px rgba(0, 0, 0, 0.4);
+    }
+
+    .about-text {
+      flex: 2 1 400px;
+    }
+
+    .about-text h2 {
+      font-size: 2.4rem;
+      font-weight: 700;
+      letter-spacing: -1px;
+      line-height: 1.2;
+      margin-bottom: 20px;
+    }
+
+    .about-text p {
+      color: #cdd2ec;
+      font-size: 1.1rem;
+      max-width: 600px;
+    }
+
+    .about-stats {
+      flex: 1 1 200px;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .stat-number {
+      font-size: 2.4rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #b4a5ff, #6ee7db);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      line-height: 1.2;
+    }
+
+    .stat-label {
+      color: #a8b0d9;
+      font-size: 0.95rem;
+      letter-spacing: 0.3px;
+    }
+
+    /* newsletter / cta */
+    .cta-section {
+      padding: 30px 0 100px;
+    }
+
+    .cta-card {
+      background: #ffffff;
+      border-radius: 48px;
+      padding: 60px 48px;
+      box-shadow: 0 30px 45px -20px rgba(30, 43, 94, 0.15);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 40px;
+      border: 1px solid #eef2fe;
+    }
+
+    .cta-content h2 {
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: -1px;
+      margin-bottom: 12px;
+    }
+
+    .cta-content p {
+      color: #4f5473;
+      font-size: 1.1rem;
+      max-width: 450px;
+    }
+
+    .cta-form {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .cta-form input {
+      padding: 16px 22px;
+      border-radius: 60px;
+      border: 1.5px solid #d0d9f0;
+      font-size: 1rem;
+      min-width: 260px;
+      outline: none;
+      transition: border 0.2s;
+      font-family: inherit;
+      background: #fafbff;
+    }
+
+    .cta-form input:focus {
+      border-color: #8b5cf6;
+      box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.1);
+    }
+
+    /* footer */
+    footer {
+      padding: 50px 0 40px;
+      border-top: 1px solid #e2e8f5;
+      color: #5b5f7a;
+    }
+
+    .footer-grid {
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 40px;
+      margin-bottom: 40px;
+    }
+
+    .footer-brand .logo {
+      font-size: 1.7rem;
+    }
+
+    .footer-brand p {
+      max-width: 280px;
+      margin: 18px 0 24px;
+      font-size: 0.95rem;
+      color: #5b5f7a;
+    }
+
+    .social-links {
+      display: flex;
+      gap: 18px;
+    }
+
+    .social-links a {
+      color: #3b3f5c;
+      background: white;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      transition: all 0.2s;
+      box-shadow: 0 6px 12px -6px rgba(0, 0, 0, 0.1);
+      border: 1px solid #e5eaf5;
+    }
+
+    .social-links a:hover {
+      background: #1e2b5e;
+      color: white;
+      transform: translateY(-3px);
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 70px;
+      flex-wrap: wrap;
+    }
+
+    .footer-col h4 {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 20px;
+      color: #1b1e2b;
+    }
+
+    .footer-col a {
+      display: block;
+      text-decoration: none;
+      color: #5b5f7a;
+      margin-bottom: 12px;
+      font-size: 0.95rem;
+      transition: color 0.2s;
+    }
+
+    .footer-col a:hover {
+      color: #1e2b5e;
+    }
+
+    .copyright {
+      text-align: center;
+      padding-top: 32px;
+      border-top: 1px solid #e2e8f5;
+      font-size: 0.9rem;
+      color: #7e83a0;
+    }
+
+    /* responsive */
+    @media (max-width: 800px) {
+      .navbar {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .nav-links {
+        gap: 24px;
+        flex-wrap: wrap;
+      }
+      .hero {
+        padding: 20px 0 50px;
+      }
+      .about-panel {
+        padding: 40px 28px;
+      }
+      .cta-card {
+        padding: 40px 28px;
+      }
+      .footer-links {
+        gap: 40px;
+      }
+    }
+
+    @media (max-width: 500px) {
+      .hero-actions .btn {
+        width: 100%;
+        text-align: center;
+      }
+      .cta-form {
+        width: 100%;
+      }
+      .cta-form input {
+        width: 100%;
+        min-width: unset;
+      }
+      .cta-form .btn {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header & Navigation -->
+  <div class="container">
+    <header>
+      <nav class="navbar">
+        <a href="#" class="logo">
+          <i class="fas fa-atom"></i> artiscience
+        </a>
+        <div class="nav-links">
+          <a href="#featured">Discover</a>
+          <a href="#featured">Lab</a>
+          <a href="#newsletter">Journal</a>
+          <a href="#about">About</a>
+          <a href="#" class="btn btn-outline btn-sm">Sign in</a>
+        </div>
+      </nav>
+    </header>
+  </div>
+
+  <main>
+    <!-- Hero Section -->
+    <div class="container">
+      <section class="hero">
+        <div class="hero-content">
+          <div class="hero-badge">
+            <i class="fas fa-flask"></i> new wave 2025
+          </div>
+          <h1>
+            Where <span>art</span> meets <span>science</span> in perfect fusion.
+          </h1>
+          <p>
+            Artiscience is a new collective exploring the intersection of creative expression and scientific inquiry.
+            Discover experiments, installations, and research that blur the boundaries.
+          </p>
+          <div class="hero-actions">
+            <a href="#featured" class="btn btn-primary">
+              Explore the lab <i class="fas fa-arrow-right"></i>
+            </a>
+            <a href="#" class="btn btn-outline">
+              <i class="fas fa-play"></i> Watch intro
+            </a>
+          </div>
+        </div>
+        <div class="hero-visual" aria-hidden="true">
+          <div class="orb-container">
+            <div class="orb">
+              <i class="fas fa-dna"></i>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Featured / Pillars -->
+    <div class="container">
+      <section class="featured" id="featured">
+        <h2 class="section-title">New frontiers of artiscience</h2>
+        <p class="section-sub">
+          Three core pillars that define our practice — each blending scientific rigor with artistic intuition.
+        </p>
+        <div class="card-grid">
+          <div class="card">
+            <div class="card-icon"><i class="fas fa-microscope"></i></div>
+            <h3>Bio‑inspired</h3>
+            <p>Living systems as co-creators. We grow sculptures from mycelium, harness bioluminescence, and decode the aesthetics of cellular networks.</p>
+            <a href="#" class="card-link">Discover bio works <i class="fas fa-arrow-right"></i></a>
+          </div>
+          <div class="card">
+            <div class="card-icon"><i class="fas fa-wave-square"></i></div>
+            <h3>Quantum Aesthetics</h3>
+            <p>Visualizing the unseen — from wave‑particle duality to quantum entanglement, translated into immersive light and sound.</p>
+            <a href="#" class="card-link">Explore quantum <i class="fas fa-arrow-right"></i></a>
+          </div>
+          <div class="card">
+            <div class="card-icon"><i class="fas fa-robot"></i></div>
+            <h3>Algorithmic Matter</h3>
+            <p>Generative AI and physical computing merge into new materials that respond, evolve, and question the nature of creativity.</p>
+            <a href="#" class="card-link">See AI experiments <i class="fas fa-arrow-right"></i></a>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- About / Mission panel -->
+    <div class="container">
+      <section class="about" id="about">
+        <div class="about-panel">
+          <div class="about-text">
+            <h2>We are a new kind of collective.</h2>
+            <p>
+              Founded in 2025, Artiscience brings together artists, researchers, and engineers to create
+              experiences that inspire curiosity and wonder. Our work has been shown in galleries,
+              science centers, and public spaces across three continents.
+            </p>
+          </div>
+          <div class="about-stats">
+            <div class="stat-item">
+              <span class="stat-number">12+</span>
+              <span class="stat-label">lab prototypes</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-number">8</span>
+              <span class="stat-label">exhibitions in 2025</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-number">100%</span>
+              <span class="stat-label">open &amp; curious</span>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Newsletter / CTA -->
+    <div class="container">
+      <section class="cta-section" id="newsletter">
+        <div class="cta-card">
+          <div class="cta-content">
+            <h2>Stay in the loop</h2>
+            <p>Get monthly updates on new experiments, open calls, and behind‑the‑scenes.</p>
+          </div>
+          <form class="cta-form" onsubmit="event.preventDefault(); alert('Thanks for subscribing! (demo)'); this.reset();">
+            <input type="email" placeholder="your@email.com" aria-label="Email address" required>
+            <button type="submit" class="btn btn-primary">Subscribe</button>
+          </form>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <a href="#" class="logo">
+            <i class="fas fa-atom"></i> artiscience
+          </a>
+          <p>New wave art &amp; science collective. Exploring the edges of knowledge and imagination.</p>
+          <div class="social-links">
+            <a href="#" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+            <a href="#" aria-label="X (Twitter)"><i class="fab fa-x-twitter"></i></a>
+            <a href="#" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
+            <a href="#" aria-label="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+          </div>
+        </div>
+        <div class="footer-links">
+          <div class="footer-col">
+            <h4>Explore</h4>
+            <a href="#featured">Projects</a>
+            <a href="#featured">Lab notes</a>
+            <a href="#newsletter">Journal</a>
+            <a href="#">Events</a>
+          </div>
+          <div class="footer-col">
+            <h4>Connect</h4>
+            <a href="#about">About</a>
+            <a href="#">Team</a>
+            <a href="#">Careers</a>
+            <a href="#">Contact</a>
+          </div>
+          <div class="footer-col">
+            <h4>Legal</h4>
+            <a href="#">Privacy</a>
+            <a href="#">Terms</a>
+            <a href="#">Press kit</a>
+          </div>
+        </div>
+      </div>
+      <div class="copyright">
+        &copy; 2025 Artiscience — new wave collective. All experiments reserved.
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
