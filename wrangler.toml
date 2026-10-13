@@ -1,0 +1,34 @@
+name = "nexus-enquiry"
+main = "src/index.ts"
+compatibility_date = "2025-09-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Static assets: the CastWeb marketing page + the agency app + the embeddable widget (built into ./dist by `npm run build`).
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+run_worker_first = ["/api/*", "/widget/*"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "nexus-enquiry"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"   # `wrangler d1 create nexus-enquiry`
+migrations_dir = "migrations"
+
+# Optional: original uploaded files. Uncomment after `wrangler r2 bucket create nexus-enquiry-files`.
+# [[r2_buckets]]
+# binding = "FILES"
+# bucket_name = "nexus-enquiry-files"
+
+# Cron: notification retries, WhatsApp event recovery, retention purge.
+[triggers]
+crons = ["*/10 * * * *"]
+
+[vars]
+ENVIRONMENT = "production"
+# WHATSAPP_MODE = "test"   # set to "test" to make WhatsApp sends no-ops while integrating
+
+# Secrets (never put values here): wrangler secret put <NAME>
+#   PLATFORM_ADMIN_TOKEN, ENCRYPTION_KEY, ANTHROPIC_API_KEY, RESEND_API_KEY, EMAIL_FROM,
+#   WHATSAPP_APP_SECRET, WHATSAPP_VERIFY_TOKEN

@@ -1,0 +1,8 @@
+# Copy to .dev.vars for local `wrangler dev`. These are LOCAL-ONLY dummy values; production secrets are set with `wrangler secret put`.
+PLATFORM_ADMIN_TOKEN=dev-operator-token
+ENCRYPTION_KEY=BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc=
+WHATSAPP_APP_SECRET=dev-app-secret
+WHATSAPP_VERIFY_TOKEN=dev-verify-token
+WHATSAPP_MODE=test
+# ANTHROPIC_API_KEY=   (optional)
+# RESEND_API_KEY= / EMAIL_FROM=   (optional)

@@ -1,0 +1,30 @@
+{
+  "name": "nexus-logic-enquiry-to-booking",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Nexus Logic AI Enquiry-to-Booking: multi-tenant SaaS for Singapore maid agencies (Cloudflare Workers + D1).",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:e2e": "vitest run --config vitest.e2e.config.ts",
+    "dev": "npm run build && wrangler dev",
+    "db:migrate:local": "wrangler d1 migrations apply nexus-enquiry --local",
+    "db:migrate:remote": "wrangler d1 migrations apply nexus-enquiry --remote",
+    "deploy": "npm run build && wrangler deploy",
+    "seed:demo": "node scripts/seed-demo.mjs"
+  },
+  "dependencies": {
+    "hono": "^4.6.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261012.1",
+    "@types/node": "^22.0.0",
+    "playwright-core": "^1.50.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0",
+    "wrangler": "^4.149.0"
+  }
+}
