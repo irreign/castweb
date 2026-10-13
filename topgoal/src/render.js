@@ -4,6 +4,8 @@
 // produced by `html` itself or wrapped in `raw()`, so templates are XSS-safe
 // by default.
 
+const { t, tn, message, currentLang, LANGUAGES } = require('./i18n');
+
 class SafeHtml {
   constructor(value) {
     this.value = value;
@@ -48,20 +50,37 @@ function slugify(text) {
     .slice(0, 80);
 }
 
+// Translated message as HTML: the message text is escaped and each {name} is replaced by
+// vars[name], which may itself be html`` (e.g. a link).
+function th(key, vars = {}) {
+  const template = message(key, vars.count ?? vars.n);
+  return raw(
+    template
+      .split(/(\{\w+\})/)
+      .map((part) => {
+        const name = /^\{(\w+)\}$/.exec(part)?.[1];
+        return name && name in vars ? toHtml(vars[name]) : escape(part);
+      })
+      .join('')
+  );
+}
+
+const RELATIVE_UNITS = [
+  ['year', 31536000],
+  ['month', 2592000],
+  ['day', 86400],
+  ['hour', 3600],
+  ['minute', 60],
+];
+
 function timeAgo(ms) {
   const s = Math.round((Date.now() - ms) / 1000);
-  if (s < 60) return 'just now';
-  const units = [
-    ['y', 31536000],
-    ['mo', 2592000],
-    ['d', 86400],
-    ['h', 3600],
-    ['m', 60],
-  ];
-  for (const [label, size] of units) {
-    if (s >= size) return `${Math.floor(s / size)}${label} ago`;
+  if (s < 60) return t('time.justNow');
+  const rtf = new Intl.RelativeTimeFormat(currentLang(), { numeric: 'auto', style: 'short' });
+  for (const [unit, size] of RELATIVE_UNITS) {
+    if (s >= size) return rtf.format(-Math.floor(s / size), unit);
   }
-  return 'just now';
+  return t('time.justNow');
 }
 
 function dateTime(ms) {
@@ -191,14 +210,18 @@ function markup(source, { wikiExists } = {}) {
 
 // ─── Shared fragments ──────────────────────────────────────────────────────
 
-const BLUE_TICK = raw(
-  '<svg class="tick" viewBox="0 0 24 24" aria-label="Verified manager" role="img"><title>Verified manager</title><path fill="currentColor" d="M22.5 12.5c0-1.58-.88-2.95-2.15-3.6.15-.44.23-.91.23-1.4 0-2.21-1.71-4-3.82-4-.47 0-.92.08-1.34.25C14.81 2.48 13.49 1.5 12 1.5s-2.8.97-3.42 2.25c-.42-.17-.87-.25-1.34-.25-2.11 0-3.82 1.79-3.82 4 0 .49.08.96.23 1.4-1.27.65-2.15 2.02-2.15 3.6 0 1.5.8 2.8 1.97 3.48-.04.24-.06.48-.06.73 0 2.21 1.71 4 3.82 4 .47 0 .92-.09 1.34-.25.62 1.29 1.93 2.25 3.43 2.25s2.81-.96 3.43-2.25c.42.16.87.25 1.34.25 2.11 0 3.82-1.79 3.82-4 0-.25-.02-.49-.06-.73 1.17-.68 1.97-1.98 1.97-3.48zm-6.4-3.8-5.2 7.8a.75.75 0 0 1-1.15.12l-2.9-2.9 1.06-1.06 2.25 2.24 4.69-7.04 1.25.84z"/></svg>'
-);
+const TICK_PATH =
+  'M22.5 12.5c0-1.58-.88-2.95-2.15-3.6.15-.44.23-.91.23-1.4 0-2.21-1.71-4-3.82-4-.47 0-.92.08-1.34.25C14.81 2.48 13.49 1.5 12 1.5s-2.8.97-3.42 2.25c-.42-.17-.87-.25-1.34-.25-2.11 0-3.82 1.79-3.82 4 0 .49.08.96.23 1.4-1.27.65-2.15 2.02-2.15 3.6 0 1.5.8 2.8 1.97 3.48-.04.24-.06.48-.06.73 0 2.21 1.71 4 3.82 4 .47 0 .92-.09 1.34-.25.62 1.29 1.93 2.25 3.43 2.25s2.81-.96 3.43-2.25c.42.16.87.25 1.34.25 2.11 0 3.82-1.79 3.82-4 0-.25-.02-.49-.06-.73 1.17-.68 1.97-1.98 1.97-3.48zm-6.4-3.8-5.2 7.8a.75.75 0 0 1-1.15.12l-2.9-2.9 1.06-1.06 2.25 2.24 4.69-7.04 1.25.84z';
+
+function blueTick() {
+  const label = t('user.verifiedManager');
+  return html`<svg class="tick" viewBox="0 0 24 24" aria-label="${label}" role="img"><title>${label}</title><path fill="currentColor" d="${TICK_PATH}"/></svg>`;
+}
 
 function userLink(u, opts = {}) {
-  if (!u || !u.username) return html`<span class="user deleted">unknown</span>`;
-  return html`<a class="user role-${u.role || 'user'}" href="/u/${encodeURIComponent(u.username)}">${u.username}${u.verified ? BLUE_TICK : ''}${
-    opts.showRole && u.role && u.role !== 'user' ? html`<span class="role-badge">${u.role}</span>` : ''
+  if (!u || !u.username) return html`<span class="user deleted">${t('user.unknown')}</span>`;
+  return html`<a class="user role-${u.role || 'user'}" href="/u/${encodeURIComponent(u.username)}">${u.username}${u.verified ? blueTick() : ''}${
+    opts.showRole && u.role && u.role !== 'user' ? html`<span class="role-badge">${t(`role.${u.role}`)}</span>` : ''
   }</a>`;
 }
 
@@ -211,34 +234,65 @@ function flashBox(flash) {
   return html`<div class="flash flash-${flash.type}" role="status">${flash.message}</div>`;
 }
 
-const NAV = [
-  ['/', 'Home'],
-  ['/forum', 'Forums'],
-  ['/wiki', 'Wiki'],
-  ['/season', 'Season'],
-  ['/fas', 'FAs'],
-  ['/rankings', 'Rankings'],
+// Name of a default forum category in the current language (custom ones keep their own name).
+function categoryName(c) {
+  const key = `cat.${c.slug}.name`;
+  const name = t(key);
+  return name === key ? c.name : name;
+}
+
+function categoryDescription(c) {
+  const key = `cat.${c.slug}.desc`;
+  const desc = t(key);
+  return desc === key ? c.description : desc;
+}
+
+// Main tabs: [path, message key, icon]
+const TABS = [
+  ['/', 'nav.home', '🏟️'],
+  ['/news', 'nav.news', '📰'],
+  ['/forum', 'nav.chat', '💬'],
+  ['/fas', 'nav.federations', '🛡️'],
+  ['/friends', 'nav.friends', '🤝'],
+  ['/season', 'nav.season', '⏱️'],
+  ['/wiki', 'nav.wiki', '📖'],
+  ['/rankings', 'nav.rankings', '🏆'],
+  ['/report', 'nav.reportTab', '🚩'],
 ];
+
+function badge(n) {
+  return n > 0 ? html`<span class="badge" aria-label="${tn('nav.badge', n)}">${n > 99 ? '99+' : n}</span>` : '';
+}
 
 function layout(req, res, { title, body, active }) {
   const user = req.user;
-  const navItems = NAV.map(
-    ([href, label]) => html`<li><a href="${href}"${active === href ? raw(' aria-current="page"') : ''}>${label}</a></li>`
+  const lang = currentLang();
+  const counts = res.locals.counts || {};
+  const here = req.method === 'GET' ? req.originalUrl : '/';
+  const tabs = TABS.map(
+    ([href, key, icon]) => html`<li><a href="${href}"${active === href ? raw(' aria-current="page"') : ''}><span class="tab-icon" aria-hidden="true">${icon}</span><span class="tab-label">${t(key)}</span>${
+      href === '/friends' ? badge(counts.friendRequests) : ''
+    }</a></li>`
+  );
+  const languages = LANGUAGES.map(
+    ([code, name]) => html`<li><a href="/lang/${code}?next=${encodeURIComponent(here)}" lang="${code}" hreflang="${code}"${code === lang ? raw(' aria-current="true"') : ''}>${name}</a></li>`
   );
   const account = user
     ? html`
-        ${user.role !== 'user' ? html`<a href="/admin" class="nav-admin">Admin</a>` : ''}
+        ${user.role !== 'user' ? html`<a href="/admin" class="nav-admin">${t('nav.admin')}${badge(counts.modQueue)}</a>` : ''}
         ${userLink(user)}
-        <form method="post" action="/logout" class="inline">${csrfField(res)}<button class="btn-link">Log out</button></form>`
-    : html`<a href="/login">Log in</a> <a href="/register" class="btn btn-small">Join</a>`;
+        <a href="/settings" class="nav-settings" title="${t('nav.settings')}" aria-label="${t('nav.settings')}">⚙️</a>
+        <form method="post" action="/logout" class="inline">${csrfField(res)}<button class="btn-link">${t('nav.logout')}</button></form>`
+    : html`<a href="/login">${t('nav.login')}</a> <a href="/register" class="btn btn-small">${t('nav.join')}</a>`;
 
   return html`<!doctype html>
-<html lang="en">
+<html lang="${lang}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${title ? `${title} · ` : ''}TopGoal Hub</title>
-<meta name="description" content="Fan-run community for TopGoal players: forums, wiki, season countdown, pack players and FA rankings.">
+<meta name="description" content="${t('site.description')}">
+<meta name="theme-color" content="#0b3d22">
 <link rel="stylesheet" href="/static/style.css">
 <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
 <script src="/static/app.js" defer></script>
@@ -246,22 +300,29 @@ function layout(req, res, { title, body, active }) {
 <body>
 <header class="site-header">
   <div class="wrap header-row">
-    <a class="brand" href="/"><span class="brand-mark">⚽</span> TopGoal <span class="brand-hub">Hub</span></a>
-    <button class="nav-toggle" aria-expanded="false" aria-controls="site-nav">Menu</button>
-    <nav id="site-nav" class="site-nav">
-      <ul>${navItems}</ul>
+    <a class="brand" href="/"><span class="brand-mark" aria-hidden="true">⚽</span> TopGoal <span class="brand-hub">Hub</span></a>
+    <div class="header-tools">
+      <details class="lang-menu">
+        <summary aria-label="${t('nav.language')}"><span aria-hidden="true">🌐</span> ${lang.toUpperCase()}</summary>
+        <ul>${languages}</ul>
+      </details>
       <div class="account">${account}</div>
-    </nav>
+    </div>
   </div>
+  <nav class="tabbar" aria-label="${t('nav.main')}">
+    <div class="wrap"><ul>${tabs}</ul></div>
+  </nav>
 </header>
 <main class="wrap">
+  <div class="board">
 ${flashBox(res.locals.flash)}
 ${body}
+  </div>
 </main>
 <footer class="site-footer">
   <div class="wrap">
-    <p>TopGoal Hub is an unofficial, fan-made community. It is not affiliated with or endorsed by the makers of TopGoal.</p>
-    <p><a href="/wiki">Wiki</a> · <a href="/forum">Forums</a> · <a href="/verify">Get verified</a> · <a href="/rules">Community rules</a></p>
+    <p>${t('site.disclaimer')}</p>
+    <p><a href="/rules">${t('nav.rules')}</a> · <a href="/verify">${t('nav.verify')}</a> · <a href="/report">${t('nav.report')}</a></p>
   </div>
 </footer>
 </body>
@@ -272,6 +333,7 @@ module.exports = {
   html,
   raw,
   escape,
+  th,
   slugify,
   timeAgo,
   dateTime,
@@ -280,8 +342,10 @@ module.exports = {
   daysLeft,
   markup,
   wikiLinkSlugs,
+  blueTick,
   userLink,
   csrfField,
+  categoryName,
+  categoryDescription,
   layout,
-  BLUE_TICK,
 };

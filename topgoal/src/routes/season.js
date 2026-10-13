@@ -2,7 +2,8 @@
 
 const express = require('express');
 const { requireUser, requireRole, hasRole } = require('../auth');
-const { html, csrfField, userLink, utcDate, toDateTimeLocal, daysLeft, markup } = require('../render');
+const { html, th, csrfField, userLink, utcDate, toDateTimeLocal, daysLeft, markup } = require('../render');
+const { t, tn } = require('../i18n');
 const { notFound, intParam, text } = require('./util');
 
 // Suggestions only: card tiers and positions are free text so the list can follow the game.
@@ -20,9 +21,9 @@ async function currentSeason(db) {
 function seasonCountdown(season) {
   if (!season) {
     return html`<div class="countdown-card empty-season">
-      <p class="eyebrow">Current season</p>
-      <h2>No season set yet</h2>
-      <p class="muted">A moderator can add the current season on the <a href="/season">Season page</a>.</p>
+      <p class="eyebrow">${t('season.current')}</p>
+      <h2>${t('season.noneSet')}</h2>
+      <p class="muted">${t('season.noneSetHint')}</p>
     </div>`;
   }
   const now = Date.now();
@@ -31,16 +32,16 @@ function seasonCountdown(season) {
   const ended = now >= season.ends_at;
   const notStarted = now < season.starts_at;
   return html`<div class="countdown-card">
-    <p class="eyebrow">${notStarted ? 'Next season' : 'Current season'}</p>
+    <p class="eyebrow">${notStarted ? t('season.next') : t('season.current')}</p>
     <h2><a href="/season/${season.id}">${season.name}</a></h2>
     <div class="countdown" data-ends="${season.ends_at}">
-      <div><strong data-unit="days">${daysLeft(season.ends_at, now)}</strong><span>days</span></div>
-      <div><strong data-unit="hours">–</strong><span>hours</span></div>
-      <div><strong data-unit="minutes">–</strong><span>mins</span></div>
-      <div><strong data-unit="seconds">–</strong><span>secs</span></div>
+      <div><strong data-unit="days">${daysLeft(season.ends_at, now)}</strong><span>${t('season.days')}</span></div>
+      <div><strong data-unit="hours">–</strong><span>${t('season.hours')}</span></div>
+      <div><strong data-unit="minutes">–</strong><span>${t('season.minutes')}</span></div>
+      <div><strong data-unit="seconds">–</strong><span>${t('season.seconds')}</span></div>
     </div>
-    <p class="countdown-label">${ended ? 'This season has ended.' : html`Ends ${utcDate(season.ends_at)}`}</p>
-    <progress class="season-progress" value="${progress}" max="100" aria-label="Season progress">${progress}%</progress>
+    <p class="countdown-label">${ended ? t('season.ended') : t('season.endsAt', { date: utcDate(season.ends_at) })}</p>
+    <progress class="season-progress" value="${progress}" max="100" aria-label="${t('season.progress')}">${progress}%</progress>
   </div>`;
 }
 
@@ -55,14 +56,14 @@ function seasonForm(res, action, s = {}, error = '') {
     ${error ? html`<p class="form-error" role="alert">${error}</p>` : ''}
     <form method="post" action="${action}" class="stack">
       ${csrfField(res)}
-      <label>Season name <input name="name" value="${s.name || ''}" required maxlength="60" placeholder="Season 12"></label>
+      <label>${t('season.name')} <input name="name" value="${s.name || ''}" required maxlength="60" placeholder="${t('season.namePlaceholder')}"></label>
       <div class="row">
-        <label>Starts (UTC) <input type="datetime-local" name="starts_at" value="${s.starts_at ? toDateTimeLocal(s.starts_at) : ''}" required></label>
-        <label>Ends (UTC) <input type="datetime-local" name="ends_at" value="${s.ends_at ? toDateTimeLocal(s.ends_at) : ''}" required></label>
+        <label>${t('season.startsUtc')} <input type="datetime-local" name="starts_at" value="${s.starts_at ? toDateTimeLocal(s.starts_at) : ''}" required></label>
+        <label>${t('season.endsUtc')} <input type="datetime-local" name="ends_at" value="${s.ends_at ? toDateTimeLocal(s.ends_at) : ''}" required></label>
       </div>
-      <label>Notes <textarea name="notes" rows="4" maxlength="5000" placeholder="Rewards, rule changes, special events…">${s.notes || ''}</textarea></label>
-      <label class="check"><input type="checkbox" name="is_current" value="1" ${s.is_current ? 'checked' : ''}> This is the current season</label>
-      <button class="btn">Save season</button>
+      <label>${t('season.notes')} <textarea name="notes" rows="4" maxlength="5000" placeholder="${t('season.notesHint')}">${s.notes || ''}</textarea></label>
+      <label class="check"><input type="checkbox" name="is_current" value="1" ${s.is_current ? 'checked' : ''}> ${t('season.isCurrent')}</label>
+      <button class="btn">${t('season.save')}</button>
     </form>`;
 }
 
@@ -75,9 +76,9 @@ function readSeason(body) {
     is_current: body.is_current === '1' ? 1 : 0,
   };
   let error = '';
-  if (!s.name) error = 'Give the season a name.';
-  else if (Number.isNaN(s.starts_at) || Number.isNaN(s.ends_at)) error = 'Enter both start and end dates.';
-  else if (s.ends_at <= s.starts_at) error = 'The season must end after it starts.';
+  if (!s.name) error = t('season.needName');
+  else if (Number.isNaN(s.starts_at) || Number.isNaN(s.ends_at)) error = t('season.needDates');
+  else if (s.ends_at <= s.starts_at) error = t('season.endAfterStart');
   return { s, error };
 }
 
@@ -114,37 +115,37 @@ module.exports = ({ db }) => {
     }
 
     res.page({
-      title: season ? season.name : 'Season',
+      title: season ? season.name : t('nav.season'),
       active: '/season',
       body: html`
         <div class="page-head">
-          <h1>${season ? season.name : 'Season tracker'}</h1>
-          ${season && isMod ? html`<a class="btn btn-ghost btn-small" href="/season/${season.id}/edit">Edit season</a>` : ''}
+          <h1>${season ? season.name : t('season.tracker')}</h1>
+          ${season && isMod ? html`<a class="btn btn-ghost btn-small" href="/season/${season.id}/edit">${t('season.edit')}</a>` : ''}
         </div>
         <div class="grid-2 season-top">
           ${seasonCountdown(season)}
           <section class="panel">
-            <h2>About this season</h2>
+            <h2>${t('season.about')}</h2>
             ${season
               ? html`<dl class="facts">
-                  <dt>Started</dt><dd>${utcDate(season.starts_at)}</dd>
-                  <dt>Ends</dt><dd>${utcDate(season.ends_at)}</dd>
-                  <dt>Length</dt><dd>${Math.round((season.ends_at - season.starts_at) / 86400000)} days</dd>
-                  <dt>Pack players</dt><dd>${players.length}</dd>
+                  <dt>${t('season.started')}</dt><dd>${utcDate(season.starts_at)}</dd>
+                  <dt>${t('season.ends')}</dt><dd>${utcDate(season.ends_at)}</dd>
+                  <dt>${t('season.length')}</dt><dd>${tn('season.daysCount', Math.round((season.ends_at - season.starts_at) / 86400000))}</dd>
+                  <dt>${t('season.packPlayers')}</dt><dd>${players.length}</dd>
                 </dl>
                 ${season.notes ? html`<div class="prose">${markup(season.notes)}</div>` : ''}`
-              : html`<p class="muted">No season has been added yet.</p>`}
+              : html`<p class="muted">${t('season.noneYet')}</p>`}
           </section>
         </div>
 
         ${season
           ? html`<section class="panel">
-              <header class="panel-head"><h2>Players in packs this season</h2></header>
+              <header class="panel-head"><h2>${t('season.playersTitle')}</h2></header>
               ${players.length
                 ? [...packs].map(
                     ([pack, list]) => html`<h3 class="pack-name">${pack} <span class="muted">(${list.length})</span></h3>
                     <div class="table-wrap"><table>
-                      <thead><tr><th class="num">Rating</th><th>Player</th><th>Pos</th><th>Club</th><th>Rarity</th><th>Notes</th><th>Added by</th>${isMod || req.user ? html`<th></th>` : ''}</tr></thead>
+                      <thead><tr><th class="num">${t('season.rating')}</th><th>${t('season.player')}</th><th>${t('season.pos')}</th><th>${t('season.club')}</th><th>${t('season.rarity')}</th><th>${t('season.notes')}</th><th>${t('season.addedBy')}</th>${isMod || req.user ? html`<th></th>` : ''}</tr></thead>
                       <tbody>${list.map(
                         (p) => html`<tr>
                           <td class="num"><span class="rating-badge rarity-${p.rarity.toLowerCase().replace(/[^a-z]/g, '')}">${p.rating ?? '–'}</span></td>
@@ -156,55 +157,55 @@ module.exports = ({ db }) => {
                           <td class="small">${p.username ? userLink(p) : '–'}</td>
                           ${isMod || req.user
                             ? html`<td>${isMod || (req.user && p.added_by === req.user.id)
-                                ? html`<form method="post" action="/season/${season.id}/players/${p.id}/delete" class="inline" data-confirm="Remove ${p.player_name}?">${csrfField(res)}<button class="btn-link danger">Remove</button></form>`
+                                ? html`<form method="post" action="/season/${season.id}/players/${p.id}/delete" class="inline" data-confirm="${t('season.removeConfirm', { name: p.player_name })}">${csrfField(res)}<button class="btn-link danger">${t('common.remove')}</button></form>`
                                 : ''}</td>`
                             : ''}
                         </tr>`
                       )}</tbody>
                     </table></div>`
                   )
-                : html`<p class="muted">No players listed yet for this season.</p>`}
+                : html`<p class="muted">${t('season.noPlayers')}</p>`}
 
               ${canAdd
                 ? html`<details class="add-box" ${error ? 'open' : ''}>
-                    <summary>Add a pack player</summary>
+                    <summary>${t('season.addPlayer')}</summary>
                     ${error ? html`<p class="form-error" role="alert">${error}</p>` : ''}
                     <form method="post" action="/season/${season.id}/players" class="stack">
                       ${csrfField(res)}
                       <div class="row">
-                        <label>Player name <input name="player_name" required maxlength="60"></label>
-                        <label>Pack <input name="pack_name" required maxlength="60" list="pack-names" placeholder="e.g. Season Pack"></label>
+                        <label>${t('season.playerName')} <input name="player_name" required maxlength="60"></label>
+                        <label>${t('season.pack')} <input name="pack_name" required maxlength="60" list="pack-names" placeholder="${t('season.packHint')}"></label>
                         <datalist id="pack-names">${[...packs.keys()].map((n) => html`<option value="${n}">`)}</datalist>
                       </div>
                       <div class="row">
-                        <label>Position <input name="position" maxlength="10" list="positions"></label>
+                        <label>${t('season.position')} <input name="position" maxlength="10" list="positions"></label>
                         <datalist id="positions">${POSITIONS.map((p) => html`<option value="${p}">`)}</datalist>
-                        <label>Rating <input type="number" name="rating" min="1" max="150"></label>
-                        <label>Rarity / tier <input name="rarity" maxlength="20" list="rarities"></label>
+                        <label>${t('season.rating')} <input type="number" name="rating" min="1" max="150"></label>
+                        <label>${t('season.rarityTier')} <input name="rarity" maxlength="20" list="rarities"></label>
                         <datalist id="rarities">${RARITIES.map((r) => html`<option value="${r}">`)}</datalist>
                       </div>
                       <div class="row">
-                        <label>Real-life club <input name="club" maxlength="60"></label>
-                        <label>Notes <input name="notes" maxlength="200" placeholder="Drop rate, best use, etc."></label>
+                        <label>${t('season.realClub')} <input name="club" maxlength="60"></label>
+                        <label>${t('season.notes')} <input name="notes" maxlength="200" placeholder="${t('season.playerNotesHint')}"></label>
                       </div>
-                      <button class="btn">Add player</button>
+                      <button class="btn">${t('season.addPlayerButton')}</button>
                     </form>
                   </details>`
                 : req.user
-                  ? html`<p class="muted small">Only <a href="/verify">verified managers</a> and moderators can add pack players. Post corrections in <a href="/forum/packs-transfers">Packs &amp; Players</a>.</p>`
-                  : html`<p class="muted small"><a href="/login">Log in</a> to help keep this list up to date.</p>`}
+                  ? html`<p class="muted small">${th('season.onlyVerified', { verify: html`<a href="/verify">${t('nav.verify')}</a>`, forum: html`<a href="/forum/packs-transfers">${t('cat.packs-transfers.name')}</a>` })}</p>`
+                  : html`<p class="muted small">${th('season.loginToHelp', { link: html`<a href="/login?next=/season">${t('nav.login')}</a>` })}</p>`}
             </section>`
           : ''}
 
         <section class="panel">
-          <header class="panel-head"><h2>All seasons</h2></header>
+          <header class="panel-head"><h2>${t('season.all')}</h2></header>
           ${seasons.length
             ? html`<ul class="list">${seasons.map(
-                (s) => html`<li><a class="list-title" href="/season/${s.id}">${s.name}</a>${s.is_current ? html` <span class="pill pill-green">Current</span>` : ''}<span class="meta">${utcDate(s.starts_at)} → ${utcDate(s.ends_at)}</span></li>`
+                (s) => html`<li><a class="list-title" href="/season/${s.id}">${s.name}</a>${s.is_current ? html` <span class="pill pill-green">${t('wiki.current')}</span>` : ''}<span class="meta">${utcDate(s.starts_at)} → ${utcDate(s.ends_at)}</span></li>`
               )}</ul>`
-            : html`<p class="muted">No seasons yet.</p>`}
+            : html`<p class="muted">${t('season.noSeasons')}</p>`}
           ${isMod
-            ? html`<details class="add-box"><summary>Add a season</summary>${seasonForm(res, '/season', { is_current: 1 })}</details>`
+            ? html`<details class="add-box"><summary>${t('season.add')}</summary>${seasonForm(res, '/season', { is_current: 1 })}</details>`
             : ''}
         </section>`,
     });
@@ -216,17 +217,17 @@ module.exports = ({ db }) => {
     const { s, error } = readSeason(req.body);
     if (error) {
       res.status(400);
-      return res.page({ title: 'New season', body: html`<h1>New season</h1>${seasonForm(res, '/season', s, error)}` });
+      return res.page({ title: t('season.add'), body: html`<h1>${t('season.add')}</h1>${seasonForm(res, '/season', s, error)}` });
     }
     const id = await saveSeason(s);
-    res.flash('success', 'Season saved.');
+    res.flash('success', t('season.saved'));
     res.redirect(`/season/${id}`);
   });
 
   const loadSeason = async (req) => {
     const id = intParam(req.params.id);
     const season = id && await db.get('SELECT * FROM seasons WHERE id = ?', id);
-    if (!season) throw notFound('Season not found.');
+    if (!season) throw notFound(t('season.notFound'));
     return season;
   };
 
@@ -235,12 +236,12 @@ module.exports = ({ db }) => {
   router.get('/season/:id/edit', requireRole('mod'), async (req, res) => {
     const season = await loadSeason(req);
     res.page({
-      title: `Edit ${season.name}`,
+      title: t('season.editNamed', { name: season.name }),
       active: '/season',
-      body: html`<h1>Edit ${season.name}</h1>
+      body: html`<h1>${t('season.editNamed', { name: season.name })}</h1>
         ${seasonForm(res, `/season/${season.id}/edit`, season)}
-        <form method="post" action="/season/${season.id}/delete" class="danger-zone" data-confirm="Delete this season and all its pack players?">
-          ${csrfField(res)}<button class="btn btn-danger">Delete season</button>
+        <form method="post" action="/season/${season.id}/delete" class="danger-zone" data-confirm="${t('season.deleteConfirm')}">
+          ${csrfField(res)}<button class="btn btn-danger">${t('season.delete')}</button>
         </form>`,
     });
   });
@@ -250,24 +251,24 @@ module.exports = ({ db }) => {
     const { s, error } = readSeason(req.body);
     if (error) {
       res.status(400);
-      return res.page({ title: 'Edit season', body: html`<h1>Edit season</h1>${seasonForm(res, `/season/${season.id}/edit`, s, error)}` });
+      return res.page({ title: t('season.edit'), body: html`<h1>${t('season.edit')}</h1>${seasonForm(res, `/season/${season.id}/edit`, s, error)}` });
     }
     await saveSeason(s, season.id);
-    res.flash('success', 'Season updated.');
+    res.flash('success', t('season.updated'));
     res.redirect(`/season/${season.id}`);
   });
 
   router.post('/season/:id/delete', requireRole('mod'), async (req, res) => {
     const season = await loadSeason(req);
     await db.run('DELETE FROM seasons WHERE id = ?', season.id);
-    res.flash('success', `Deleted ${season.name}.`);
+    res.flash('success', t('season.deleted', { name: season.name }));
     res.redirect('/season');
   });
 
   router.post('/season/:id/players', requireUser, async (req, res) => {
     const season = await loadSeason(req);
     if (!hasRole(req.user, 'mod') && !req.user.verified) {
-      throw Object.assign(new Error('Only verified managers can add pack players.'), { status: 403 });
+      throw Object.assign(new Error(t('season.onlyVerifiedError')), { status: 403 });
     }
     const p = {
       player_name: text(req.body.player_name, 60),
@@ -279,27 +280,27 @@ module.exports = ({ db }) => {
       notes: text(req.body.notes, 200),
     };
     let error = '';
-    if (!p.player_name || !p.pack_name) error = 'Player name and pack are required.';
-    else if (p.rating !== null && (!p.rating || p.rating > 150)) error = 'Rating must be a number between 1 and 150.';
+    if (!p.player_name || !p.pack_name) error = t('season.needPlayer');
+    else if (p.rating !== null && (!p.rating || p.rating > 150)) error = t('season.badRating');
     if (error) {
       res.status(400);
       return renderSeason(req, res, season, { error });
     }
     await db.run(`INSERT INTO pack_players (season_id, pack_name, player_name, position, rating, rarity, club, notes, added_by, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, season.id, p.pack_name, p.player_name, p.position, p.rating, p.rarity, p.club, p.notes, req.user.id, Date.now());
-    res.flash('success', `Added ${p.player_name}.`);
+    res.flash('success', t('season.playerAdded', { name: p.player_name }));
     res.redirect(`/season/${season.id}`);
   });
 
   router.post('/season/:id/players/:pid/delete', requireUser, async (req, res) => {
     const season = await loadSeason(req);
     const player = await db.get('SELECT * FROM pack_players WHERE id = ? AND season_id = ?', intParam(req.params.pid) || 0, season.id);
-    if (!player) throw notFound('Player not found.');
+    if (!player) throw notFound(t('season.playerNotFound'));
     if (!hasRole(req.user, 'mod') && player.added_by !== req.user.id) {
-      throw Object.assign(new Error('You can only remove players you added.'), { status: 403 });
+      throw Object.assign(new Error(t('season.ownPlayersOnly')), { status: 403 });
     }
     await db.run('DELETE FROM pack_players WHERE id = ?', player.id);
-    res.flash('success', `Removed ${player.player_name}.`);
+    res.flash('success', t('season.playerRemoved', { name: player.player_name }));
     res.redirect(`/season/${season.id}`);
   });
 

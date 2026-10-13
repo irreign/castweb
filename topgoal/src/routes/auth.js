@@ -4,7 +4,8 @@ const crypto = require('node:crypto');
 const express = require('express');
 const { ensureMainWikiPage } = require('../db');
 const { hashPassword, verifyPassword, createSession, destroySession, rateLimiter, clientIp, safeNext } = require('../auth');
-const { html, csrfField } = require('../render');
+const { html, th, csrfField } = require('../render');
+const { t } = require('../i18n');
 
 const USERNAME_RE = /^[A-Za-z0-9_.-]{3,24}$/;
 
@@ -23,22 +24,22 @@ module.exports = ({ db }) => {
 
   const registerForm = (res, { username = '', ign = '', error = '' } = {}) =>
     res.page({
-      title: 'Join',
+      title: t('auth.joinTitle'),
       body: html`
         <section class="auth-card">
-          <h1>Join TopGoal Hub</h1>
-          <p class="muted">Talk with managers from every FA, build the wiki and get your blue tick.</p>
+          <h1>${t('auth.joinHeading')}</h1>
+          <p class="muted">${t('auth.joinIntro')}</p>
           ${error ? html`<p class="form-error" role="alert">${error}</p>` : ''}
           <form method="post" action="/register" class="stack">
             ${csrfField(res)}
-            <label>Username <input name="username" value="${username}" required minlength="3" maxlength="24" pattern="[A-Za-z0-9_.\\-]{3,24}" autocomplete="username"></label>
-            <small class="muted">3–24 letters, numbers, dots, dashes or underscores.</small>
-            <label>In-game manager name <span class="muted">(optional)</span><input name="ign" value="${ign}" maxlength="40"></label>
-            <label>Password <input type="password" name="password" required minlength="8" maxlength="200" autocomplete="new-password"></label>
-            <label>Confirm password <input type="password" name="confirm" required minlength="8" maxlength="200" autocomplete="new-password"></label>
-            <button class="btn">Create account</button>
+            <label>${t('auth.username')} <input name="username" value="${username}" required minlength="3" maxlength="24" pattern="[A-Za-z0-9_.\\-]{3,24}" autocomplete="username"></label>
+            <small class="muted">${t('auth.usernameHint')}</small>
+            <label>${t('auth.ign')} <span class="muted">${t('common.optional')}</span><input name="ign" value="${ign}" maxlength="40"></label>
+            <label>${t('auth.password')} <input type="password" name="password" required minlength="8" maxlength="200" autocomplete="new-password"></label>
+            <label>${t('auth.confirmPassword')} <input type="password" name="confirm" required minlength="8" maxlength="200" autocomplete="new-password"></label>
+            <button class="btn">${t('auth.createAccount')}</button>
           </form>
-          <p class="muted">Already have an account? <a href="/login">Log in</a>.</p>
+          <p class="muted">${th('auth.haveAccount', { link: html`<a href="/login">${t('nav.login')}</a>` })}</p>
         </section>`,
     });
 
@@ -55,13 +56,13 @@ module.exports = ({ db }) => {
 
     if (registerLimiter.hit(clientIp(req))) {
       res.status(429);
-      return registerForm(res, { username, ign, error: 'Too many sign-ups from your network. Try again later.' });
+      return registerForm(res, { username, ign, error: t('auth.tooManySignups') });
     }
     let error = '';
-    if (!USERNAME_RE.test(username)) error = 'Usernames must be 3–24 letters, numbers, dots, dashes or underscores.';
-    else if (password.length < 8) error = 'Passwords must be at least 8 characters.';
-    else if (password !== confirm) error = 'The two passwords do not match.';
-    else if (await db.get('SELECT 1 FROM users WHERE username = ?', username)) error = 'That username is taken.';
+    if (!USERNAME_RE.test(username)) error = t('auth.usernameInvalid');
+    else if (password.length < 8) error = t('auth.passwordShort');
+    else if (password !== confirm) error = t('auth.passwordMismatch');
+    else if (await db.get('SELECT 1 FROM users WHERE username = ?', username)) error = t('auth.usernameTaken');
     if (error) {
       res.status(400);
       return registerForm(res, { username, ign, error });
@@ -79,29 +80,29 @@ module.exports = ({ db }) => {
     } catch (err) {
       if (!/UNIQUE/i.test(String(err && err.message))) throw err;
       res.status(400);
-      return registerForm(res, { username, ign, error: 'That username is taken.' });
+      return registerForm(res, { username, ign, error: t('auth.usernameTaken') });
     }
     await ensureMainWikiPage(db, userId);
     await createSession(db, req, res, userId);
-    res.flash('success', `Welcome, ${username}! Get your blue tick from the Verify page.`);
+    res.flash('success', t('auth.welcome', { name: username }));
     res.redirect('/');
   });
 
   const loginForm = (res, { username = '', next = '/', error = '' } = {}) =>
     res.page({
-      title: 'Log in',
+      title: t('nav.login'),
       body: html`
         <section class="auth-card">
-          <h1>Log in</h1>
+          <h1>${t('nav.login')}</h1>
           ${error ? html`<p class="form-error" role="alert">${error}</p>` : ''}
           <form method="post" action="/login" class="stack">
             ${csrfField(res)}
             <input type="hidden" name="next" value="${next}">
-            <label>Username <input name="username" value="${username}" required autocomplete="username"></label>
-            <label>Password <input type="password" name="password" required autocomplete="current-password"></label>
-            <button class="btn">Log in</button>
+            <label>${t('auth.username')} <input name="username" value="${username}" required autocomplete="username"></label>
+            <label>${t('auth.password')} <input type="password" name="password" required autocomplete="current-password"></label>
+            <button class="btn">${t('nav.login')}</button>
           </form>
-          <p class="muted">New here? <a href="/register">Create an account</a>.</p>
+          <p class="muted">${th('auth.newHere', { link: html`<a href="/register">${t('auth.createAccount')}</a>` })}</p>
         </section>`,
     });
 
@@ -118,16 +119,16 @@ module.exports = ({ db }) => {
 
     if (loginLimiter.hit(key)) {
       res.status(429);
-      return loginForm(res, { username, next, error: 'Too many attempts. Wait 15 minutes and try again.' });
+      return loginForm(res, { username, next, error: t('auth.tooManyAttempts') });
     }
     const user = await db.get('SELECT id, password_hash, banned FROM users WHERE username = ?', username);
     if (!user || !verifyPassword(password, user.password_hash)) {
       res.status(401);
-      return loginForm(res, { username, next, error: 'Wrong username or password.' });
+      return loginForm(res, { username, next, error: t('auth.wrongPassword') });
     }
     if (user.banned) {
       res.status(403);
-      return loginForm(res, { username, next, error: 'This account has been suspended.' });
+      return loginForm(res, { username, next, error: t('auth.suspended') });
     }
     loginLimiter.reset(key);
     await createSession(db, req, res, user.id);

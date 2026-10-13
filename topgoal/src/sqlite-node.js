@@ -5,7 +5,7 @@
 const { DatabaseSync } = require('node:sqlite');
 const fs = require('node:fs');
 const path = require('node:path');
-const { SETUP_STATEMENTS } = require('./db');
+const { SETUP_STATEMENTS, migrate } = require('./db');
 
 function open(file) {
   if (file !== ':memory:') fs.mkdirSync(path.dirname(file), { recursive: true });
@@ -37,7 +37,7 @@ function open(file) {
 
   batchSync(SETUP_STATEMENTS);
 
-  return {
+  const db = {
     get: async (sql, ...params) => stmt(sql).get(...params),
     all: async (sql, ...params) => stmt(sql).all(...params),
     run: async (sql, ...params) => runSync(sql, params),
@@ -45,6 +45,10 @@ function open(file) {
     ready: async () => {},
     sqlite, // raw synchronous handle, for Node-only scripts
   };
+  // Upgrade older databases before the first request (the driver is synchronous underneath).
+  const migrated = migrate(db);
+  db.ready = () => migrated;
+  return db;
 }
 
 module.exports = { open };

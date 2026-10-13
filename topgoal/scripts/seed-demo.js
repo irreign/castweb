@@ -102,6 +102,17 @@ db.exec('BEGIN');
     const id = addThread.run(cat(slug), users[author], title, pinned, posts.length, created, created + posts.length * 3600000).lastInsertRowid;
     posts.forEach(([who, body], i) => addPost.run(id, users[who], body, created + i * 3600000));
   }
+
+  const addFriend = db.prepare(
+    'INSERT INTO friendships (requester_id, addressee_id, status, created_at, accepted_at) VALUES (?, ?, ?, ?, ?)'
+  );
+  addFriend.run(users['striker_sam'], users['keeper_kim'], 'accepted', now - 4 * day, now - 4 * day);
+  addFriend.run(users['striker_sam'], users['demo-admin'], 'accepted', now - 3 * day, now - 3 * day);
+  addFriend.run(users['keeper_kim'], users['demo-admin'], 'pending', now - day, null);
+
+  db.prepare('INSERT INTO reports (user_id, kind, subject, details, created_at) VALUES (?, ?, ?, ?, ?)').run(
+    users['keeper_kim'], 'site', 'Sample report: countdown shows the wrong day', 'This is a **sample report** for the preview.', now - 7200000
+  );
   db.exec('COMMIT');
 }
 

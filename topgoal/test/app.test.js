@@ -5,6 +5,7 @@ const assert = require('node:assert/strict');
 const { open } = require('../src/sqlite-node');
 const { createApp } = require('../src/app');
 const { markup } = require('../src/render');
+const { hashPassword } = require('../src/auth');
 
 let server;
 let base;
@@ -58,6 +59,36 @@ class Client {
     this.store(res);
     return { status: res.status, body: await res.text(), location: res.headers.get('location') };
   }
+  // multipart/form-data POST; `files` maps field name -> { data: Buffer, name, type }.
+  async upload(path, fields = {}, files = {}, { csrf = true } = {}) {
+    if (csrf && !this.csrf) await this.get('/');
+    const form = new FormData();
+    if (csrf) form.append('_csrf', this.csrf);
+    for (const [k, v] of Object.entries(fields)) form.append(k, v);
+    for (const [k, f] of Object.entries(files)) form.append(k, new Blob([f.data], { type: f.type }), f.name);
+    const res = await fetch(base + path, { method: 'POST', headers: { cookie: this.cookieHeader() }, body: form, redirect: 'manual' });
+    this.store(res);
+    return { status: res.status, body: await res.text(), location: res.headers.get('location') };
+  }
+}
+
+// 1×1 PNG
+const PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+  'base64'
+);
+
+// Creates an account directly (sign-ups are rate-limited per IP) and logs in through the site.
+async function userWithLogin(name, { lang } = {}) {
+  db.prepare(
+    "INSERT INTO users (username, password_hash, role, verify_code, created_at) VALUES (?, ?, 'user', ?, ?)"
+  ).run(name, hashPassword('correct horse'), `TG-${name.toUpperCase().slice(0, 5)}`, Date.now());
+  const c = new Client();
+  if (lang) c.cookies.set('tg_lang', lang);
+  await c.get('/login');
+  const r = await c.post('/login', { username: name, password: 'correct horse' });
+  assert.equal(r.status, 302, `login ${name}`);
+  return c;
 }
 
 async function register(name) {
@@ -195,7 +226,7 @@ test('verified managers can list an FA; only moderators set ranking points', asy
   assert.match(rankings.body, /5,400/);
 });
 
-test('moderators manage seasons; countdown and pack players appear on the home page', async () => {
+test('moderators manage seasons; the countdown is on the home page and pack players on the Season tab', async () => {
   await alice.get('/season');
   const starts = new Date(Date.now() - 5 * 86400000).toISOString().slice(0, 16);
   const ends = new Date(Date.now() + 10 * 86400000 + 3600000).toISOString().slice(0, 16);
@@ -216,8 +247,10 @@ test('moderators manage seasons; countdown and pack players appear on the home p
   const home = await bob.get('/');
   assert.match(home.body, /Season 9/);
   assert.match(home.body, /data-unit="days">10</);
-  assert.match(home.body, /Sample Striker/);
+  assert.match(home.body, /Season 9: 10 days left/);
+  assert.match(home.body, /1 pack player</);
   const season = await bob.get('/season');
+  assert.match(season.body, /Sample Striker/);
   assert.match(season.body, />ST</);
 });
 
@@ -236,4 +269,113 @@ test('markup only allows http(s) links', () => {
   const out = String(markup('[click](javascript:alert(1)) and https://ok.example/a?b=1&c=2'));
   assert.doesNotMatch(out, /href="javascript/);
   assert.match(out, /href="https:\/\/ok.example\/a\?b=1&amp;c=2"/);
+});
+
+test('language picker switches the whole interface to Italian or Polish', async () => {
+  const c = new Client();
+  const it = await c.get('/lang/it?next=/forum');
+  assert.equal(it.location, '/forum');
+  const forum = await c.get('/forum');
+  assert.match(forum.body, /<html lang="it">/);
+  assert.match(forum.body, />Chiacchiere</);
+  assert.match(forum.body, />Federazioni</);
+
+  await c.get('/lang/pl?next=/');
+  const home = await c.get('/');
+  assert.match(home.body, /<html lang="pl">/);
+  assert.match(home.body, /Zgłoś problem/);
+  // Polish plural for 10 days: "zostało 10 dni"
+  assert.match(home.body, /Season 9: zostało 10 dni/);
+
+  // Unknown languages are ignored, and redirects stay on this site.
+  assert.equal((await c.get('/lang/xx?next=//evil.example')).location, '/');
+
+  // Browsers asking for Italian get Italian without choosing.
+  const res = await fetch(`${base}/news`, { headers: { 'accept-language': 'it-IT,it;q=0.9' } });
+  assert.match(await res.text(), /<h1>Notizie<\/h1>/);
+});
+
+test('blue tick screenshots upload privately and show in the moderation queue', async () => {
+  const carol = await userWithLogin('carol');
+  await carol.get('/verify');
+  const bad = await carol.upload('/verify', { ign: 'CarolFC' }, { screenshot: { data: Buffer.from('not an image'), name: 'x.png', type: 'image/png' } });
+  assert.equal(bad.status, 400);
+  assert.match(bad.body, /PNG, JPG or WebP/);
+
+  // The CSRF token is required for uploads too.
+  const noToken = await carol.upload('/verify', { ign: 'CarolFC' }, { screenshot: { data: PNG, name: 'p.png', type: 'image/png' } }, { csrf: false });
+  assert.equal(noToken.status, 403);
+
+  const ok = await carol.upload('/verify', { ign: 'CarolFC', fa_name: 'Lions' }, { screenshot: { data: PNG, name: 'p.png', type: 'image/png' } });
+  assert.equal(ok.status, 302);
+  const request = db.prepare("SELECT * FROM verification_requests WHERE ign = 'CarolFC'").get();
+  assert.ok(request.upload_id);
+
+  const img = await fetch(`${base}/uploads/${request.upload_id}`, { headers: { cookie: carol.cookieHeader() } });
+  assert.equal(img.status, 200);
+  assert.equal(img.headers.get('content-type'), 'image/png');
+  assert.deepEqual(Buffer.from(await img.arrayBuffer()), PNG);
+
+  // Other users and visitors cannot see it; moderators can.
+  assert.equal((await alice.get(`/uploads/${request.upload_id}`)).status, 404);
+  assert.equal((await new Client().get(`/uploads/${request.upload_id}`)).status, 404);
+  assert.equal((await admin.get(`/uploads/${request.upload_id}`)).status, 200);
+  assert.match((await admin.get('/admin')).body, new RegExp(`<img src="/uploads/${request.upload_id}"`));
+});
+
+test('friends: send, accept, see badges, and remove', async () => {
+  const dave = await userWithLogin('dave');
+  const erin = await userWithLogin('erin');
+  await dave.get('/u/erin');
+  assert.equal((await dave.post('/friends/add', { username: 'erin' })).status, 302);
+  assert.match((await dave.get('/u/erin')).body, /Request sent/);
+
+  // Erin sees a badge on the Friends tab and the request on the page.
+  const erinHome = await erin.get('/');
+  assert.match(erinHome.body, /href="\/friends"[^>]*>.*?<span class="badge"[^>]*>1<\/span>/s);
+  assert.match((await erin.get('/friends')).body, /Friend requests/);
+  assert.equal((await erin.post('/friends/accept', { username: 'dave' })).status, 302);
+
+  assert.match((await dave.get('/friends')).body, /href="\/u\/erin"/);
+  assert.match((await dave.get('/u/erin')).body, /✓ Friends/);
+  assert.match((await dave.get('/friends?q=eri')).body, /✓ Friends/);
+
+  // Adding yourself is refused; removing works both ways.
+  assert.equal((await dave.post('/friends/add', { username: 'dave' })).status, 400);
+  await erin.get('/friends');
+  await erin.post('/friends/remove', { username: 'dave' });
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM friendships').get().n, 0);
+});
+
+test('problem reports are private to the reporter and moderators', async () => {
+  const fred = await userWithLogin('fred');
+  await fred.get('/report');
+  const r = await fred.upload(
+    '/report',
+    { kind: 'game', subject: 'Match froze', details: 'Froze at 80 minutes' },
+    { screenshot: { data: PNG, name: 'p.png', type: 'image/png' } }
+  );
+  assert.equal(r.status, 302);
+  assert.match((await fred.get('/report')).body, /Match froze/);
+  assert.doesNotMatch((await alice.get('/report')).body, /Match froze/);
+
+  const queue = await admin.get('/admin');
+  assert.match(queue.body, /Match froze/);
+  const id = queue.body.match(/action="\/admin\/reports\/(\d+)"/)[1];
+  await admin.post(`/admin/reports/${id}`, { note: 'Fixed in the next update' });
+  const after = await fred.get('/report');
+  assert.match(after.body, /Handled/);
+  assert.match(after.body, /Fixed in the next update/);
+});
+
+test('News tab lists announcements; Chat tab lists the other rooms', async () => {
+  await admin.get('/forum/announcements/new');
+  await admin.post('/forum/announcements/new', { title: 'Site launch', body: 'Welcome **everyone** to the hub' });
+  const news = await alice.get('/news');
+  assert.match(news.body, /Site launch/);
+  assert.match(news.body, /Welcome everyone to the hub/);
+  const chat = await alice.get('/forum');
+  assert.doesNotMatch(chat.body, /href="\/forum\/announcements"/);
+  assert.match(chat.body, /Casual Chat/);
+  assert.equal((await alice.get('/forum/announcements')).location, '/news');
 });

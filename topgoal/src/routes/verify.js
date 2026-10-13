@@ -2,7 +2,9 @@
 
 const express = require('express');
 const { requireUser } = require('../auth');
-const { html, csrfField, dateTime, BLUE_TICK } = require('../render');
+const { html, th, csrfField, dateTime, blueTick } = require('../render');
+const { t } = require('../i18n');
+const { storeImage } = require('./uploads');
 const { text } = require('./util');
 
 module.exports = ({ db }) => {
@@ -11,26 +13,26 @@ module.exports = ({ db }) => {
   const latestRequest = (userId) =>
     db.get('SELECT * FROM verification_requests WHERE user_id = ? ORDER BY id DESC LIMIT 1', userId);
 
-  const howItWorks = html`
+  const howItWorks = () => html`
     <section class="panel">
-      <h2>How the blue tick works</h2>
+      <h2>${t('verify.howTitle')}</h2>
       <ol class="steps">
-        <li><strong>Get your code.</strong> Log in and open this page. You'll see a code that belongs only to your account.</li>
-        <li><strong>Show it in the game.</strong> Put the code somewhere other players can see on your TopGoal profile, such as your club name or club description, for a short time.</li>
-        <li><strong>Send a request.</strong> Tell us your in-game manager name and FA, and add a screenshot link showing the code.</li>
-        <li><strong>A moderator checks.</strong> They look you up in the game and approve you. You get a ${BLUE_TICK} next to your name everywhere on the site, and you can take the code out of your profile.</li>
+        <li><strong>${t('verify.step1.title')}</strong> ${t('verify.step1.text')}</li>
+        <li><strong>${t('verify.step2.title')}</strong> ${t('verify.step2.text')}</li>
+        <li><strong>${t('verify.step3.title')}</strong> ${t('verify.step3.text')}</li>
+        <li><strong>${t('verify.step4.title')}</strong> ${th('verify.step4.text', { tick: blueTick() })}</li>
       </ol>
-      <p class="muted small">Verified managers can post in the Verified Lounge, list and manage their FA, and add pack players. Never share your game password, and no moderator will ever ask for it.</p>
+      <p class="muted small">${t('verify.perks')}</p>
     </section>`;
 
   const page = async (req, res, { error = '', form = {} } = {}) => {
     if (!req.user) {
       return res.page({
-        title: 'Get verified',
-        body: html`<h1>Get your blue tick</h1>
-          <p class="lead">A blue tick shows other managers that you really own the TopGoal account you say you do.</p>
-          ${howItWorks}
-          <p><a class="btn" href="/register">Create an account</a> <a class="btn btn-ghost" href="/login?next=/verify">Log in</a></p>`,
+        title: t('verify.title'),
+        body: html`<h1>${t('verify.title')}</h1>
+          <p class="lead">${t('verify.lead')}</p>
+          ${howItWorks()}
+          <p><a class="btn" href="/register">${t('auth.createAccount')}</a> <a class="btn btn-ghost" href="/login?next=/verify">${t('nav.login')}</a></p>`,
       });
     }
     const me = await db.get('SELECT verified, verified_at, verify_code, ign FROM users WHERE id = ?', req.user.id);
@@ -39,33 +41,43 @@ module.exports = ({ db }) => {
 
     let status;
     if (me.verified) {
-      status = html`<div class="flash flash-success">${BLUE_TICK} You're verified (since ${dateTime(me.verified_at)}). Thanks for helping keep the community real.</div>`;
+      status = html`<div class="flash flash-success">${blueTick()} ${th('verify.done', { when: dateTime(me.verified_at) })}</div>`;
     } else if (last && last.status === 'pending') {
-      status = html`<div class="flash flash-info">Your request from ${dateTime(last.created_at)} is waiting for a moderator. Keep the code <code>${me.verify_code}</code> visible in the game until it is reviewed.</div>`;
+      status = html`<div class="flash flash-info">${th('verify.pending', { when: dateTime(last.created_at), code: html`<code>${me.verify_code}</code>` })}
+        ${last.upload_id ? html`<p><a href="/uploads/${last.upload_id}" target="_blank" rel="noopener">${t('verify.viewScreenshot')}</a></p>` : ''}</div>`;
     } else {
       status = html`
         ${last && last.status === 'rejected'
-          ? html`<div class="flash flash-error">Your last request was not approved${last.review_note ? html`: ${last.review_note}` : '.'} You can try again below.</div>`
+          ? html`<div class="flash flash-error">${last.review_note ? t('verify.rejectedNote', { note: last.review_note }) : t('verify.rejected')}</div>`
           : ''}
         <section class="panel verify-form">
-          <h2>Your verification code</h2>
-          <p class="verify-code" aria-label="Your verification code">${me.verify_code}</p>
+          <h2>${t('verify.yourCode')}</h2>
+          <p class="verify-code" aria-label="${t('verify.yourCode')}">${me.verify_code}</p>
           ${error ? html`<p class="form-error" role="alert">${error}</p>` : ''}
-          <form method="post" action="/verify" class="stack">
+          <form method="post" action="/verify" class="stack" enctype="multipart/form-data">
             ${csrfField(res)}
-            <label>In-game manager name <input name="ign" required maxlength="40" value="${form.ign ?? me.ign ?? ''}"></label>
-            <label>Your FA in the game <input name="fa_name" maxlength="40" value="${form.fa_name ?? (fa ? fa.name : '')}"></label>
-            <label>Screenshot link and notes
-              <textarea name="evidence" rows="4" maxlength="1000" required placeholder="Link to a screenshot (e.g. Imgur) that shows the code on your TopGoal profile, plus anything that helps a moderator find you.">${form.evidence || ''}</textarea>
+            <div class="row">
+              <label>${t('auth.ign')} <input name="ign" required maxlength="40" value="${form.ign ?? me.ign ?? ''}"></label>
+              <label>${t('verify.faInGame')} <input name="fa_name" maxlength="40" value="${form.fa_name ?? (fa ? fa.name : '')}"></label>
+            </div>
+            <label class="upload-box">
+              <span class="upload-title">📸 ${t('verify.uploadLabel')}</span>
+              <span class="muted small">${t('verify.uploadHint')}</span>
+              <input type="file" name="screenshot" accept="image/png,image/jpeg,image/webp" data-shrink-image>
+              <img class="upload-preview" alt="" hidden>
             </label>
-            <button class="btn">Send verification request</button>
+            <small class="muted">${t('upload.hint')}</small>
+            <label>${t('verify.notes')} <span class="muted">${t('common.optional')}</span>
+              <textarea name="evidence" rows="3" maxlength="1000" placeholder="${t('verify.notesHint')}">${form.evidence || ''}</textarea>
+            </label>
+            <button class="btn">${t('verify.send')}</button>
           </form>
         </section>`;
     }
 
     res.page({
-      title: 'Get verified',
-      body: html`<h1>Get your blue tick</h1>${status}${howItWorks}`,
+      title: t('verify.title'),
+      body: html`<h1>${t('verify.title')}</h1>${status}${howItWorks()}`,
     });
   };
 
@@ -81,12 +93,28 @@ module.exports = ({ db }) => {
       fa_name: text(req.body.fa_name, 40),
       evidence: text(req.body.evidence, 1000),
     };
-    if (!form.ign || !form.evidence) {
-      res.status(400);
-      return page(req, res, { form, error: 'Your in-game name and a screenshot link are both required.' });
+    const file = req.files && req.files.screenshot;
+    let error = '';
+    if (!form.ign) error = t('verify.needIgn');
+    else if (!file && !form.evidence) error = t('verify.needScreenshot');
+    let uploadId = null;
+    if (!error) {
+      try {
+        uploadId = await storeImage(db, req.user.id, file);
+      } catch (err) {
+        if (err.status !== 400) throw err;
+        error = err.message;
+      }
     }
-    await db.run('INSERT INTO verification_requests (user_id, code, ign, fa_name, evidence, created_at) VALUES (?, ?, ?, ?, ?, ?)', req.user.id, me.verify_code, form.ign, form.fa_name, form.evidence, Date.now());
-    res.flash('success', 'Request sent. A moderator will review it soon.');
+    if (error) {
+      res.status(400);
+      return page(req, res, { form, error });
+    }
+    await db.run(
+      'INSERT INTO verification_requests (user_id, code, ign, fa_name, evidence, upload_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      req.user.id, me.verify_code, form.ign, form.fa_name, form.evidence, uploadId, Date.now()
+    );
+    res.flash('success', t('verify.sent'));
     res.redirect('/verify');
   });
 

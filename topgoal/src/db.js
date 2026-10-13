@@ -37,6 +37,7 @@ const SCHEMA = [
     ign         TEXT NOT NULL,
     fa_name     TEXT NOT NULL DEFAULT '',
     evidence    TEXT NOT NULL DEFAULT '',
+    upload_id   INTEGER REFERENCES uploads(id) ON DELETE SET NULL,
     status      TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','rejected')),
     reviewer_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
     review_note TEXT NOT NULL DEFAULT '',
@@ -127,6 +128,38 @@ const SCHEMA = [
     created_at     INTEGER NOT NULL,
     updated_at     INTEGER NOT NULL
   )`,
+  `CREATE TABLE IF NOT EXISTS uploads (
+    id         INTEGER PRIMARY KEY,
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    mime       TEXT NOT NULL,
+    size       INTEGER NOT NULL,
+    data       BLOB NOT NULL,
+    created_at INTEGER NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS friendships (
+    requester_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    addressee_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    status       TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','accepted')),
+    created_at   INTEGER NOT NULL,
+    accepted_at  INTEGER,
+    PRIMARY KEY (requester_id, addressee_id),
+    CHECK (requester_id != addressee_id)
+  )`,
+  'CREATE INDEX IF NOT EXISTS friendships_by_addressee ON friendships(addressee_id, status)',
+  `CREATE TABLE IF NOT EXISTS reports (
+    id          INTEGER PRIMARY KEY,
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    kind        TEXT NOT NULL CHECK (kind IN ('site','game','player','other')),
+    subject     TEXT NOT NULL,
+    details     TEXT NOT NULL,
+    upload_id   INTEGER REFERENCES uploads(id) ON DELETE SET NULL,
+    status      TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','closed')),
+    mod_note    TEXT NOT NULL DEFAULT '',
+    handled_by  INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    created_at  INTEGER NOT NULL,
+    handled_at  INTEGER
+  )`,
+  'CREATE INDEX IF NOT EXISTS reports_by_status ON reports(status, id)',
 ];
 
 const DEFAULT_CATEGORIES = [
@@ -165,6 +198,21 @@ This wiki is written by players, for players. Anyone with an account can edit it
 Link to another page with double square brackets, like \`[[Formations]]\`. If the page doesn't exist yet, the link lets you create it.`,
 };
 
+// Columns added after the first release. Each is added only if the table lacks it,
+// so databases created by older versions upgrade themselves.
+const ADDED_COLUMNS = [
+  ['verification_requests', 'upload_id', 'INTEGER REFERENCES uploads(id) ON DELETE SET NULL'],
+];
+
+async function migrate(db) {
+  for (const [table, column, definition] of ADDED_COLUMNS) {
+    const columns = await db.all(`SELECT name FROM pragma_table_info('${table}')`);
+    if (!columns.some((c) => c.name === column)) {
+      await db.run(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+    }
+  }
+}
+
 // Wiki pages need an author, so the main page is created when the first user registers.
 async function ensureMainWikiPage(db, userId) {
   if (await db.get('SELECT 1 FROM wiki_pages WHERE slug = ?', DEFAULT_WIKI.slug)) return;
@@ -194,12 +242,16 @@ function d1Database(d1) {
     run: async (sql, ...params) => toRun(await bind(sql, params).run()),
     batch: async (statements) => (await d1.batch(statements.map(([sql, ...p]) => bind(sql, p)))).map(toRun),
     // Creates tables on the first request handled by each Worker instance.
-    ready: () => (ready ??= db.batch(SETUP_STATEMENTS).catch((err) => {
-      ready = null;
-      throw err;
-    })),
+    ready: () =>
+      (ready ??= db
+        .batch(SETUP_STATEMENTS)
+        .then(() => migrate(db))
+        .catch((err) => {
+          ready = null;
+          throw err;
+        })),
   };
   return db;
 }
 
-module.exports = { SETUP_STATEMENTS, ensureMainWikiPage, d1Database };
+module.exports = { SETUP_STATEMENTS, ensureMainWikiPage, migrate, d1Database };

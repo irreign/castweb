@@ -2,20 +2,27 @@
 
 An unofficial fan community website for the **TopGoal** iPhone game.
 
-In the game, managers can only chat inside their own FA. TopGoal Hub gives every manager one place to talk across FAs.
+In the game, managers can only chat inside their own federation (FA). TopGoal Hub gives every manager one place to talk across federations.
 
 ## Features
 
+The site is split into tabs so nothing is one long page: **Home · News · Chat · Federations · Friends · Season · Wiki · Rankings · Report**.
+
 | Area | What it does |
 | --- | --- |
+| **Languages** | English, Italian and Polish. Visitors get their browser's language automatically and can switch with the 🌐 menu in the header (remembered for a year). All text, dates and plurals are translated. Translations live in `src/locales/`. |
 | **Accounts** | Sign up and log in. Passwords are hashed with scrypt. Sessions use HttpOnly cookies, every form has CSRF protection, and logins are rate-limited. |
-| **Blue tick** | Each account gets a unique code such as `TG-7KQ2M`. The player shows it on their in-game profile and sends a screenshot link. A moderator checks it in the game and approves. Verified managers get a blue tick everywhere on the site. |
-| **Forums** | Announcements, General, FA Recruitment, Packs & Players, Tactics, Help & Bugs, and a **Verified Lounge** that only blue-tick managers can post in. Moderators can pin, lock and delete. Posts support simple formatting. |
-| **Wiki** | Any logged-in user can create and edit pages. Pages link to each other with `[[Page Name]]`. Every page keeps its full revision history. If two people edit the same page at once, the second save is stopped instead of overwriting the first. Moderators can lock pages and restore old versions. |
-| **Season** | A live countdown to the end of the season (days, hours, minutes, seconds) and a progress bar. It also lists the players in each pack this season. Moderators manage seasons. Verified managers can add pack players. |
-| **FAs** | An FA directory with search and a "recruiting" filter. Verified FA leaders list and edit their own FA. Managers can link their profile to their FA. |
-| **Rankings** | Top FAs ordered by ranking points, which moderators set from in-game standings. Also shows the top community contributors. |
-| **Moderation** | `/admin` has a queue of verification requests and user management: roles, blue ticks and suspensions. |
+| **Blue tick** | Each account gets a unique code such as `TG-7KQ2M`. The player shows it on their in-game profile and **uploads a screenshot** of it. The browser shrinks the screenshot before sending it. Only the player and moderators can see uploads. A moderator checks the player in the game and approves. Verified managers get a blue tick everywhere on the site. |
+| **Home** | A short overview: the season countdown and one tile per tab with a live preview. |
+| **News** | Announcements from moderators, newest first, with comments. |
+| **Chat** | Rooms for Casual Chat, Federation Recruitment, Packs & Players, Tactics, Help & Bugs, and a **Verified Lounge** that only blue-tick managers can post in. Moderators can pin, lock and delete. Posts support simple formatting. |
+| **Federations** | A directory with search and a "recruiting" filter. Verified leaders list and edit their own federation. Managers can link their profile to their federation. |
+| **Friends** | Find managers by username or in-game name, and send, accept, decline or cancel friend requests. An **Add friend** button is on every profile. New requests show as a badge on the tab. |
+| **Season** | A live scoreboard-style countdown to the end of the season and the players in each pack. Moderators manage seasons. Verified managers can add pack players. |
+| **Wiki** | Any logged-in user can create and edit pages. Pages link to each other with `[[Page Name]]`. Every page keeps its full history, and if two people edit at once, the second save is stopped instead of overwriting the first. Moderators can lock pages and restore old versions. |
+| **Rankings** | Top federations ordered by ranking points (moderators set these from in-game standings) and the top community contributors. |
+| **Report** | Private reports to the moderators (site problem, game bug, player breaking the rules, other), with an optional screenshot. Only the reporter and moderators can see a report, and the moderator's reply shows on the reporter's Report tab. |
+| **Moderation** | `/admin` has the verification queue (with screenshots), open reports, and user management: roles, blue ticks and suspensions. A badge shows how much is waiting. |
 
 **Roles:** The **first account registered becomes the admin**. Admins can promote other users to moderator.
 
@@ -94,8 +101,12 @@ src/db.js            schema, default forums, async database interface, D1 driver
 src/sqlite-node.js   Node driver (node:sqlite)
 src/auth.js          passwords, sessions, CSRF, roles, rate limiting
 src/render.js        auto-escaping HTML templates, layout, post/wiki formatting
-src/routes/*.js      home, auth, forum, wiki, season, fas, profile, verify, admin
-public/static/       CSS, small client script (countdown, mobile menu)
+src/i18n.js          language detection, t()/tn() translation helpers
+src/locales/*.js     English, Italian and Polish text
+src/multipart.js     screenshot upload parsing
+src/routes/*.js      home, news, auth, forum (Chat), wiki, season, fas (Federations),
+                     friends, report, uploads, profile, verify, admin
+public/static/       CSS (football theme), small client script (countdown, screenshot shrinking)
 scripts/seed-demo.js sample content for previews
 test/                end-to-end tests (node:test)
 ```

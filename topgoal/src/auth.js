@@ -1,6 +1,7 @@
 'use strict';
 
 const crypto = require('node:crypto');
+const { t } = require('./i18n');
 
 const SESSION_COOKIE = 'tg_session';
 const CSRF_COOKIE = 'tg_csrf';
@@ -98,6 +99,17 @@ function sessionMiddleware(db) {
       else if (user && user.banned) await destroySession(db, req, res);
     }
 
+    // Numbers for the badges in the header.
+    res.locals.counts = req.user
+      ? await db.get(
+          `SELECT (SELECT COUNT(*) FROM friendships WHERE addressee_id = ? AND status = 'pending') AS friendRequests,
+                  CASE WHEN ? THEN (SELECT COUNT(*) FROM verification_requests WHERE status = 'pending')
+                                 + (SELECT COUNT(*) FROM reports WHERE status = 'open') ELSE 0 END AS modQueue`,
+          req.user.id,
+          req.user.role !== 'user' ? 1 : 0
+        )
+      : {};
+
     // Double-submit CSRF token: random value in a cookie that must be echoed in every form.
     let csrf = req.cookies[CSRF_COOKIE];
     if (!csrf || !/^[A-Za-z0-9_-]{32,}$/.test(csrf)) {
@@ -131,7 +143,7 @@ function csrfProtection(req, res, next) {
     sent.length === expected.length && crypto.timingSafeEqual(Buffer.from(sent), Buffer.from(expected));
   if (!ok) {
     res.status(403);
-    return next(Object.assign(new Error('Your form expired. Go back, refresh the page and try again.'), { status: 403 }));
+    return next(Object.assign(new Error(t('errors.csrf')), { status: 403 }));
   }
   next();
 }
@@ -146,14 +158,14 @@ function hasRole(user, role) {
 
 function requireUser(req, res, next) {
   if (req.user) return next();
-  res.flash('info', 'Log in or create an account to do that.');
+  res.flash('info', t('errors.loginRequired'));
   res.redirect(`/login?next=${encodeURIComponent(req.originalUrl)}`);
 }
 
 function requireRole(role) {
   return (req, res, next) => {
     if (hasRole(req.user, role)) return next();
-    next(Object.assign(new Error('You do not have permission to do that.'), { status: 403 }));
+    next(Object.assign(new Error(t('errors.forbidden')), { status: 403 }));
   };
 }
 

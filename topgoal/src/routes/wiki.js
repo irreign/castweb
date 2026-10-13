@@ -2,7 +2,8 @@
 
 const express = require('express');
 const { requireUser, requireRole, hasRole, rateLimiter } = require('../auth');
-const { html, csrfField, userLink, dateTime, markup, slugify } = require('../render');
+const { html, th, csrfField, userLink, dateTime, markup, slugify } = require('../render');
+const { t } = require('../i18n');
 const { notFound, forbidden, intParam, text, wikiLinkChecker } = require('./util');
 
 const MAX_BODY = 100000;
@@ -25,7 +26,7 @@ module.exports = ({ db }) => {
 
   const loadPage = async (slug) => {
     const page = await getPage(slug);
-    if (!page) throw notFound('Wiki page not found.');
+    if (!page) throw notFound(t('wiki.notFound'));
     return page;
   };
 
@@ -45,37 +46,37 @@ module.exports = ({ db }) => {
           ORDER BY r.id DESC LIMIT 10`);
 
     res.page({
-      title: 'Wiki',
+      title: t('nav.wiki'),
       active: '/wiki',
       body: html`
-        <div class="page-head"><h1>TopGoal Wiki</h1></div>
-        <p class="lead">Guides, player info and game knowledge, written by the community. Anyone with an account can edit.</p>
+        <div class="page-head"><h1>${t('wiki.title')}</h1></div>
+        <p class="lead">${t('wiki.lead')}</p>
         <div class="grid-2 wiki-index">
           <section class="panel">
             <form method="get" action="/wiki" class="search-row" role="search">
-              <input type="search" name="q" value="${q}" placeholder="Search the wiki" aria-label="Search the wiki">
-              <button class="btn btn-small">Search</button>
+              <input type="search" name="q" value="${q}" placeholder="${t('wiki.search')}" aria-label="${t('wiki.search')}">
+              <button class="btn btn-small">${t('common.search')}</button>
             </form>
-            <h2>${q ? `Results for “${q}”` : 'All pages'} <span class="muted">(${pages.length})</span></h2>
+            <h2>${q ? t('wiki.resultsFor', { q }) : t('wiki.allPages')} <span class="muted">(${pages.length})</span></h2>
             ${pages.length
               ? html`<ul class="list columns">${pages.map(
                   (p) => html`<li><a class="list-title" href="/wiki/${p.slug}">${p.title}</a></li>`
                 )}</ul>`
-              : html`<p class="muted">No pages found.</p>`}
+              : html`<p class="muted">${t('wiki.noPages')}</p>`}
           </section>
           <aside class="stack-gap">
             <section class="panel">
-              <h2>Create a page</h2>
+              <h2>${t('wiki.create')}</h2>
               ${req.user
                 ? html`<form method="post" action="/wiki/new" class="stack">
                     ${csrfField(res)}
-                    <label>Page title <input name="title" required maxlength="80" value="${q && !(await getPage(slugify(q))) ? q : ''}" placeholder="e.g. Best Formations"></label>
-                    <button class="btn btn-small">Start writing</button>
+                    <label>${t('wiki.pageTitle')} <input name="title" required maxlength="80" value="${q && !(await getPage(slugify(q))) ? q : ''}" placeholder="${t('wiki.pageTitleHint')}"></label>
+                    <button class="btn btn-small">${t('wiki.startWriting')}</button>
                   </form>`
-                : html`<p class="muted"><a href="/login?next=/wiki">Log in</a> to create and edit pages.</p>`}
+                : html`<p class="muted">${th('wiki.loginToEdit', { link: html`<a href="/login?next=/wiki">${t('nav.login')}</a>` })}</p>`}
             </section>
             <section class="panel">
-              <h2>Recent changes</h2>
+              <h2>${t('wiki.recentChanges')}</h2>
               <ul class="list compact">${recent.map(
                 (r) => html`<li><a href="/wiki/${r.slug}">${r.title}</a><span class="meta">${userLink(r)} · ${dateTime(r.created_at)}${r.summary ? html` · ${r.summary}` : ''}</span></li>`
               )}</ul>
@@ -89,7 +90,7 @@ module.exports = ({ db }) => {
     const title = text(req.body.title, 80);
     const slug = slugify(title);
     if (!slug) {
-      res.flash('error', 'Give the page a title with at least one letter or number.');
+      res.flash('error', t('wiki.badTitle'));
       return res.redirect('/wiki');
     }
     res.redirect((await getPage(slug)) ? `/wiki/${slug}` : `/wiki/${slug}/edit?title=${encodeURIComponent(title)}`);
@@ -103,16 +104,16 @@ module.exports = ({ db }) => {
     if (!page) {
       res.status(404);
       return res.page({
-        title: titleFromSlug(slug) || 'Missing page',
+        title: titleFromSlug(slug) || t('wiki.missing'),
         active: '/wiki',
         body: html`
-          <p class="crumbs"><a href="/wiki">Wiki</a> ›</p>
+          <p class="crumbs"><a href="/wiki">${t('nav.wiki')}</a> ›</p>
           <section class="empty">
-            <h1>${titleFromSlug(slug) || 'Missing page'}</h1>
-            <p>This page doesn't exist yet.</p>
+            <h1>${titleFromSlug(slug) || t('wiki.missing')}</h1>
+            <p>${t('wiki.doesNotExist')}</p>
             ${req.user && slugify(slug) === slug
-              ? html`<a class="btn" href="/wiki/${slug}/edit">Create this page</a>`
-              : html`<p><a href="/login?next=/wiki/${encodeURIComponent(slug)}">Log in</a> to create it.</p>`}
+              ? html`<a class="btn" href="/wiki/${slug}/edit">${t('wiki.createThis')}</a>`
+              : html`<p>${th('wiki.loginToCreate', { link: html`<a href="/login?next=/wiki/${encodeURIComponent(slug)}">${t('nav.login')}</a>` })}</p>`}
           </section>`,
       });
     }
@@ -124,19 +125,19 @@ module.exports = ({ db }) => {
       title: page.title,
       active: '/wiki',
       body: html`
-        <p class="crumbs"><a href="/wiki">Wiki</a> ›</p>
+        <p class="crumbs"><a href="/wiki">${t('nav.wiki')}</a> ›</p>
         <div class="page-head">
-          <h1>${page.title}${page.locked ? html` <span class="pill pill-grey">Locked</span>` : ''}</h1>
+          <h1>${page.title}${page.locked ? html` <span class="pill pill-grey">🔒 ${t('forum.locked')}</span>` : ''}</h1>
           <div class="actions">
-            ${canEdit(req.user, page) ? html`<a class="btn btn-small" href="/wiki/${page.slug}/edit">Edit</a>` : ''}
-            <a class="btn btn-ghost btn-small" href="/wiki/${page.slug}/history">History</a>
+            ${canEdit(req.user, page) ? html`<a class="btn btn-small" href="/wiki/${page.slug}/edit">${t('common.edit')}</a>` : ''}
+            <a class="btn btn-ghost btn-small" href="/wiki/${page.slug}/history">${t('wiki.history')}</a>
             ${isMod
-              ? html`<form method="post" action="/wiki/${page.slug}/lock" class="inline">${csrfField(res)}<button class="btn btn-ghost btn-small">${page.locked ? 'Unlock' : 'Lock'}</button></form>`
+              ? html`<form method="post" action="/wiki/${page.slug}/lock" class="inline">${csrfField(res)}<button class="btn btn-ghost btn-small">${page.locked ? t('forum.unlock') : t('forum.lock')}</button></form>`
               : ''}
           </div>
         </div>
         <article class="prose wiki-body">${markup(page.body, { wikiExists: await wikiLinkChecker(db, [page.body]) })}</article>
-        <p class="muted small page-foot">Last edited ${dateTime(page.updated_at)}${last ? html` by ${userLink(last)}` : ''}.</p>`,
+        <p class="muted small page-foot">${t('wiki.lastEdited')} ${dateTime(page.updated_at)}${last ? html` · ${userLink(last)}` : ''}</p>`,
     });
   });
 
@@ -144,31 +145,31 @@ module.exports = ({ db }) => {
 
   const editPage = (req, res, { slug, page, title, body, summary = '', baseRevision, error = '' }) =>
     res.page({
-      title: page ? `Editing ${page.title}` : `Creating ${title}`,
+      title: page ? t('wiki.editing', { title: page.title }) : t('wiki.newPage'),
       active: '/wiki',
       body: html`
-        <p class="crumbs"><a href="/wiki">Wiki</a> › ${page ? html`<a href="/wiki/${slug}">${page.title}</a> ›` : ''}</p>
-        <h1>${page ? `Editing ${page.title}` : 'New wiki page'}</h1>
+        <p class="crumbs"><a href="/wiki">${t('nav.wiki')}</a> › ${page ? html`<a href="/wiki/${slug}">${page.title}</a> ›` : ''}</p>
+        <h1>${page ? t('wiki.editing', { title: page.title }) : t('wiki.newPage')}</h1>
         ${error ? html`<p class="form-error" role="alert">${error}</p>` : ''}
         <form method="post" action="/wiki/${slug}/edit" class="stack">
           ${csrfField(res)}
           <input type="hidden" name="base_revision" value="${baseRevision || ''}">
-          <label>Title <input name="title" value="${title}" required maxlength="80"></label>
-          <label>Content <textarea name="body" rows="22" required maxlength="${MAX_BODY}" class="mono">${body}</textarea></label>
-          <p class="muted small"># Heading, ## Subheading, **bold**, *italic*, - list, 1. numbered, &gt; quote, \`code\`, [link text](https://…), [[Other Page]].</p>
-          <label>Edit summary <input name="summary" value="${summary}" maxlength="140" placeholder="What did you change?"></label>
+          <label>${t('forum.title')} <input name="title" value="${title}" required maxlength="80"></label>
+          <label>${t('wiki.content')} <textarea name="body" rows="22" required maxlength="${MAX_BODY}" class="mono">${body}</textarea></label>
+          <p class="muted small">${t('wiki.formatting')}</p>
+          <label>${t('wiki.summary')} <input name="summary" value="${summary}" maxlength="140" placeholder="${t('wiki.summaryHint')}"></label>
           <div class="row-actions">
-            <button class="btn">Save page</button>
-            <a href="${page ? `/wiki/${slug}` : '/wiki'}" class="btn btn-ghost">Cancel</a>
+            <button class="btn">${t('wiki.save')}</button>
+            <a href="${page ? `/wiki/${slug}` : '/wiki'}" class="btn btn-ghost">${t('common.cancel')}</a>
           </div>
         </form>`,
     });
 
   router.get('/wiki/:slug/edit', requireUser, async (req, res) => {
     const slug = String(req.params.slug);
-    if (slugify(slug) !== slug) throw notFound('Wiki page not found.');
+    if (slugify(slug) !== slug) throw notFound(t('wiki.notFound'));
     const page = await getPage(slug);
-    if (!canEdit(req.user, page)) throw forbidden('This page is locked. Only moderators can edit it.');
+    if (!canEdit(req.user, page)) throw forbidden(t('wiki.lockedEdit'));
     editPage(req, res, {
       slug,
       page,
@@ -180,9 +181,9 @@ module.exports = ({ db }) => {
 
   router.post('/wiki/:slug/edit', requireUser, async (req, res) => {
     const slug = String(req.params.slug);
-    if (slugify(slug) !== slug) throw notFound('Wiki page not found.');
+    if (slugify(slug) !== slug) throw notFound(t('wiki.notFound'));
     const page = await getPage(slug);
-    if (!canEdit(req.user, page)) throw forbidden('This page is locked. Only moderators can edit it.');
+    if (!canEdit(req.user, page)) throw forbidden(t('wiki.lockedEdit'));
 
     const title = text(req.body.title, 80);
     const body = typeof req.body.body === 'string' ? req.body.body.slice(0, MAX_BODY) : '';
@@ -192,7 +193,7 @@ module.exports = ({ db }) => {
 
     if (!title || !body.trim()) {
       res.status(400);
-      return editPage(req, res, { ...form, error: 'Title and content are both required.' });
+      return editPage(req, res, { ...form, error: t('wiki.needTitleAndBody') });
     }
     if (page) {
       const latest = await latestRevisionId(page.id);
@@ -201,7 +202,7 @@ module.exports = ({ db }) => {
         return editPage(req, res, {
           ...form,
           baseRevision: latest,
-          error: 'Someone else saved this page while you were editing. Open the page in a new tab, merge your changes into its latest version, then save again.',
+          error: t('wiki.conflict'),
         });
       }
       if (page.title === title && page.body === body) {
@@ -209,7 +210,7 @@ module.exports = ({ db }) => {
       }
     }
     if (!hasRole(req.user, 'mod') && editLimiter.hit(`wiki:${req.user.id}`)) {
-      throw Object.assign(new Error('You are editing too fast. Wait a few minutes and try again.'), { status: 429 });
+      throw Object.assign(new Error(t('wiki.tooFast')), { status: 429 });
     }
 
     // The page row only changes if nobody saved since this edit started (for a new page:
@@ -226,7 +227,7 @@ module.exports = ({ db }) => {
       [
         `INSERT INTO wiki_revisions (page_id, user_id, title, body, summary, created_at)
          SELECT id, ?, ?, ?, ?, ? FROM wiki_pages WHERE slug = ? AND changes() = 1`,
-        req.user.id, title, body, summary || (page ? '' : 'Created page'), now, slug,
+        req.user.id, title, body, summary || (page ? '' : t('wiki.createdSummary')), now, slug,
       ],
     ]);
     if (saved.changes !== 1) {
@@ -235,10 +236,10 @@ module.exports = ({ db }) => {
         ...form,
         page: page || (await getPage(slug)),
         baseRevision: base,
-        error: 'Someone else saved this page while you were editing. Open the page in a new tab, merge your changes into its latest version, then save again.',
+        error: t('wiki.conflict'),
       });
     }
-    res.flash('success', page ? 'Page saved.' : 'Page created. Thanks for contributing!');
+    res.flash('success', page ? t('wiki.saved') : t('wiki.created'));
     res.redirect(`/wiki/${slug}`);
   });
 
@@ -249,20 +250,20 @@ module.exports = ({ db }) => {
     const revisions = await db.all(`SELECT r.id, r.summary, r.created_at, length(r.body) AS size, u.username, u.role, u.verified
            FROM wiki_revisions r JOIN users u ON u.id = r.user_id WHERE r.page_id = ? ORDER BY r.id DESC LIMIT 200`, page.id);
     res.page({
-      title: `History of ${page.title}`,
+      title: t('wiki.historyOf', { title: page.title }),
       active: '/wiki',
       body: html`
-        <p class="crumbs"><a href="/wiki">Wiki</a> › <a href="/wiki/${page.slug}">${page.title}</a> ›</p>
-        <h1>History</h1>
+        <p class="crumbs"><a href="/wiki">${t('nav.wiki')}</a> › <a href="/wiki/${page.slug}">${page.title}</a> ›</p>
+        <h1>${t('wiki.history')}</h1>
         <div class="table-wrap"><table>
-          <thead><tr><th>When</th><th>Editor</th><th>Summary</th><th class="num">Size</th><th></th></tr></thead>
+          <thead><tr><th>${t('wiki.when')}</th><th>${t('wiki.editor')}</th><th>${t('wiki.summary')}</th><th class="num">${t('wiki.size')}</th><th></th></tr></thead>
           <tbody>${revisions.map(
             (r, i) => html`<tr>
               <td>${dateTime(r.created_at)}</td>
               <td>${userLink(r)}</td>
-              <td>${r.summary || html`<span class="muted">–</span>`}${i === 0 ? html` <span class="pill">Current</span>` : ''}</td>
+              <td>${r.summary || html`<span class="muted">–</span>`}${i === 0 ? html` <span class="pill">${t('wiki.current')}</span>` : ''}</td>
               <td class="num">${r.size}</td>
-              <td><a href="/wiki/${page.slug}/rev/${r.id}">View</a></td>
+              <td><a href="/wiki/${page.slug}/rev/${r.id}">${t('common.view')}</a></td>
             </tr>`
           )}</tbody>
         </table></div>`,
@@ -273,15 +274,15 @@ module.exports = ({ db }) => {
     const page = await loadPage(req.params.slug);
     const rev = await db.get(`SELECT r.*, u.username, u.role, u.verified FROM wiki_revisions r JOIN users u ON u.id = r.user_id
           WHERE r.id = ? AND r.page_id = ?`, intParam(req.params.id) || 0, page.id);
-    if (!rev) throw notFound('Revision not found.');
+    if (!rev) throw notFound(t('wiki.revisionNotFound'));
     res.page({
-      title: `${page.title} (old version)`,
+      title: t('wiki.oldVersion', { title: page.title }),
       active: '/wiki',
       body: html`
-        <p class="crumbs"><a href="/wiki">Wiki</a> › <a href="/wiki/${page.slug}">${page.title}</a> › <a href="/wiki/${page.slug}/history">History</a> ›</p>
-        <div class="flash flash-info">You are viewing the version saved by ${userLink(rev)} ${dateTime(rev.created_at)}.
+        <p class="crumbs"><a href="/wiki">${t('nav.wiki')}</a> › <a href="/wiki/${page.slug}">${page.title}</a> › <a href="/wiki/${page.slug}/history">${t('wiki.history')}</a> ›</p>
+        <div class="flash flash-info">${th('wiki.viewingOld', { user: userLink(rev), when: dateTime(rev.created_at) })}
           ${hasRole(req.user, 'mod')
-            ? html`<form method="post" action="/wiki/${page.slug}/revert/${rev.id}" class="inline" data-confirm="Restore this version?">${csrfField(res)}<button class="btn btn-small">Restore this version</button></form>`
+            ? html`<form method="post" action="/wiki/${page.slug}/revert/${rev.id}" class="inline" data-confirm="${t('wiki.restoreConfirm')}">${csrfField(res)}<button class="btn btn-small">${t('wiki.restore')}</button></form>`
             : ''}
         </div>
         <h1>${rev.title}</h1>
@@ -292,20 +293,20 @@ module.exports = ({ db }) => {
   router.post('/wiki/:slug/revert/:id', requireRole('mod'), async (req, res) => {
     const page = await loadPage(req.params.slug);
     const rev = await db.get('SELECT * FROM wiki_revisions WHERE id = ? AND page_id = ?', intParam(req.params.id) || 0, page.id);
-    if (!rev) throw notFound('Revision not found.');
+    if (!rev) throw notFound(t('wiki.revisionNotFound'));
     const now = Date.now();
     await db.batch([
       ['UPDATE wiki_pages SET title = ?, body = ?, updated_at = ? WHERE id = ?', rev.title, rev.body, now, page.id],
-      ['INSERT INTO wiki_revisions (page_id, user_id, title, body, summary, created_at) VALUES (?, ?, ?, ?, ?, ?)', page.id, req.user.id, rev.title, rev.body, `Restored revision #${rev.id}`, now],
+      ['INSERT INTO wiki_revisions (page_id, user_id, title, body, summary, created_at) VALUES (?, ?, ?, ?, ?, ?)', page.id, req.user.id, rev.title, rev.body, t('wiki.restoredSummary', { id: rev.id }), now],
     ]);
-    res.flash('success', 'Version restored.');
+    res.flash('success', t('wiki.restored'));
     res.redirect(`/wiki/${page.slug}`);
   });
 
   router.post('/wiki/:slug/lock', requireRole('mod'), async (req, res) => {
     const page = await loadPage(req.params.slug);
     await db.run('UPDATE wiki_pages SET locked = ? WHERE id = ?', page.locked ? 0 : 1, page.id);
-    res.flash('success', page.locked ? 'Page unlocked.' : 'Page locked. Only moderators can edit it now.');
+    res.flash('success', page.locked ? t('wiki.unlocked') : t('wiki.lockedFlash'));
     res.redirect(`/wiki/${page.slug}`);
   });
 

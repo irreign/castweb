@@ -1,11 +1,14 @@
 'use strict';
 
 const express = require('express');
-const { sessionMiddleware, csrfProtection } = require('./auth');
+const { sessionMiddleware, csrfProtection, safeNext } = require('./auth');
+const { i18nMiddleware, isLang, LANG_COOKIE, t } = require('./i18n');
+const { multipart } = require('./multipart');
 const { html, layout } = require('./render');
 
 const ROUTES = [
   require('./routes/home'),
+  require('./routes/news'),
   require('./routes/auth'),
   require('./routes/forum'),
   require('./routes/wiki'),
@@ -13,6 +16,9 @@ const ROUTES = [
   require('./routes/fas'),
   require('./routes/profile'),
   require('./routes/verify'),
+  require('./routes/friends'),
+  require('./routes/report'),
+  require('./routes/uploads'),
   require('./routes/admin'),
 ];
 
@@ -32,7 +38,7 @@ function createApp(db, { staticDir, trustProxy = false, cloudflare = false } = {
   app.use((req, res, next) => {
     res.set({
       'Content-Security-Policy':
-        "default-src 'self'; img-src 'self' https: data:; style-src 'self'; script-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
+        "default-src 'self'; img-src 'self' https: data: blob:; style-src 'self'; script-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
       'X-Content-Type-Options': 'nosniff',
       'Referrer-Policy': 'same-origin',
       'X-Frame-Options': 'DENY',
@@ -47,6 +53,7 @@ function createApp(db, { staticDir, trustProxy = false, cloudflare = false } = {
   });
   app.use(express.urlencoded({ extended: false, limit: '200kb' }));
   app.use(sessionMiddleware(db));
+  app.use(i18nMiddleware);
 
   // Render helper: res.page({ title, body, active })
   app.use((req, res, next) => {
@@ -54,15 +61,30 @@ function createApp(db, { staticDir, trustProxy = false, cloudflare = false } = {
     next();
   });
 
+  app.use(multipart);
   app.use(csrfProtection);
+
+  // Language picker: remembers the choice for a year, then goes back to the page.
+  app.get('/lang/:code', (req, res) => {
+    if (isLang(req.params.code)) {
+      res.cookie(LANG_COOKIE, req.params.code, {
+        maxAge: 365 * 86400000,
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: req.secure || app.get('secure cookies') === true,
+        path: '/',
+      });
+    }
+    res.redirect(safeNext(req.query.next));
+  });
 
   const ctx = { db };
   for (const routes of ROUTES) app.use(routes(ctx));
 
   app.use((req, res) => {
     res.status(404).page({
-      title: 'Not found',
-      body: html`<section class="empty"><h1>Page not found</h1><p>That page doesn't exist. <a href="/">Back to the home page</a>.</p></section>`,
+      title: t('errors.notFoundTitle'),
+      body: html`<section class="empty"><h1>${t('errors.notFoundTitle')}</h1><p>${t('errors.pageMissing')} <a href="/">${t('errors.backHome')}</a></p></section>`,
     });
   });
 
@@ -70,12 +92,15 @@ function createApp(db, { staticDir, trustProxy = false, cloudflare = false } = {
   app.use((err, req, res, next) => {
     const status = err.status || err.statusCode || 500;
     if (status >= 500) console.error(err);
-    const message = status >= 500 ? 'Something went wrong on our side. Please try again.' : err.message;
+    let message = err.message;
+    if (status >= 500) message = t('errors.server');
+    else if (err.type === 'entity.too.large') message = t('errors.tooLarge');
+    else if (err.expose === true && err.type) message = t('errors.badRequest'); // body-parser errors
     res.status(status);
     if (!res.page) return res.type('text').send(message);
     res.page({
-      title: 'Error',
-      body: html`<section class="empty"><h1>${status === 403 ? 'Not allowed' : 'Something went wrong'}</h1><p>${message}</p></section>`,
+      title: t('errors.title'),
+      body: html`<section class="empty"><h1>${status === 403 ? t('errors.notAllowed') : t('errors.title')}</h1><p>${message}</p></section>`,
     });
   });
 

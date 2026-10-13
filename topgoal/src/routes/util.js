@@ -1,12 +1,13 @@
 'use strict';
 
 const { wikiLinkSlugs } = require('../render');
+const { t } = require('../i18n');
 
-function notFound(message = 'Not found.') {
+function notFound(message = t('errors.notFound')) {
   return Object.assign(new Error(message), { status: 404 });
 }
 
-function forbidden(message = 'You do not have permission to do that.') {
+function forbidden(message = t('errors.forbidden')) {
   return Object.assign(new Error(message), { status: 403 });
 }
 
@@ -43,4 +44,8 @@ async function wikiLinkChecker(db, sources) {
   return (slug) => existing.has(slug);
 }
 
-module.exports = { notFound, forbidden, intParam, text, paging, wikiLinkChecker };
+function badRequest(message) {
+  return Object.assign(new Error(message), { status: 400 });
+}
+
+module.exports = { notFound, forbidden, badRequest, intParam, text, paging, wikiLinkChecker };
